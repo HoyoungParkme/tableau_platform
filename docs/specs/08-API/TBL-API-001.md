@@ -315,6 +315,20 @@ preflight가 준 `stagingId`로 실행. L0·L1 적재, 미매핑 수집, 회귀 
       '200': { content: { application/json: { schema: { $ref: '#/components/schemas/MasterDiff' } } } }
 ```
 
+#### POST/api/admin/intel/master/confirm/{stagingId} 마스터 확정
+
+화면 [[TBL-UI-001#UI-5]] · 유스케이스 [[TBL-UC-001#UC-A2]] · 서비스 `MasterService.confirm`
+
+upload가 준 stagingId의 차이를 새 마스터 버전으로 반영한다. 다음 배치부터 적용된다.
+
+```yaml
+/api/admin/intel/master/confirm/{stagingId}:
+  post:
+    parameters: [{ name: stagingId, in: path, schema: { type: string } }]
+    responses:
+      '201': { content: { application/json: { schema: { $ref: '#/components/schemas/MasterVersion' } } } }
+```
+
 ### 3.5 관리: 설정
 
 #### GET/api/admin/intel/config 설정 조회
@@ -346,8 +360,215 @@ preflight가 준 `stagingId`로 실행. L0·L1 적재, 미매핑 수집, 회귀 
 
 ## 4. 스키마
 
-다음 버전.
+```yaml
+components:
+  securitySchemes:
+    intelToken: { type: apiKey, in: query, name: token }
+  responses:
+    Problem:
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties: { type: { type: string }, title: { type: string }, status: { type: integer }, detail: { type: string }, instance: { type: string } }
+  schemas:
+    Claim:
+      type: object
+      properties: { seq: { type: integer }, text: { type: string }, footnotes: { type: array, items: { type: integer } } }
+    Evidence:
+      type: object
+      properties:
+        seq: { type: integer }
+        kind: { type: string, enum: [event, article, market, signal] }
+        display: { type: object }
+    Indicator:
+      type: object
+      properties: { identifier: { type: string }, label: { type: string }, value: { type: number, nullable: true }, changePct: { type: number, nullable: true }, asOf: { type: string, format: date }, stale: { type: boolean } }
+    DomainStatus:
+      type: object
+      properties:
+        domain: { type: string, enum: [production, sales, inventory] }
+        signal: { type: string, enum: [RED, YELLOW, MONITOR] }
+        claims: { type: array, items: { $ref: '#/components/schemas/Claim' } }
+        dataQualityNote: { type: string, nullable: true }
+    WatchlistCard:
+      type: object
+      properties:
+        iso3: { type: string }
+        countryName: { type: string }
+        signal: { type: string, enum: [RED, YELLOW] }
+        changeBadge: { type: string, nullable: true, enum: [new, up, down] }
+        cbuRatio: { type: number, nullable: true }
+        exposure: { type: string, enum: [CBU, CKD, unknown] }
+        entityTags: { type: array, items: { type: string } }
+        structuredSignal:
+          type: object
+          properties: { metric: { type: string }, value: { type: number, nullable: true }, changePct: { type: number, nullable: true }, method: { type: string, enum: [YoY, MoM, none] } }
+        inventorySignal:
+          type: object
+          nullable: true
+          properties: { voyage: { type: integer }, waiting: { type: integer }, ratio: { type: number } }
+        event:
+          type: object
+          properties: { eventId: { type: integer }, title: { type: string }, category: { type: string }, severity: { type: number }, articleCount: { type: integer } }
+        summary: { $ref: '#/components/schemas/Claim' }
+        evidenceSeqs: { type: array, items: { type: integer } }
+    BriefingView:
+      type: object
+      required: [briefingId, asOfDate, dataMaxDates, degraded, indicatorBar, headline, domainStatus, watchlist]
+      properties:
+        briefingId: { type: integer }
+        asOfDate: { type: string, format: date }
+        version: { type: integer }
+        dataMaxDates: { type: object, additionalProperties: { type: string, format: date } }
+        degraded: { type: boolean }
+        degradeReason: { type: string, nullable: true }
+        indicatorBar: { type: array, items: { $ref: '#/components/schemas/Indicator' } }
+        headline: { $ref: '#/components/schemas/Claim' }
+        headlineBadge: { type: string }
+        domainStatus: { type: array, items: { $ref: '#/components/schemas/DomainStatus' } }
+        watchlist: { type: array, items: { $ref: '#/components/schemas/WatchlistCard' } }
+        evidence: { type: array, items: { $ref: '#/components/schemas/Evidence' } }
+    DetailRow:
+      type: object
+      properties: { iso3: { type: string }, countryName: { type: string }, wholesaleMtd: { type: integer }, wholesaleCmp: { type: integer, nullable: true }, changePct: { type: number, nullable: true }, method: { type: string } }
+    DetailView:
+      type: object
+      properties:
+        iso3: { type: string }
+        countryName: { type: string }
+        table: { type: array, items: { $ref: '#/components/schemas/DetailRow' } }
+        claims: { type: array, items: { $ref: '#/components/schemas/Claim' } }
+        chips: { type: array, items: { type: object, properties: { kind: { type: string }, count: { type: integer } } } }
+        evidence: { type: array, items: { $ref: '#/components/schemas/Evidence' } }
+        indicators: { type: array, items: { $ref: '#/components/schemas/Indicator' } }
+    Preflight:
+      type: object
+      properties:
+        stagingId: { type: string }
+        source: { type: string }
+        schemaVersion: { type: string, nullable: true }
+        columnMismatch: { type: array, items: { type: string } }
+        periodFrom: { type: string, format: date, nullable: true }
+        periodTo: { type: string, format: date, nullable: true }
+        rowCount: { type: integer }
+        nullCount: { type: integer }
+        skeletonCount: { type: integer }
+        dupSuspectDates: { type: array, items: { type: string, format: date } }
+        overlapsExisting: { type: boolean }
+    IngestRun:
+      type: object
+      properties:
+        runId: { type: integer }
+        source: { type: string }
+        schemaVersion: { type: string }
+        periodFrom: { type: string, format: date }
+        periodTo: { type: string, format: date }
+        rowCount: { type: integer }
+        nullRate: { type: number }
+        matchRates: { type: object, additionalProperties: { type: number } }
+        dupRate: { type: number }
+        regressionFlag: { type: boolean }
+        backfill: { type: boolean }
+        status: { type: string }
+        filePath: { type: string }
+        createdAt: { type: string, format: date-time }
+    IngestRunList:
+      type: object
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/IngestRun' } }, nextCursor: { type: string, nullable: true } }
+    BatchStatus:
+      type: object
+      properties:
+        lastSuccessAt: { type: string, format: date-time, nullable: true }
+        nextScheduledAt: { type: string, format: date-time }
+        blocked: { type: boolean }
+        blockedReason: { type: string, nullable: true }
+        running: { type: boolean }
+        todayTokens: { type: integer }
+        tokenCap: { type: integer }
+    BatchRun:
+      type: object
+      properties:
+        runId: { type: integer }
+        asOfDate: { type: string, format: date }
+        trigger: { type: string, enum: [schedule, manual, regenerate] }
+        status: { type: string, enum: [running, success, failed, degraded] }
+        failedStep: { type: integer, nullable: true }
+        durationSec: { type: integer, nullable: true }
+        llmTokens: { type: integer }
+        briefingId: { type: integer, nullable: true }
+    BatchRunList:
+      type: object
+      properties: { items: { type: array, items: { $ref: '#/components/schemas/BatchRun' } }, nextCursor: { type: string, nullable: true } }
+    BatchStep:
+      type: object
+      properties: { step: { type: integer }, stepName: { type: string }, status: { type: string }, durationSec: { type: integer }, counts: { type: object }, error: { type: string, nullable: true } }
+    JudgmentDiff:
+      type: object
+      properties: { iso3: { type: string }, field: { type: string }, before: { type: string }, after: { type: string }, cause: { type: string, enum: [mapping, threshold, late_data, unknown] } }
+    BatchRunDetail:
+      allOf:
+        - { $ref: '#/components/schemas/BatchRun' }
+        - type: object
+          properties:
+            steps: { type: array, items: { $ref: '#/components/schemas/BatchStep' } }
+            diff: { type: array, nullable: true, items: { $ref: '#/components/schemas/JudgmentDiff' } }
+    PublishResult:
+      type: object
+      properties: { briefingId: { type: integer }, asOfDate: { type: string, format: date }, version: { type: integer } }
+    MasterVersion:
+      type: object
+      properties: { master: { type: string }, version: { type: integer }, changedBy: { type: string }, createdAt: { type: string, format: date-time }, note: { type: string } }
+    MasterView:
+      type: object
+      properties:
+        version: { type: integer }
+        rows: { type: array, items: { type: object } }
+        history: { type: array, items: { $ref: '#/components/schemas/MasterVersion' } }
+    MappingGap:
+      type: object
+      properties: { master: { type: string }, rawValue: { type: string }, occurrences: { type: integer }, firstSeen: { type: string, format: date }, lastSeen: { type: string, format: date } }
+    MasterSheetDiff:
+      type: object
+      properties: { master: { type: string }, added: { type: integer }, changed: { type: integer }, removed: { type: integer }, removedValues: { type: array, items: { type: string } }, affectedKeys: { type: array, items: { type: string } } }
+    MasterDiff:
+      type: object
+      properties:
+        stagingId: { type: string }
+        sheets: { type: array, items: { $ref: '#/components/schemas/MasterSheetDiff' } }
+    ThresholdConfig:
+      type: object
+      properties:
+        version: { type: integer, readOnly: true }
+        yoyThreshold: { type: number }
+        minEvidenceSeverity: { type: number }
+        minEvidenceCount: { type: integer }
+        cbuDominantRatio: { type: number }
+        eventWindowDays: { type: integer }
+        inventoryStayRatio: { type: number }
+        llmTokenDailyCap: { type: integer }
+        regressionTolerance: { type: object }
+        indicatorBar: { type: array, items: { type: string } }
+        reason: { type: string }
+        changedBy: { type: string, readOnly: true }
+        effectiveFrom: { type: string, format: date-time, readOnly: true }
+    ThresholdConfigInput:
+      allOf:
+        - { $ref: '#/components/schemas/ThresholdConfig' }
+        - { type: object, required: [reason] }
+    ConfigView:
+      type: object
+      properties:
+        current: { $ref: '#/components/schemas/ThresholdConfig' }
+        ranges: { type: object }
+        history: { type: array, items: { $ref: '#/components/schemas/ThresholdConfig' } }
+```
 
 ## 5. 미결사항
 
-- [ ] 전체 본문 반영
+- [ ] 토큰 전달 방식: 쿼리 token만 쓸지 헤더도 허용할지. 가정: 둘 다
+- [ ] 뉴스 원본 대용량 업로드의 청크 프로토콜(단일 multipart 한도)
+- [ ] 알림 채널 어댑터 API(발송 상태 조회)는 채널 확정 후 추가
+- [ ] 관리 API의 발주자 데이터서비스팀 권한 등급
+- [ ] BriefingView의 evidence를 전체로 줄지 카드별 지연 로딩할지. 가정: 전체(수백 건 이내)
+- [ ] 판매 상세의 스파크라인 4회 호출을 DetailView에 포함시켜 1회로 줄일지 (SEQ 되먹임)
