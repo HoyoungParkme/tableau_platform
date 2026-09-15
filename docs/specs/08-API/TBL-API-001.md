@@ -266,6 +266,35 @@ preflight가 준 `stagingId`로 실행. L0·L1 적재, 미매핑 수집, 회귀 
       '200': { description: 해제됨 }
 ```
 
+### 3.5 관리: 설정
+
+#### GET/api/admin/intel/config 설정 조회
+
+화면 [[TBL-UI-001#UI-6]] · 서비스 `ConfigService.current`
+
+```yaml
+/api/admin/intel/config:
+  get:
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ConfigView' } } } }
+```
+
+#### POST/api/admin/intel/config 설정 저장(새 버전)
+
+화면 [[TBL-UI-001#UI-6]] · 유스케이스 [[TBL-UC-001#UC-A3]] · 서비스 `ConfigService.save`
+
+```yaml
+/api/admin/intel/config:
+  post:
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ThresholdConfigInput' }
+    responses:
+      '201': { content: { application/json: { schema: { $ref: '#/components/schemas/ThresholdConfig' } } } }
+      '422': { $ref: '#/components/responses/Problem' }
+```
+
 ## 4. 스키마
 
 다음 버전.
