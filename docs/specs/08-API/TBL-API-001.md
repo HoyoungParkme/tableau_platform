@@ -10,42 +10,360 @@ upstream: [TBL-UI-001, TBL-UC-001, TBL-DOM-001, TBL-INFRA-001]
 
 ## 0. 이 문서가 다루는 것
 
-backend 열람·관리 REST 엔드포인트. 전체 본문은 다음 버전에서 채운다.
+backend `web/public`(현업 열람, 토큰)과 `web/admin`(관리, 세션)의 REST 엔드포인트다. OpenAPI 3.1 조각을 엔드포인트마다 둔다. 열람 API는 pub 스키마만 읽는다([[TBL-INFRA-001#C10]]). 배치 파이프라인 자체는 API가 아니라 스케줄러 프로세스이며 관리 API가 트리거만 한다.
 
 ## 1. 규칙
 
-경로 접두: 현업 `/api/intel/*`, 관리 `/api/admin/intel/*`.
+- 경로 접두: 현업 `/api/intel/*`, 관리 `/api/admin/intel/*`.
+- 인증: 현업은 쿼리 `token`(서명, 사번, 만료) 또는 헤더 `X-Intel-Token`. 관리는 세션 쿠키 + 관리자 권한.
+- 시각은 ISO 8601, 날짜는 `YYYY-MM-DD`. 수치는 정수 대수, 비율은 소수(0.153).
+- 목록은 `limit`(기본 50, 최대 500)과 `cursor`.
+- 쓰기 응답은 202(배치 트리거)와 201(생성)을 구분한다.
+- 문장 텍스트는 강조 토큰(hl 태그)과 각주 번호를 포함한 원문이다. 렌더는 화면 몫.
 
 ## 2. 에러
 
-RFC 9457.
+RFC 9457 `application/problem+json`. `type`은 `urn:tbl:intel:` 뒤에 코드.
+
+| status | code | 언제 |
+|:--|:--|:--|
+| 401 | token-invalid | 토큰 서명·만료 실패 |
+| 403 | forbidden | 관리자 권한 없음 |
+| 404 | not-found | 브리핑·국가·배치 없음 |
+| 409 | batch-running | 배치 실행 중 중복 트리거 |
+| 409 | ingest-overlap | 같은 기준일 적재 중 |
+| 422 | schema-mismatch | 컬럼 대조 실패. detail에 다른 컬럼 목록 |
+| 422 | config-out-of-range | 설정 범위 밖. detail에 허용 범위 |
+| 423 | batch-blocked | 회귀 검사 차단 상태에서 자동 실행 요청 |
+| 503 | briefing-unavailable | 게시 브리핑이 아직 없음 |
 
 ## 3. 엔드포인트
+
+### 3.1 현업 열람 (토큰)
 
 #### GET/api/intel/briefing/latest 최신 게시 브리핑
 
 화면 [[TBL-UI-001#UI-1]] · 유스케이스 [[TBL-UC-001#UC-H1]] · 서비스 `BriefingQuery.latest`
 
+응답 1회로 지표 바, 헤드라인, 도메인 상태, 워치리스트 카드(근거 포함)를 전부 준다. LLM 호출 없음.
+
 ```yaml
 /api/intel/briefing/latest:
   get:
     summary: 최신 게시 브리핑
+    security: [{ intelToken: [] }]
+    responses:
+      '200':
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BriefingView' }
+      '503': { $ref: '#/components/responses/Problem' }
 ```
 
 #### GET/api/intel/briefing/{briefingId} 특정 브리핑
 
-화면 [[TBL-UI-001#UI-1]] · 서비스 `BriefingQuery.get`
+화면 [[TBL-UI-001#UI-1]] · 유스케이스 [[TBL-UC-001#UC-H1]] · 서비스 `BriefingQuery.get`
+
+게시본만 조회한다. 미게시 버전은 404.
 
 ```yaml
 /api/intel/briefing/{briefingId}:
   get:
     parameters: [{ name: briefingId, in: path, schema: { type: integer } }]
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/BriefingView' } } } }
+```
+
+#### GET/api/intel/briefing/{briefingId}/detail/{iso3} 판매 상세
+
+화면 [[TBL-UI-001#UI-2]] · 유스케이스 [[TBL-UC-001#UC-H3]] · 서비스 `BriefingQuery.detail`
+
+```yaml
+/api/intel/briefing/{briefingId}/detail/{iso3}:
+  get:
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/DetailView' } } } }
+```
+
+#### GET/api/intel/indicators/{identifier}/series 시장지표 시계열
+
+화면 [[TBL-UI-001#UI-1]] [[TBL-UI-001#UI-2]] · 서비스 `IndicatorQuery.series`
+
+스파크라인용. `days` 기본 30.
+
+```yaml
+/api/intel/indicators/{identifier}/series:
+  get:
+    parameters:
+      - { name: identifier, in: path, schema: { type: string } }
+      - { name: days, in: query, schema: { type: integer, default: 30, maximum: 365 } }
+    responses:
+      '200':
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                identifier: { type: string }
+                label: { type: string }
+                points: { type: array, items: { type: object, properties: { date: { type: string, format: date }, value: { type: number } } } }
+```
+
+### 3.2 관리: 적재 (세션)
+
+#### POST/api/admin/intel/ingest/preflight 적재 사전 검증
+
+화면 [[TBL-UI-001#UI-3]] · 유스케이스 [[TBL-UC-001#UC-A1]] · 서비스 `IngestService.preflight`
+
+파일을 임시 저장하고 스키마 판별, 컬럼 대조, 기간, 행수, 결측, 골격 행, 중복 의심을 돌려준다. 적재하지 않는다.
+
+```yaml
+/api/admin/intel/ingest/preflight:
+  post:
+    requestBody:
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required: [source, file]
+            properties:
+              source: { type: string, enum: [prod, sales, news, bbg, mkl, crosswalk] }
+              file: { type: string, format: binary }
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/Preflight' } } } }
+      '422': { $ref: '#/components/responses/Problem' }
+```
+
+#### POST/api/admin/intel/ingest 적재 실행
+
+화면 [[TBL-UI-001#UI-3]] · 유스케이스 [[TBL-UC-001#UC-A1]] · 서비스 `IngestService.run`
+
+preflight가 준 `stagingId`로 실행. L0·L1 적재, 미매핑 수집, 회귀 검사까지. 완료 후 ingest_run을 돌려준다.
+
+```yaml
+/api/admin/intel/ingest:
+  post:
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [stagingId]
+            properties:
+              stagingId: { type: string }
+              backfill: { type: boolean, default: false }
+              overwrite: { type: boolean, default: false }
+    responses:
+      '201': { content: { application/json: { schema: { $ref: '#/components/schemas/IngestRun' } } } }
+      '409': { $ref: '#/components/responses/Problem' }
+```
+
+#### GET/api/admin/intel/ingest/runs 적재 이력
+
+화면 [[TBL-UI-001#UI-3]] · 서비스 `IngestService.list`
+
+```yaml
+/api/admin/intel/ingest/runs:
+  get:
+    parameters:
+      - { name: source, in: query, schema: { type: string } }
+      - { name: limit, in: query, schema: { type: integer, default: 50 } }
+      - { name: cursor, in: query, schema: { type: string } }
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/IngestRunList' } } } }
+```
+
+### 3.3 관리: 배치
+
+#### GET/api/admin/intel/batch/status 배치 상태 요약
+
+화면 [[TBL-UI-001#UI-4]] · 서비스 `BatchService.status`
+
+```yaml
+/api/admin/intel/batch/status:
+  get:
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/BatchStatus' } } } }
+```
+
+#### GET/api/admin/intel/batch/runs 배치 이력
+
+화면 [[TBL-UI-001#UI-4]] · 서비스 `BatchService.list`
+
+```yaml
+/api/admin/intel/batch/runs:
+  get:
+    parameters:
+      - { name: limit, in: query, schema: { type: integer, default: 50 } }
+      - { name: cursor, in: query, schema: { type: string } }
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/BatchRunList' } } } }
+```
+
+#### GET/api/admin/intel/batch/runs/{runId} 배치 상세
+
+화면 [[TBL-UI-001#UI-4]] · 서비스 `BatchService.get`
+
+단계별 로그와, 재생성 배치면 당시 판정과의 차이를 포함한다.
+
+```yaml
+/api/admin/intel/batch/runs/{runId}:
+  get:
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/BatchRunDetail' } } } }
+```
+
+#### POST/api/admin/intel/batch/run 배치 실행·재생성
+
+화면 [[TBL-UI-001#UI-4]] · 유스케이스 [[TBL-UC-001#UC-A4]] · 서비스 `BatchService.trigger`
+
+기준일과 시작 단계를 받아 비동기로 돌린다. 이미 실행 중이면 409.
+
+```yaml
+/api/admin/intel/batch/run:
+  post:
+    requestBody:
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [asOfDate]
+            properties:
+              asOfDate: { type: string, format: date }
+              startStep: { type: integer, minimum: 1, maximum: 7, default: 1 }
+              backfill: { type: boolean, default: false }
+    responses:
+      '202': { content: { application/json: { schema: { $ref: '#/components/schemas/BatchRun' } } } }
+      '409': { $ref: '#/components/responses/Problem' }
+      '423': { $ref: '#/components/responses/Problem' }
+```
+
+#### POST/api/admin/intel/batch/runs/{runId}/publish 재생성본 게시 전환
+
+화면 [[TBL-UI-001#UI-4]] · 유스케이스 [[TBL-UC-001#UC-A4]] · 서비스 `BatchService.publish`
+
+해당 배치가 만든 briefing을 그 기준일의 게시본으로 바꾼다. 이전 게시본은 published=false로 남는다.
+
+```yaml
+/api/admin/intel/batch/runs/{runId}/publish:
+  post:
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/PublishResult' } } } }
+```
+
+#### POST/api/admin/intel/batch/unblock 회귀 차단 해제
+
+화면 [[TBL-UI-001#UI-4]] · 유스케이스 [[TBL-UC-001#UC-S6]] · 서비스 `BatchService.unblock`
+
+```yaml
+/api/admin/intel/batch/unblock:
+  post:
+    requestBody:
+      content:
+        application/json:
+          schema: { type: object, required: [reason], properties: { reason: { type: string } } }
+    responses:
+      '200': { description: 해제됨 }
+```
+
+### 3.4 관리: 마스터
+
+#### GET/api/admin/intel/master/{name} 마스터 조회
+
+화면 [[TBL-UI-001#UI-5]] · 서비스 `MasterService.get`
+
+`name`은 country, factory, news_category, routing, series_map, strait_country, glovis_entity, model_cbu_ckd.
+
+```yaml
+/api/admin/intel/master/{name}:
+  get:
+    parameters: [{ name: name, in: path, schema: { type: string } }]
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/MasterView' } } } }
+```
+
+#### GET/api/admin/intel/master/gaps 미매핑 목록
+
+화면 [[TBL-UI-001#UI-5]] · 유스케이스 [[TBL-UC-001#UC-A2]] · 서비스 `MasterService.gaps`
+
+`format=csv`면 파일로.
+
+```yaml
+/api/admin/intel/master/gaps:
+  get:
+    parameters:
+      - { name: master, in: query, schema: { type: string } }
+      - { name: format, in: query, schema: { type: string, enum: [json, csv], default: json } }
+    responses:
+      '200': { content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/MappingGap' } } } } }
+```
+
+#### POST/api/admin/intel/master/upload 크로스워크 업로드(차이 계산)
+
+화면 [[TBL-UI-001#UI-5]] · 유스케이스 [[TBL-UC-001#UC-A2]] · 서비스 `MasterService.stage`
+
+엑셀을 받아 시트별 차이와 영향 범위를 돌려준다. 반영하지 않는다.
+
+```yaml
+/api/admin/intel/master/upload:
+  post:
+    requestBody:
+      content:
+        multipart/form-data:
+          schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } }
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/MasterDiff' } } } }
+```
+
+#### POST/api/admin/intel/master/upload/{stagingId}/confirm 마스터 확정
+
+화면 [[TBL-UI-001#UI-5]] · 유스케이스 [[TBL-UC-001#UC-A2]] · 서비스 `MasterService.confirm`
+
+```yaml
+/api/admin/intel/master/upload/{stagingId}/confirm:
+  post:
+    responses:
+      '201': { content: { application/json: { schema: { $ref: '#/components/schemas/MasterVersion' } } } }
+```
+
+### 3.5 관리: 설정
+
+#### GET/api/admin/intel/config 설정 조회
+
+화면 [[TBL-UI-001#UI-6]] · 서비스 `ConfigService.current`
+
+```yaml
+/api/admin/intel/config:
+  get:
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ConfigView' } } } }
+```
+
+#### POST/api/admin/intel/config 설정 저장(새 버전)
+
+화면 [[TBL-UI-001#UI-6]] · 유스케이스 [[TBL-UC-001#UC-A3]] · 서비스 `ConfigService.save`
+
+```yaml
+/api/admin/intel/config:
+  post:
+    requestBody:
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ThresholdConfigInput' }
+    responses:
+      '201': { content: { application/json: { schema: { $ref: '#/components/schemas/ThresholdConfig' } } } }
+      '422': { $ref: '#/components/responses/Problem' }
 ```
 
 ## 4. 스키마
 
-다음 버전.
+다음 버전에서 채운다(BriefingView, Claim, WatchlistCard, Evidence, DetailView, Preflight, IngestRun, IngestRunList, BatchStatus, BatchRun, BatchRunList, BatchRunDetail, PublishResult, MasterView, MappingGap, MasterDiff, MasterVersion, ConfigView, ThresholdConfig, ThresholdConfigInput).
 
 ## 5. 미결사항
 
-- [ ] 전체 본문 반영
+- [ ] 토큰 전달 방식: 쿼리 token만 쓸지 헤더도 허용할지. 가정: 둘 다
+- [ ] 뉴스 원본 대용량 업로드의 청크 프로토콜(단일 multipart 한도)
+- [ ] 알림 채널 어댑터 API(발송 상태 조회)는 채널 확정 후 추가
+- [ ] 관리 API의 발주자 데이터서비스팀 권한 등급
+- [ ] BriefingView의 evidence를 전체로 줄지 카드별 지연 로딩할지. 가정: 전체(수백 건 이내)
+- [ ] 판매 상세의 스파크라인 4회 호출을 DetailView에 포함시켜 1회로 줄일지 (SEQ 되먹임)
