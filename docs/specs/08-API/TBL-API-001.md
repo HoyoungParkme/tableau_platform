@@ -298,6 +298,23 @@ preflight가 준 `stagingId`로 실행. L0·L1 적재, 미매핑 수집, 회귀 
       '200': { content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/MappingGap' } } } } }
 ```
 
+#### POST/api/admin/intel/master/upload 크로스워크 업로드(차이 계산)
+
+화면 [[TBL-UI-001#UI-5]] · 유스케이스 [[TBL-UC-001#UC-A2]] · 서비스 `MasterService.stage`
+
+엑셀을 받아 시트별 차이와 영향 범위를 돌려준다. 반영하지 않는다.
+
+```yaml
+/api/admin/intel/master/upload:
+  post:
+    requestBody:
+      content:
+        multipart/form-data:
+          schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } }
+    responses:
+      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/MasterDiff' } } } }
+```
+
 ### 3.5 관리: 설정
 
 #### GET/api/admin/intel/config 설정 조회
