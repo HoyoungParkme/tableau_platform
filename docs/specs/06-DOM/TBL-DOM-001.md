@@ -32,7 +32,7 @@ A 방식 데이터마트의 테이블 전부를 컬럼 단위로 정의한다. �
 | 근거 | 각주가 가리키는 행 | L4 |
 | 운영 이력 | 적재·배치·LLM 호출·알림·설정 버전 | ops |
 
-## 2. 개념 모델
+## 2. ERD
 
 ```mermaid
 erDiagram
@@ -70,7 +70,7 @@ erDiagram
   briefing ||--o{ alert_event : diffs
 ```
 
-## 3. 개념별 정리
+## 3. DD (테이블 정의)
 
 ### 3.1 L0 원본 (스키마 raw)
 
@@ -536,7 +536,29 @@ pk (iso3, date, batch_run_id). 재생성은 새 batch_run으로 새 행. 판정 
 | columns | jsonb | 기대 컬럼 목록 |
 | mapping | jsonb | 원본 → L1 컬럼 대응 |
 
-## 4. 경계
+## 4. 인덱스와 파티션
+
+| 테이블 | 인덱스 | 이유 |
+|:--|:--|:--|
+| sales_daily | (date), (iso3, date), (model_cd) | 국가×일 집계, CBU/CKD 유도 |
+| production_daily | (date), (iso3, date), (model_cd) | 동상 |
+| article | unique(result_id), (published_at), (category_cd) | 중복 제거, 시간창 조회 |
+| article_country | (iso3, published_date), (result_id). 월 파티션 | 사건 통합 입력. 연 400만 행 |
+| market_series | pk(identifier, date) | as-of 조회 |
+| event | (iso3, category_cd, state), (last_seen) | 열린 사건 대조 |
+| event_article | (event_id, rank), (result_id) | 근거 표시 |
+| country_daily_fact | pk(iso3, date) | |
+| signal_daily | pk(iso3, date) | |
+| judgment | (as_of date, batch_run_id), (iso3, date) | 재생성 버전 비교 |
+| briefing | (as_of_date, published) partial where published | 열람 최신본 |
+| briefing_claim | (briefing_id, section, seq) | |
+| evidence | (briefing_id, seq) | 각주 역참조 |
+| mapping_gap | (master, raw_value) unique | 누적 |
+| llm_call | (batch_run_id), (request_hash) | 토큰 집계, 재현 대조 |
+
+원본 파일은 볼륨에, L0 원본 행은 적재 배치별로 조회하므로 (ingest_run_id) 인덱스만 둔다.
+
+## 5. 경계
 
 불변식 8건. 위반은 배치 실패다.
 
@@ -551,7 +573,7 @@ pk (iso3, date, batch_run_id). 재생성은 새 batch_run으로 새 행. 판정 
 
 층 간 의존은 아래로만 흐른다. L4는 L0·L1을 직접 읽지 않고 evidence.display에 표시용 값을 복사해 둔다(열람 경로 단순화, [[TBL-INFRA-001#C10]]).
 
-## 5. 미결사항
+## 6. 미결사항
 
 - [ ] sales_daily 자연키 확정과 중복 규칙(합산 vs 최신). 3개월 샘플 9/7·9/8 중복으로 검증
 - [ ] 스톡의 월 비교값 정의(말값 vs 일평균). 가정: 기간 말값
