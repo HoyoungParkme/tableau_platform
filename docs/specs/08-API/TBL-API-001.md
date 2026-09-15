@@ -32,6 +32,16 @@ RFC 9457.
     summary: 최신 게시 브리핑
 ```
 
+#### GET/api/intel/briefing/{briefingId} 특정 브리핑
+
+화면 [[TBL-UI-001#UI-1]] · 서비스 `BriefingQuery.get`
+
+```yaml
+/api/intel/briefing/{briefingId}:
+  get:
+    parameters: [{ name: briefingId, in: path, schema: { type: integer } }]
+```
+
 ## 4. 스키마
 
 다음 버전.
