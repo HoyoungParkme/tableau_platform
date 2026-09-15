@@ -20,17 +20,17 @@ upstream: [TBL-UC-001, TBL-API-001, TBL-DOM-001, TBL-INFRA-001]
 | 관리 브라우저 | ADM | UI-3~6 | 화면 | [[TBL-UI-001#UI-3]] |
 | 열람 API | PUB | web/public 라우터 | 라우터 | [[TBL-API-001]] |
 | 관리 API | API | web/admin 라우터 | 라우터 | [[TBL-API-001]] |
-| 브리핑 조회 | BQ | BriefingQuery | 서비스 | MS |
-| 적재 | ING | IngestService | 서비스 | MS |
+| 브리핑 조회 | BQ | BriefingQuery | 서비스 | [[TBL-MS-001#BriefingQuery.latest]] |
+| 적재 | ING | IngestService | 서비스 | [[TBL-MS-001#IngestService.run]] |
 | 스케줄러 | SCH | APScheduler 프로세스 | 워커 | [[TBL-INFRA-001#C8]] |
-| 파이프라인 | PIPE | Pipeline(7단계 오케스트레이터) | 서비스 | MS |
-| 사건 통합 | EVT | EventBuilder | 서비스 | MS |
-| 결합·판정 | JDG | SignalBuilder + Judge | 서비스 | MS |
-| 서술 | NAR | Narrator + Validator | 서비스 | MS |
+| 파이프라인 | PIPE | Pipeline(7단계 오케스트레이터) | 서비스 | [[TBL-MS-001#Pipeline.run]] |
+| 사건 통합 | EVT | EventBuilder | 서비스 | [[TBL-MS-001#EventBuilder.build_events]] |
+| 결합·판정 | JDG | SignalBuilder + Judge | 서비스 | [[TBL-MS-001#Judge.judge]] |
+| 서술 | NAR | Narrator + Validator | 서비스 | [[TBL-MS-001#Narrator.narrate]] |
 | LLM 어댑터 | LLM | HchatClient (OpenAI 호환) | 어댑터 | [[TBL-INFRA-001#C3]] |
 | DB | DB | postgres raw/std/master/mart/pub/ops | 저장소 | [[TBL-DOM-001]] |
-| 마스터 | MST | MasterService | 서비스 | MS |
-| 설정 | CFG | ConfigService | 서비스 | MS |
+| 마스터 | MST | MasterService | 서비스 | [[TBL-MS-001#MasterService.stage]] |
+| 설정 | CFG | ConfigService | 서비스 | [[TBL-MS-001#ConfigService.save]] |
 
 ## 1. 대응표
 
@@ -42,9 +42,9 @@ upstream: [TBL-UC-001, TBL-API-001, TBL-DOM-001, TBL-INFRA-001]
 | [[#SEQ-4]] | [[TBL-UC-001#UC-S2]] | 없음 | |
 | [[#SEQ-5]] | [[TBL-UC-001#UC-S3]] | 없음 | |
 | [[#SEQ-6]] | [[TBL-UC-001#UC-S4]] [[TBL-UC-001#UC-S7]] | 없음 | |
-| [[#SEQ-7]] | [[TBL-UC-001#UC-A1]] [[TBL-UC-001#UC-S6]] | preflight, ingest | UI-3 |
-| [[#SEQ-8]] | [[TBL-UC-001#UC-A4]] | batch/run, publish | UI-4 |
-| [[#SEQ-9]] | [[TBL-UC-001#UC-A2]] | master/upload, confirm | UI-5 |
+| [[#SEQ-7]] | [[TBL-UC-001#UC-A1]] [[TBL-UC-001#UC-S6]] | [[TBL-API-001#POST/api/admin/intel/ingest/preflight]] [[TBL-API-001#POST/api/admin/intel/ingest]] | UI-3 |
+| [[#SEQ-8]] | [[TBL-UC-001#UC-A4]] | [[TBL-API-001#POST/api/admin/intel/batch/run]] [[TBL-API-001#POST/api/admin/intel/batch/runs/{runId}/publish]] | UI-4 |
+| [[#SEQ-9]] | [[TBL-UC-001#UC-A2]] | [[TBL-API-001#POST/api/admin/intel/master/upload]] [[TBL-API-001#POST/api/admin/intel/master/confirm/{stagingId}]] | UI-5 |
 | [[#SEQ-10]] | [[TBL-UC-001#UC-S5]] | 없음 | UI-1 배지 |
 
 #### SEQ-1 브리핑 열람
@@ -293,7 +293,7 @@ sequenceDiagram
   API->>MST: stage
   MST->>MST: 시트별 현재 버전과 diff, 영향 키 계산
   MST-->>API: MasterDiff(stagingId)
-  ADM->>API: POST master/upload/{stagingId}/confirm
+  ADM->>API: POST master/confirm/{stagingId}
   API->>MST: confirm
   MST->>DB: 새 version 행 insert, mapping_gap.resolved_version 갱신
   API-->>ADM: 201 MasterVersion
@@ -323,7 +323,7 @@ sequenceDiagram
 ## 2. 되먹일 것
 
 - DOM: judgment에 사용한 마스터 버전(country, factory, glovis_entity)도 저장할지. SEQ-8의 cause 태깅이 정확해지려면 필요하다. → [[TBL-DOM-001#judgment]] 컬럼 추가 후보.
-- DOM: 배치 차단 플래그의 저장 위치. threshold_config가 아니라 ops.batch_state 단일 행 테이블이 낫다. → 테이블 추가 후보.
+- DOM: 배치 차단 플래그의 저장 위치. threshold_config가 아니라 ops.batch_state 단일 행 테이블이 낫다. → 테이블 추가 후보. MS는 이미 batch_state를 전제로 썼다([[TBL-MS-001#IngestService.regression_check]]).
 - API: SEQ-2의 스파크라인 4회 호출을 DetailView에 포함시켜 1회로 줄일지.
 - API: preflight의 stagingId 만료 시간(가정 1시간)을 스키마에 명시.
 - UI: SEQ-1에서 503일 때 UI-1의 빈 화면 문구는 UI-1 요소 5에 이미 있음. 확인 완료.
