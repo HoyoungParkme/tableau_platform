@@ -12,6 +12,8 @@ upstream: [TBL-UI-001, TBL-UC-001, TBL-DOM-001, TBL-INFRA-001]
 
 backend `web/public`(현업 열람, 토큰)과 `web/admin`(관리, 세션)의 REST 엔드포인트다. OpenAPI 3.1 조각을 엔드포인트마다 둔다. 열람 API는 pub 스키마만 읽는다([[TBL-INFRA-001#C10]]). 배치 파이프라인 자체는 API가 아니라 스케줄러 프로세스이며 관리 API가 트리거만 한다.
 
+이 버전은 끊어진 참조만 해결한 것이다(판매 상세, 설정 조회·저장 제거). 새 방향(A1·A2·A3·C 용어, 변동 목록·원인 후보·관련도 응답)의 전면 반영은 다음 버전에서 한다. 설정(임계값·시간창·후보 상한)은 배치가 설정 테이블의 현재 버전을 읽으며 API로 바꾸지 않는다.
+
 ## 1. 규칙
 
 - 경로 접두: 현업 `/api/intel/*`, 관리 `/api/admin/intel/*`.
@@ -33,7 +35,6 @@ RFC 9457 `application/problem+json`. `type`은 `urn:tbl:intel:` 뒤에 코드.
 | 409 | batch-running | 배치 실행 중 중복 트리거 |
 | 409 | ingest-overlap | 같은 기준일 적재 중 |
 | 422 | schema-mismatch | 컬럼 대조 실패. detail에 다른 컬럼 목록 |
-| 422 | config-out-of-range | 설정 범위 밖. detail에 허용 범위 |
 | 423 | batch-blocked | 회귀 검사 차단 상태에서 자동 실행 요청 |
 | 503 | briefing-unavailable | 게시 브리핑이 아직 없음 |
 
@@ -45,7 +46,7 @@ RFC 9457 `application/problem+json`. `type`은 `urn:tbl:intel:` 뒤에 코드.
 
 화면 [[TBL-UI-001#UI-1]] · 유스케이스 [[TBL-UC-001#UC-H1]] · 서비스 `BriefingQuery.latest`
 
-응답 1회로 지표 바, 헤드라인, 도메인 상태, 워치리스트 카드(근거 포함)를 전부 준다. LLM 호출 없음.
+응답 1회로 지표 바, 헤드라인, 도메인 상태, 변동 카드(근거 포함)를 전부 준다. LLM 호출 없음.
 
 ```yaml
 /api/intel/briefing/latest:
@@ -74,22 +75,11 @@ RFC 9457 `application/problem+json`. `type`은 `urn:tbl:intel:` 뒤에 코드.
       '200': { content: { application/json: { schema: { $ref: '#/components/schemas/BriefingView' } } } }
 ```
 
-#### GET/api/intel/briefing/{briefingId}/detail/{iso3} 판매 상세
-
-화면 [[TBL-UI-001#UI-2]] · 유스케이스 [[TBL-UC-001#UC-H3]] · 서비스 `BriefingQuery.detail`
-
-```yaml
-/api/intel/briefing/{briefingId}/detail/{iso3}:
-  get:
-    responses:
-      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/DetailView' } } } }
-```
-
 #### GET/api/intel/indicators/{identifier}/series 시장지표 시계열
 
-화면 [[TBL-UI-001#UI-1]] [[TBL-UI-001#UI-2]] · 서비스 `IndicatorQuery.series`
+화면 [[TBL-UI-001#UI-1]] · 서비스 `IndicatorQuery.series`
 
-스파크라인용. `days` 기본 30.
+지표 바 팝오버 스파크라인용. `days` 기본 30.
 
 ```yaml
 /api/intel/indicators/{identifier}/series:
@@ -230,7 +220,7 @@ preflight가 준 `stagingId`로 실행. L0·L1 적재, 미매핑 수집, 회귀 
             required: [asOfDate]
             properties:
               asOfDate: { type: string, format: date }
-              startStep: { type: integer, minimum: 1, maximum: 7, default: 1 }
+              startStep: { type: integer, minimum: 1, maximum: 8, default: 1 }
               backfill: { type: boolean, default: false }
     responses:
       '202': { content: { application/json: { schema: { $ref: '#/components/schemas/BatchRun' } } } }
@@ -329,35 +319,6 @@ upload가 준 stagingId의 차이를 새 마스터 버전으로 반영한다. �
       '201': { content: { application/json: { schema: { $ref: '#/components/schemas/MasterVersion' } } } }
 ```
 
-### 3.5 관리: 설정
-
-#### GET/api/admin/intel/config 설정 조회
-
-화면 [[TBL-UI-001#UI-6]] · 서비스 `ConfigService.current`
-
-```yaml
-/api/admin/intel/config:
-  get:
-    responses:
-      '200': { content: { application/json: { schema: { $ref: '#/components/schemas/ConfigView' } } } }
-```
-
-#### POST/api/admin/intel/config 설정 저장(새 버전)
-
-화면 [[TBL-UI-001#UI-6]] · 유스케이스 [[TBL-UC-001#UC-A3]] · 서비스 `ConfigService.save`
-
-```yaml
-/api/admin/intel/config:
-  post:
-    requestBody:
-      content:
-        application/json:
-          schema: { $ref: '#/components/schemas/ThresholdConfigInput' }
-    responses:
-      '201': { content: { application/json: { schema: { $ref: '#/components/schemas/ThresholdConfig' } } } }
-      '422': { $ref: '#/components/responses/Problem' }
-```
-
 ## 4. 스키마
 
 ```yaml
@@ -429,19 +390,6 @@ components:
         domainStatus: { type: array, items: { $ref: '#/components/schemas/DomainStatus' } }
         watchlist: { type: array, items: { $ref: '#/components/schemas/WatchlistCard' } }
         evidence: { type: array, items: { $ref: '#/components/schemas/Evidence' } }
-    DetailRow:
-      type: object
-      properties: { iso3: { type: string }, countryName: { type: string }, wholesaleMtd: { type: integer }, wholesaleCmp: { type: integer, nullable: true }, changePct: { type: number, nullable: true }, method: { type: string } }
-    DetailView:
-      type: object
-      properties:
-        iso3: { type: string }
-        countryName: { type: string }
-        table: { type: array, items: { $ref: '#/components/schemas/DetailRow' } }
-        claims: { type: array, items: { $ref: '#/components/schemas/Claim' } }
-        chips: { type: array, items: { type: object, properties: { kind: { type: string }, count: { type: integer } } } }
-        evidence: { type: array, items: { $ref: '#/components/schemas/Evidence' } }
-        indicators: { type: array, items: { $ref: '#/components/schemas/Indicator' } }
     Preflight:
       type: object
       properties:
@@ -505,7 +453,7 @@ components:
       properties: { step: { type: integer }, stepName: { type: string }, status: { type: string }, durationSec: { type: integer }, counts: { type: object }, error: { type: string, nullable: true } }
     JudgmentDiff:
       type: object
-      properties: { iso3: { type: string }, field: { type: string }, before: { type: string }, after: { type: string }, cause: { type: string, enum: [mapping, threshold, late_data, unknown] } }
+      properties: { iso3: { type: string }, field: { type: string }, before: { type: string }, after: { type: string }, cause: { type: string, enum: [mapping, threshold, late_data, upstream_judgment, unknown] } }
     BatchRunDetail:
       allOf:
         - { $ref: '#/components/schemas/BatchRun' }
@@ -536,32 +484,6 @@ components:
       properties:
         stagingId: { type: string }
         sheets: { type: array, items: { $ref: '#/components/schemas/MasterSheetDiff' } }
-    ThresholdConfig:
-      type: object
-      properties:
-        version: { type: integer, readOnly: true }
-        yoyThreshold: { type: number }
-        minEvidenceSeverity: { type: number }
-        minEvidenceCount: { type: integer }
-        cbuDominantRatio: { type: number }
-        eventWindowDays: { type: integer }
-        inventoryStayRatio: { type: number }
-        llmTokenDailyCap: { type: integer }
-        regressionTolerance: { type: object }
-        indicatorBar: { type: array, items: { type: string } }
-        reason: { type: string }
-        changedBy: { type: string, readOnly: true }
-        effectiveFrom: { type: string, format: date-time, readOnly: true }
-    ThresholdConfigInput:
-      allOf:
-        - { $ref: '#/components/schemas/ThresholdConfig' }
-        - { type: object, required: [reason] }
-    ConfigView:
-      type: object
-      properties:
-        current: { $ref: '#/components/schemas/ThresholdConfig' }
-        ranges: { type: object }
-        history: { type: array, items: { $ref: '#/components/schemas/ThresholdConfig' } }
 ```
 
 ## 5. 미결사항
@@ -571,4 +493,5 @@ components:
 - [ ] 알림 채널 어댑터 API(발송 상태 조회)는 채널 확정 후 추가
 - [ ] 관리 API의 발주자 데이터서비스팀 권한 등급
 - [ ] BriefingView의 evidence를 전체로 줄지 카드별 지연 로딩할지. 가정: 전체(수백 건 이내)
-- [ ] 판매 상세의 스파크라인 4회 호출을 DetailView에 포함시켜 1회로 줄일지 (SEQ 되먹임)
+- [ ] 설정 변경 수단. API 없음. 가정: 개발자가 설정 테이블에 새 버전 행 추가
+- [ ] 다음 버전: WatchlistCard를 변동·원인 후보(관련도·인용)·내부 분해 구조로 교체, DomainStatus에 A 판정 출처 표시
