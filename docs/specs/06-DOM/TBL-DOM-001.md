@@ -12,7 +12,7 @@ upstream: [TBL-UC-001, TBL-PRD-001, TBL-INFRA-001]
 
 C 리포트(종합)를 만드는 데 필요한 개념과 개념 사이의 관계를 정한다. 리포트 이름은 [[TBL-UC-001]] 0절을 따른다. A1 생산·A2 재고·A3 판매는 대시보드에 붙는 리포트이고 C는 그 판정값을 받아 외부 원인을 붙이는 별개 리포트다.
 
-여기서 정하는 것은 "무엇이 있고 무엇과 이어지는가"다. 테이블 이름, 컬럼 타입, 인덱스는 정하지 않는다. 그것은 클래스 명세와 ERD 문서가 정하며, 서버 규칙상 API 문서가 나온 뒤에 만든다.
+여기서 정하는 것은 "무엇이 있고, 무엇을 담고, 무엇과 이어지는가"다. 속성은 개념 수준의 이름까지만 적는다. 테이블 이름, 컬럼 타입, 길이, 인덱스는 정하지 않는다. 그것은 클래스 명세와 ERD 문서가 정하며, 서버 규칙상 API 문서가 나온 뒤에 만든다.
 
 이 모델의 중심은 **변동**이다. 데이터에서 변동을 먼저 찾고, 그 변동에 원인 후보를 붙이고, 후보마다 관련도를 판단한다. 이 세 가지가 서로 다른 개념이라는 것이 이 문서의 핵심이다. 하나로 합치면 "무엇이 규칙이고 무엇이 LLM 판단인지"를 화면에서 구분할 수 없게 된다.
 
@@ -48,10 +48,197 @@ C 리포트(종합)를 만드는 데 필요한 개념과 개념 사이의 관계
 ```mermaid
 classDiagram
   direction LR
+
+  class DomainReport {
+    도메인구분
+    대시보드ID
+    기준일
+    스냅샷ID
+  }
+  class DomainJudgment {
+    도메인
+    국가
+    지표
+    기준일
+    당기값
+    비교값
+    비교방식
+    변동여부
+    변동률
+  }
+  class Contribution {
+    분해차원
+    항목명
+    기여값
+    기여비중
+    순위
+  }
+  class CountryDayFact {
+    국가
+    기준일
+    선적
+    도매
+    소매
+    재고4종
+    생산
+    CBU비중
+    품질플래그
+  }
+  class Anomaly {
+    도메인
+    국가
+    지표
+    기준일
+    값
+    비교값
+    비교방식
+    변동률
+    출처
+    설정버전
+    배치ID
+  }
+  class ThresholdSetting {
+    버전
+    변동임계값
+    재고체류임계
+    사건시간창
+    후보상한
+    신호등규칙
+    적용시각
+  }
+  class Article {
+    원본ID
+    제목
+    요약
+    출처
+    게시시각
+    시각정밀도
+    원문주소
+    카테고리
+    영향도
+  }
+  class Event {
+    제목
+    유형
+    심각도
+    국가또는해협
+    카테고리
+    처음본날
+    마지막본날
+    기사수
+    상태
+    명명주체
+  }
+  class MarketPoint {
+    지표ID
+    이름
+    날짜
+    값
+    전일대비변화율
+    지표바노출
+  }
+  class OemSales {
+    국가
+    기준월
+    제조사
+    판매량
+    인입일
+  }
+  class CauseCandidate {
+    후보유형
+    후보ID
+    규칙점수
+    시간근접도
+    잘림여부
+  }
+  class CauseLink {
+    관련도
+    설명
+    인용후보ID목록
+    검증통과
+    강등여부
+    호출ID
+  }
+  class WatchItem {
+    국가
+    신호등
+    정렬순서
+    변화배지
+    노출구분
+    법인태그
+    대표후보
+  }
+  class CReport {
+    기준일
+    버전
+    게시여부
+    데이터최신일
+    강등여부
+    헤드라인
+    도메인상태
+    지표바
+  }
+  class Claim {
+    구역
+    순서
+    본문
+    강조구간
+    각주번호목록
+    강등여부
+  }
+  class Evidence {
+    번호
+    종류
+    원본ID
+    표시값사본
+  }
+  class AlertEvent {
+    국가
+    변화종류
+    이전신호등
+    새신호등
+    발송여부
+  }
+  class Country {
+    국가코드
+    한글명
+    영문명
+    대리점코드
+    지역
+  }
+  class Strait {
+    해협코드
+    이름
+    검색어목록
+    인접국목록
+  }
+  class GlovisEntity {
+    국가
+    법인코드
+    법인명
+  }
+  class ModelExposure {
+    차종코드
+    구분
+    신뢰도
+    산출기간
+  }
+  class BatchRun {
+    기준일
+    실행계기
+    상태
+    실패단계
+    소요
+    LLM호출수
+    토큰
+    강등여부
+  }
+
   DomainReport "1" --> "*" DomainJudgment
   DomainJudgment "1" --> "*" Contribution
   DomainJudgment "1" --> "0..1" Anomaly
   CountryDayFact "1" --> "0..*" Anomaly
+  ModelExposure "1" --> "*" CountryDayFact
   Anomaly "1" --> "*" CauseCandidate
   CauseCandidate "1" --> "0..1" CauseLink
   Event "1" --> "*" Article
@@ -66,6 +253,7 @@ classDiagram
   CReport "1" --> "*" AlertEvent
   Country "1" --> "*" CountryDayFact
   Country "1" --> "*" Article
+  Country "1" --> "*" OemSales
   Strait "1" --> "*" Country
   Country "1" --> "*" GlovisEntity
   BatchRun "1" --> "*" CReport
@@ -75,6 +263,8 @@ classDiagram
 읽는 법. 왼쪽이 입력, 가운데가 판단, 오른쪽이 보이는 것이다. `DomainJudgment`에서 `Anomaly`로 가는 선이 A 리포트와 C 리포트를 잇는 유일한 통로다. 문장은 건너오지 않는다.
 
 `CauseCandidate`가 `Event`·`MarketPoint`·`Anomaly` 셋을 가리키는 것이 이 모델의 특징이다. 원인 후보는 뉴스일 수도, 시장 지표일 수도, 같은 국가의 다른 도메인 변동일 수도 있다.
+
+속성 이름은 개념 수준이다. `재고4종`은 법인재고·딜러재고·항해중·선적대기를 묶어 부른 것이고, `도메인상태`는 생산·재고·판매 세 장을 묶은 것이다. 실제 컬럼으로 펼치는 일은 ERD 문서가 한다.
 
 ## 3. 개념별 정리
 
