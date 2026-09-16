@@ -10,34 +10,34 @@ upstream: [TBL-UC-001, TBL-API-001, TBL-DOM-001, TBL-INFRA-001]
 
 ## 0. 이 문서가 다루는 것
 
-유스케이스별 객체 간 호출 순서다. 열람 경로가 LLM과 무거운 집계를 거치지 않는 것, 배치의 LLM 두 지점과 강등 분기, 두 시간축(기준일·배치 ID)이 어디서 찍히는지를 보인다.
+유스케이스별 객체 간 호출 순서다. 열람 경로가 LLM과 무거운 집계를 거치지 않는 것, 배치의 LLM 지점과 강등 분기, 두 시간축(기준일·배치 ID)이 어디서 찍히는지를 보인다.
+
+이 버전은 끊어진 참조만 해결한 것이다(SEQ-2 판매 상세 제거, 설정 생명선 제거). 새 방향(A 판정 읽기, 후보 검색, 연관 판단을 포함한 8단계와 LLM 세 지점)의 전면 반영은 다음 버전에서 한다. 삭제된 SEQ-2의 ID는 재사용하지 않는다.
 
 ### 0.1 생명선
 
 | 생명선 | 약어 | 실체 | 종류 | 정의한 곳 |
 |---|---|---|---|---|
-| 현업 브라우저 | FE | UI-1·UI-2 React 앱 | 화면 | [[TBL-UI-001#UI-1]] |
-| 관리 브라우저 | ADM | UI-3~6 | 화면 | [[TBL-UI-001#UI-3]] |
+| 현업 브라우저 | FE | UI-1 React 앱 | 화면 | [[TBL-UI-001#UI-1]] |
+| 관리 브라우저 | ADM | UI-3~5 | 화면 | [[TBL-UI-001#UI-3]] |
 | 열람 API | PUB | web/public 라우터 | 라우터 | [[TBL-API-001]] |
 | 관리 API | API | web/admin 라우터 | 라우터 | [[TBL-API-001]] |
 | 브리핑 조회 | BQ | BriefingQuery | 서비스 | [[TBL-MS-001#BriefingQuery.latest]] |
 | 적재 | ING | IngestService | 서비스 | [[TBL-MS-001#IngestService.run]] |
 | 스케줄러 | SCH | APScheduler 프로세스 | 워커 | [[TBL-INFRA-001#C8]] |
-| 파이프라인 | PIPE | Pipeline(7단계 오케스트레이터) | 서비스 | [[TBL-MS-001#Pipeline.run]] |
+| 파이프라인 | PIPE | Pipeline(단계 오케스트레이터) | 서비스 | [[TBL-MS-001#Pipeline.run]] |
 | 사건 통합 | EVT | EventBuilder | 서비스 | [[TBL-MS-001#EventBuilder.build_events]] |
 | 결합·판정 | JDG | SignalBuilder + Judge | 서비스 | [[TBL-MS-001#Judge.judge]] |
 | 서술 | NAR | Narrator + Validator | 서비스 | [[TBL-MS-001#Narrator.narrate]] |
 | LLM 어댑터 | LLM | HchatClient (OpenAI 호환) | 어댑터 | [[TBL-INFRA-001#C3]] |
 | DB | DB | postgres raw/std/master/mart/pub/ops | 저장소 | [[TBL-DOM-001]] |
 | 마스터 | MST | MasterService | 서비스 | [[TBL-MS-001#MasterService.stage]] |
-| 설정 | CFG | ConfigService | 서비스 | [[TBL-MS-001#ConfigService.save]] |
 
 ## 1. 대응표
 
 | 시퀀스 | 유스케이스 | API | 화면 |
 |:--|:--|:--|:--|
 | [[#SEQ-1]] | [[TBL-UC-001#UC-H1]] | [[TBL-API-001#GET/api/intel/briefing/latest]] | UI-1 |
-| [[#SEQ-2]] | [[TBL-UC-001#UC-H3]] | [[TBL-API-001#GET/api/intel/briefing/{briefingId}/detail/{iso3}]] | UI-2 |
 | [[#SEQ-3]] | [[TBL-UC-001#UC-S1]] | 없음(스케줄) | UI-4 |
 | [[#SEQ-4]] | [[TBL-UC-001#UC-S2]] | 없음 | |
 | [[#SEQ-5]] | [[TBL-UC-001#UC-S3]] | 없음 | |
@@ -71,34 +71,16 @@ sequenceDiagram
     PUB-->>FE: 200
   end
   FE->>FE: 강조 토큰·각주 렌더, 접힘 상태 복원
+  opt 지표 바 팝오버
+    FE->>PUB: GET /api/intel/indicators/{identifier}/series?days=30
+  end
 ```
 
 **읽을 때 볼 것**: LLM, mart, std를 전혀 읽지 않는다. evidence.display에 표시값이 복사돼 있어 조인이 없다. degraded면 FE가 안내 문구를 붙인다.
 
-#### SEQ-2 판매 상세
-
-근거: [[TBL-UC-001#UC-H3]].
-
-```mermaid
-sequenceDiagram
-  participant FE
-  participant PUB
-  participant BQ
-  participant DB
-  FE->>PUB: GET /api/intel/briefing/{id}/detail/{iso3}?token
-  PUB->>BQ: detail(id, iso3)
-  BQ->>DB: signal_daily (iso3, as_of_date) + claims section=detail:{iso3} + evidence
-  BQ->>DB: market_series as-of 4종 (표시용)
-  BQ-->>PUB: DetailView
-  PUB-->>FE: 200
-  FE->>PUB: GET /api/intel/indicators/{identifier}/series?days=30 (스파크라인 4회)
-```
-
-**읽을 때 볼 것**: 표 수치는 signal_daily 값 그대로. cmp_method가 MoM이면 FE가 안내 문구를 붙인다.
-
 #### SEQ-3 새벽 배치 전체
 
-근거: [[TBL-UC-001#UC-S1]]. 7단계 오케스트레이션과 실패 분기.
+근거: [[TBL-UC-001#UC-S1]]. 단계 오케스트레이션과 실패 분기.
 
 ```mermaid
 sequenceDiagram
@@ -115,7 +97,7 @@ sequenceDiagram
   alt blocked
     PIPE-->>SCH: skip (423 기록)
   end
-  PIPE->>ING: step1_2 대기 파일 적재·표준화 (없으면 skip)
+  PIPE->>ING: step1 대기 파일 적재·표준화 (없으면 skip)
   ING-->>PIPE: ingest_run[]
   PIPE->>EVT: step3 build_events(as_of)
   EVT-->>PIPE: event 수, llm 실패 수
@@ -132,7 +114,7 @@ sequenceDiagram
   PIPE->>DB: batch_run success/degraded, step_log, llm_tokens
 ```
 
-**읽을 때 볼 것**: step4·5 실패만 배치를 멈춘다. step3·6 실패는 강등으로 계속된다. batch_run_id가 mart·pub 모든 행에 찍힌다(두 번째 시간축).
+**읽을 때 볼 것**: step4·5 실패만 배치를 멈춘다. step3·6 실패는 강등으로 계속된다. batch_run_id가 mart·pub 모든 행에 찍힌다(두 번째 시간축). 다음 버전에서 A 판정 읽기(2단계)·후보 검색(5단계)·연관 판단(7단계)을 넣어 UC-S1의 8단계와 맞춘다.
 
 #### SEQ-4 사건 통합 (LLM 지점 1)
 
@@ -163,7 +145,7 @@ sequenceDiagram
   EVT->>DB: event upsert, event_article, 종료 판정(last_seen + window)
 ```
 
-**읽을 때 볼 것**: 백필 모드면 LLM 루프를 건너뛴다. 토큰 상한에 닿으면 남은 사건은 fallback으로 이름 붙인다.
+**읽을 때 볼 것**: 백필 모드면 LLM 루프를 건너뛴다. 토큰 상한에 닿으면 남은 사건은 fallback으로 이름 붙인다. 다음 버전에서 명명 루프를 후보 사건(UC-S11)으로 옮긴다.
 
 #### SEQ-5 결합과 판정
 
@@ -199,7 +181,7 @@ sequenceDiagram
   participant LLM
   NAR->>DB: judgment, signal_daily, event, event_article top3, market as-of
   NAR->>NAR: 항목별 판정 구조체 (≤2KB) + 근거 목록(seq 부여)
-  loop headline, domain×3, watch×N, detail×N
+  loop headline, domain×3, watch×N
     NAR->>LLM: narrate(structure, evidence list, JSON 모드)
     alt ok
       LLM-->>NAR: {text with [[hl]] and [^n]}
@@ -324,9 +306,9 @@ sequenceDiagram
 
 - DOM: judgment에 사용한 마스터 버전(country, factory, glovis_entity)도 저장할지. SEQ-8의 cause 태깅이 정확해지려면 필요하다. → [[TBL-DOM-001#judgment]] 컬럼 추가 후보.
 - DOM: 배치 차단 플래그의 저장 위치. threshold_config가 아니라 ops.batch_state 단일 행 테이블이 낫다. → 테이블 추가 후보. MS는 이미 batch_state를 전제로 썼다([[TBL-MS-001#IngestService.regression_check]]).
-- API: SEQ-2의 스파크라인 4회 호출을 DetailView에 포함시켜 1회로 줄일지.
 - API: preflight의 stagingId 만료 시간(가정 1시간)을 스키마에 명시.
 - UI: SEQ-1에서 503일 때 UI-1의 빈 화면 문구는 UI-1 요소 5에 이미 있음. 확인 완료.
+- MS: ConfigService.save는 설정 화면·API가 없어졌으므로 다음 버전에서 제거 후보. 설정은 배치가 현재 버전을 읽기만 한다.
 
 ## 3. 미결사항
 
