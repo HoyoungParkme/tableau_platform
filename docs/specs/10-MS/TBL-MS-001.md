@@ -12,6 +12,8 @@ upstream: [TBL-SEQ-001, TBL-API-001, TBL-DOM-001]
 
 시퀀스에 등장한 서비스 함수의 입력·처리·출력·예외를 의사코드 수준으로 적는다. 항목 ID는 `클래스.함수`다. 테이블은 [[TBL-DOM-001]]의 항목명을 그대로 쓴다. 분기는 `if 조건 → 결과 · else → 결과`로 쓴다. 내부 DTO는 [[TBL-API-001]] 4절 스키마와 아래 2.0의 판정 구조체 하나만 둔다.
 
+이 버전은 끊어진 참조만 해결한 것이다(BriefingQuery.detail, ConfigService.save 제거). 새 방향(A 판정 읽기, 후보 검색, 연관 판단 함수를 포함한 8단계)의 전면 반영은 다음 버전에서 한다. 설정은 배치가 threshold_config 현재 버전을 읽기만 하며, 변경은 개발자가 새 버전 행을 추가한다(가정).
+
 ## 1. 함수 목록
 
 | 패키지 | 함수 | 단계 | 근거 |
@@ -33,12 +35,10 @@ upstream: [TBL-SEQ-001, TBL-API-001, TBL-DOM-001]
 | briefing | [[#Publisher.publish]] | 7 | [[TBL-SEQ-001#SEQ-3]] |
 | briefing | [[#Publisher.diff_watchlist]] | 7 | [[TBL-SEQ-001#SEQ-10]] |
 | public | [[#BriefingQuery.latest]] | 열람 | [[TBL-SEQ-001#SEQ-1]] |
-| public | [[#BriefingQuery.detail]] | 열람 | [[TBL-SEQ-001#SEQ-2]] |
 | admin | [[#BatchService.trigger]] | 관리 | [[TBL-SEQ-001#SEQ-8]] |
 | admin | [[#BatchService.publish_version]] | 관리 | [[TBL-SEQ-001#SEQ-8]] |
 | admin | [[#MasterService.stage]] | 관리 | [[TBL-SEQ-001#SEQ-9]] |
 | admin | [[#MasterService.confirm]] | 관리 | [[TBL-SEQ-001#SEQ-9]] |
-| admin | [[#ConfigService.save]] | 관리 | [[TBL-UC-001#UC-A3]] |
 | infra | [[#HchatClient.complete_json]] | LLM | [[TBL-INFRA-001#C3]] |
 
 ## 2. 함수
@@ -274,7 +274,7 @@ LLM 지점 2의 유일한 입력. 2KB 이하.
 **처리**
 1. briefing insert(published=false, version = 같은 as_of 최대 +1, data_max_dates).
 2. 근거 목록 구성: 항목별로 evidence 행 생성(seq 순차, display 복사). signal → judgment 값, event → 대표 사건, article → 상위 3, market → 지표 바 4종.
-3. 섹션 순서: headline → domain:production, sales, inventory → watch:{iso3} × N → detail:{iso3} × N.
+3. 섹션 순서: headline → domain:production, sales, inventory → watch:{iso3} × N.
 4. 섹션마다 판정 구조체(2.0) 생성 → [[#HchatClient.complete_json]](schema = {text, footnotes[]}) → [[#Narrator.validate]].
 5. `if validate 실패 → 검증 사유를 붙여 재생성 1회 → 재실패 → [[#Narrator.degrade]](섹션)`. `if LLM outcome ≠ ok → degrade(섹션)`.
 6. briefing_claim insert. degraded = 강등 섹션 ≥ 1, degrade_reason 목록.
@@ -337,14 +337,6 @@ LLM 지점 2의 유일한 입력. 2KB 이하.
 
 근거: [[TBL-SEQ-001#SEQ-1]] · [[TBL-API-001#GET/api/intel/briefing/latest]]
 
-#### BriefingQuery.detail 판매 상세 (간략형)
-
-**시그니처** `detail(briefing_id: int, iso3: str) -> DetailView`
-
-**처리** briefing 게시 확인(아니면 404) → signal_daily(iso3, as_of) 표 행 → claims section=detail:{iso3} → evidence → indicator 4종 as-of 값 → DetailView.
-
-근거: [[TBL-SEQ-001#SEQ-2]] · [[TBL-API-001#GET/api/intel/briefing/{briefingId}/detail/{iso3}]]
-
 ### 2.8 관리
 
 #### BatchService.trigger 배치 트리거 (간략형)
@@ -385,14 +377,6 @@ LLM 지점 2의 유일한 입력. 2KB 이하.
 
 근거: [[TBL-API-001#POST/api/admin/intel/master/confirm/{stagingId}]]
 
-#### ConfigService.save 설정 저장 (간략형)
-
-**시그니처** `save(input: ThresholdConfigInput, user: str) -> ThresholdConfig`
-
-**처리** 범위 검증(yoy -1~0, severity 0~100, count ≥1, cbu 0~1, window 1~30, cap ≥0) 실패 → 422 → threshold_config insert(version+1, effective_from=now, changed_by) → 반환. 즉시 적용 없음.
-
-근거: [[TBL-API-001#POST/api/admin/intel/config]]
-
 ### 2.9 LLM 어댑터
 
 #### HchatClient.complete_json JSON 모드 호출
@@ -423,3 +407,4 @@ LLM 지점 2의 유일한 입력. 2KB 이하.
 - [ ] 백필 모드에서 사건 fallback 제목이 화면에 노출돼도 되는지
 - [ ] regression_tolerance 기본값의 근거(실데이터 1개월 후 재조정)
 - [ ] 판정 구조체 2KB 초과 시 evidence 절삭 규칙. 가정: 기사 3 → 2로 축소
+- [ ] threshold_config 새 버전 추가 절차(화면·API 없음). 가정: 개발자가 SQL 또는 CLI로 추가
