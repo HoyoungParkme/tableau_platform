@@ -397,6 +397,10 @@ erDiagram
     date report_base_date
     integer version_no
     timestamptz published_at
+    text dashboard_id
+    text data_form
+    jsonb judgments
+    jsonb constraint_warnings
   }
   a_report_evidence {
     text a_report_snapshot_id PK
@@ -1147,9 +1151,9 @@ erDiagram
 
 **소스별 최신일을 칸 셋으로 나눈 이유.** 화면 머리가 완성차·뉴스·시장 각각의 최신일을 적는다([[TBL-UI-001#UI-10]] 2번 요소). 가장 늦은 날 하나만 들고 있으면 뉴스만 사흘 밀린 날과 완성차가 밀린 날이 같은 화면으로 보인다. `data_latest_date`는 셋 중 가장 늦은 것이고 파생 값이다.
 
-**`notices` 배열의 원소는 `code`와 `domain`과 `message`와 `lastSuccessDate` 넷이다.** `code`는 `noAnomaly` `generationDegraded` `aJudgmentNotReceived` `batchFailed` `marketCarriedOver` 다섯이고 [[TBL-UI-001#UI-10]]의 예외 상태 E1·E3·E4·E5·E6와 하나씩 짝을 이룬다. 어느 상태인지를 화면이 값으로 알아야 문구를 짜 맞추지 않는다. E2(첫 배치 전)는 게시본이 0건인 상태라 이 배열에 자리가 없다. `domain`은 도메인에 걸린 안내일 때만, `lastSuccessDate`는 `batchFailed`와 `marketCarriedOver`에만 채운다.
+**`notices` 배열의 원소는 `code`와 `domain`과 `message`와 `lastSuccessDate` 넷이다.** `code`는 `noAnomaly` `generationDegraded` `aJudgmentNotReceived` `batchFailed` `marketCarriedOver` 다섯이고 [[TBL-UI-001#UI-10]]의 예외 상태 E1·E3·E4·E5·E6와 하나씩 짝을 이룬다. 어느 상태인지를 화면이 값으로 알아야 문구를 짜 맞추지 않는다. E2(첫 배치 전)는 게시본이 0건인 상태라 이 배열에 자리가 없다. `domain`은 도메인에 걸린 안내일 때만, `lastSuccessDate`는 `batchFailed`에만 채운다. 지표 이월의 관측일은 [[#market_series]]의 `source_obs_date`가 들고 있으므로 `notices`에 중복해 담지 않는다.
 
-**`domain_status`의 세 장은 규칙 산출물이다.** 카드마다 `trafficLight`와 `judgmentSource`와 `topContributions`가 들어간다. 값은 [[TBL-DOM-002#TrafficLightJudge]]가 5단계에서 만들고 [[TBL-DOM-002#ReportPublisher]]가 이 칸에 넣는다. 8단계 LLM은 같은 카드의 문장만 쓰고 이 값을 만들지 않는다. `judgmentSource`는 `aJudgment` `supplementaryAggregate` `notReceived` 셋이고, `topContributions`는 [[#contribution]] 사본이다. 생산 카드는 국가 축이 없어 신호등 대상이 아니므로 `trafficLight`가 판정 대상 아님으로 내려간다([[TBL-INFRA-001#C16]]).
+**`domain_status`의 세 장은 규칙 산출물이다.** 카드마다 `trafficLight`와 `judgmentSource`와 `topContributions`가 들어간다. 값은 [[TBL-DOM-002#TrafficLightJudge]]가 5단계에서 만들고 [[TBL-DOM-002#ReportPublisher]]가 이 칸에 넣는다. 8단계 LLM은 같은 카드의 문장만 쓰고 이 값을 만들지 않는다. `judgmentSource`는 `aJudgment` `supplementaryAggregate` `notReceived` 셋이고, `topContributions`는 [[#contribution]] 사본이다. 생산 카드는 국가 축이 없어 신호등 대상이 아니므로 `trafficLight.level`이 `notApplicable`, `label`이 판정 대상 아님으로 내려간다([[TBL-INFRA-001#C16]]).
 
 **`market_bar`가 NOT NULL인 이유.** 지표가 이월이어도 네 칸은 값과 이월 표시를 들고 내려간다([[TBL-UI-001#UI-10]] E6). 빈 값으로 두면 화면이 바를 그릴지 말지를 스스로 정해야 한다.
 
@@ -1309,13 +1313,17 @@ erDiagram
 | `title` | text | N | 지면 제목 |
 | `scope_label` | text | Y | 범위 문구. 예 미주 29개국 · 누계 기준 |
 | `source_label` | text | Y | 출처 대시보드 이름 |
+| `dashboard_id` | text | Y | 출처 대시보드 식별자 |
 | `source_snapshot_at` | timestamptz | Y | 그 리포트가 읽은 스냅샷 일시 |
+| `data_form` | text | N | 그 리포트가 읽은 데이터 형태. `A` `B` |
 | `summary_text` | text | Y | 요약 문단 |
 | `narrative_text` | text | Y | 해설 문단 |
 | `fixed_note` | text | Y | 고정 문구 |
 | `tracking_metrics` | jsonb | Y | 트래킹 지표 셋. 이름·현재값·선택 여부 |
+| `judgments` | jsonb | N | 트래킹 지표별 판정과 분해. 없으면 빈 배열 |
 | `breakdowns` | jsonb | Y | 분해 블록 사본. 표와 막대의 값 |
 | `unavailable_metrics` | jsonb | Y | 못 만드는 지표 목록. 이름과 사유 |
+| `constraint_warnings` | jsonb | Y | 제약 경고 목록. 코드와 문구 |
 | `degraded` | boolean | N | 브리핑 갈래가 강등 상태로 게시했는가 |
 | `base_date` | date | N | 복사한 배치의 기준일 |
 | `batch_run_id` | text | N | 복사한 실행 |
@@ -1324,6 +1332,8 @@ erDiagram
 기본키 `a_report_snapshot_id`. 유일 제약 `(domain, report_base_date, version_no)`.
 
 **문장까지 복사하는 것이 [[#domain_report_snapshot]]과 갈리는 지점이다.** 경로가 둘이기 때문이다. C 생성 경로는 A의 판정만 읽고 A가 쓴 문장을 C의 서술에 쓰지 않는다. A 리포트 열람 경로는 화면이 A 리포트를 그대로 보여 주는 것이므로 문장이 있어야 한다. 열람 계정은 `pub` 밖을 보지 못하니([[TBL-INFRA-001#C10]]) 문장이 이 스키마에 사본으로 있어야 한다. 읽어 오는 쪽은 [[TBL-DOM-002#BriefingStoreReader]]이고 화면에 내주는 쪽은 [[TBL-DOM-002#DomainReportService]]다.
+
+**판정과 출처 칸 넷을 여기에 둔 이유.** 열람 응답이 판정 목록과 출처 셋을 반드시 들고 나간다([[TBL-API-001]] 4.4절 DomainReport). 판정 목록은 `judgments`가, 출처 셋은 `source_label`(대시보드 이름)과 `source_snapshot_at`(스냅샷 일시)과 `data_form`(데이터 형태)이 짝을 이뤄 채운다. `dashboard_id`는 그 대시보드의 식별자이고 `constraint_warnings`는 지면 머리의 제약 경고다([[TBL-UI-001#UI-7]]). 열람 계정이 `pub` 밖을 보지 못하므로([[TBL-INFRA-001#C10]]) 이 값들이 사본에 없으면 응답을 채울 길이 없다. `judgments`는 [[#domain_judgment]]와 [[#contribution]]의 사본이고 정본은 `mart`다. C 생성은 여전히 `mart`만 읽고 이 칸을 보지 않는다.
 
 **못 만드는 지표를 칸으로 들고 있는 이유.** A2 재고 지면은 없는 것 넷을, A3 판매 지면은 하나를 목록으로 보여 준다([[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]]). 화면이 그 목록을 코드에 박으면 원천이 들어온 날 화면을 고쳐야 한다. 사본에 두면 브리핑 갈래가 목록을 줄이는 것으로 끝난다.
 
@@ -1563,7 +1573,7 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 
 `report_anomaly`의 `candidates`가 `jsonb`라서 후보에 인덱스를 걸지 않는다. 게시본에서 후보를 조건으로 검색하는 화면이 없다.
 
-A 리포트 지면도 조회 셋으로 끝난다. 사이드의 버전 목록과 현재 본이 같은 인덱스를 앞자리부터 쓰고, 각주와 시계열은 기본키로 읽는다.
+A 리포트 지면도 조회 셋으로 끝난다. 사이드의 버전 목록과 현재 본이 같은 인덱스를 앞자리부터 쓰고, 각주와 시계열은 기본키로 읽는다. 판정과 제약 경고는 [[#a_report_snapshot]] 한 행에 `jsonb`로 들어 있어 조회가 늘지 않는다.
 
 ### 4.2 판정 경로
 
@@ -1637,7 +1647,7 @@ A 리포트 지면도 조회 셋으로 끝난다. 사이드의 버전 목록과 
 - [ ] 국가 코드 자리수. 실측 샘플은 세 자리(`B07` `B28`)인데 ISO 코드와 섞이는 파일이 있는지 확인이 필요하다 ([[#country]])
 - [ ] [[#report_anomaly]]의 `jsonb` 범위. 후보·기여·단계 흐름을 전부 `jsonb`로 둔 것이 카드 한 행을 너무 크게 만드는지 실측으로 본다. 한 행이 TOAST 임계를 넘으면 열람 2초가 흔들린다
 - [ ] A 판정 스냅샷의 실제 구조. 브리핑 갈래가 무엇을 어떤 키로 내주는지 확인해야 [[#domain_judgment]]와 [[#contribution]]의 컬럼이 확정된다
-- [ ] A 리포트 게시 사본의 실제 구조. 브리핑 갈래가 문장과 각주와 버전을 어떤 키로 내주는지 확인해야 [[#a_report_snapshot]]과 [[#a_report_evidence]]의 컬럼이 확정된다
+- [ ] A 리포트 게시 사본의 실제 구조. 브리핑 갈래가 문장과 각주와 버전과 판정을 어떤 키로 내주는지 확인해야 [[#a_report_snapshot]]과 [[#a_report_evidence]]의 컬럼이 확정된다
 - [ ] `raw` 보관 2년, 나머지 무기한이라는 방침의 실제 용량. 폐쇄망 디스크가 확정되면 [[#raw_pivot_cell]]부터 다시 본다
 - [ ] [[#ingest_file]]의 `load_seq`를 몇 회차까지 남길지. 원본 파일 보존과 별개로 파생 행의 회차 보관 범위다
 - [ ] [[#llm_call]]에 프롬프트를 남길지. 남기려면 마스킹 규칙부터 정한다 ([[TBL-INFRA-001#C3]])
