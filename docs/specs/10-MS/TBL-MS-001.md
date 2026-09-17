@@ -31,7 +31,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 ## 1. 함수 목록
 
-함수는 103개이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-002]] 1장을 그대로 따른다.
+함수는 백셋이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-002]] 1장을 그대로 따른다.
 
 | 계층 | 클래스 | 함수 | 단계 |
 |:--|:--|:--|:--|
@@ -1123,7 +1123,7 @@ marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지�
 
 **시그니처** `publish_a_report(domain: str, document: dict) -> str`
 
-**입력** [[#BriefingStoreReader.read_report_document]]가 통째로 읽어 온 A 리포트 한 건. 제목·범위·출처 표기·요약·해설·고정 문구·트래킹 지표·분해·못 만드는 지표·각주 근거·버전 번호·게시 시각이 다 들어 있다.
+**입력** [[#BriefingStoreReader.read_report_document]]가 통째로 읽어 온 A 리포트 한 건. 제목·범위·출처 표기·대시보드 식별자·출처 스냅샷 시각·데이터 형태·요약·해설·고정 문구·트래킹 지표·판정 목록·분해·못 만드는 지표·제약 안내·각주 근거·버전 번호·게시 시각이 다 들어 있다. 판정 목록이 비면 빈 배열로 넣는다. 이 칸의 정본은 `mart`의 판정과 기여이고 여기 담기는 것은 A 리포트 화면이 읽는 사본이다. **C 생성은 이 칸을 읽지 않는다.**
 
 **처리**
 1. [[TBL-DOM-003#a_report_snapshot]]에 한 행을 넣는다. 유일 제약이 `(domain, report_base_date, version_no)`라 같은 버전을 두 번 받아도 한 행이다.
@@ -1209,9 +1209,11 @@ marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지�
 
 **시그니처** `build_domain_extra(domain: str, report: DomainReport) -> dict`
 
-**처리** 도메인마다 다른 블록을 만든다. A1은 법인·공장·차종 분해, A2는 [[TBL-DOM-003#sales_stage_flow]] 유도값과 유도 표기, A3는 단계별 흐름과 계획 대비 진도율·전년 동월 대비.
+**처리** 도메인마다 다른 블록을 만든다. A1은 법인·공장·차종 분해, A2는 단계별 흐름 유도값과 유도 표기, A3는 단계별 흐름과 계획 대비 진도율·전년 동월 대비다. **값은 전부 [[TBL-DOM-003#a_report_snapshot]]의 `breakdowns` 사본에서 꺼낸다. `mart`와 `std`를 한 번도 읽지 않는다**([[TBL-INFRA-001#C10]]). [[#DomainReportService.get_latest_by_domain]]과 같은 계약이다.
 
-**테스트 관점** A2 응답에 유도값임이 표시되는지. A3의 트래킹 지표 셋이 A1과 다른지.
+단계 흐름 값이 사본에 실려 있어야 하므로 브리핑 갈래가 내주는 `breakdowns`에는 네 계열(선적·실 도매·도매(공식)·소매)과 두 구간(`entityStageGap` 법인 구간 · `dealerStageGap` 딜러 구간)이 들어온다. 이 시스템은 그 값을 그대로 옮기고 여기서 다시 빼거나 더하지 않는다.
+
+**테스트 관점** A2 응답에 유도값임이 표시되는지. A3의 트래킹 지표 셋이 A1과 다른지. 이 함수가 도는 동안 `mart`·`std` 조회가 0회인지. 사본의 `breakdowns`에 네 계열과 두 구간이 다 들어 있는지(하나라도 비면 단계별 흐름 블록이 빈 칸으로 나간다).
 
 근거: [[TBL-PRD-001#R29]] · [[TBL-API-001]] 4.12절
 
@@ -1427,13 +1429,13 @@ A3 판매  globalCountryByModel                                                 
 
 **처리** 브리핑 갈래가 게시한 A 리포트 한 건을 **문장·각주 근거·버전 번호·게시 시각까지 통째로** 읽는다. 읽기 전용 계정이고 쓰기 메서드를 두지 않는다. 그 기준일 게시본이 없으면 `None`.
 
-**출력** 반환 키는 [[TBL-DOM-003#a_report_snapshot]]과 [[TBL-DOM-003#a_report_evidence]]의 컬럼과 1대1이다. 제목·범위 표기·출처 표기·출처 스냅샷 시각·요약·해설·고정 문구·트래킹 지표·분해·못 만드는 지표·강등 여부·버전 번호·게시 시각, 그리고 각주 근거 목록(`footnote` `kind` `source_id` `display_value`).
+**출력** 반환 키는 [[TBL-DOM-003#a_report_snapshot]]과 [[TBL-DOM-003#a_report_evidence]]의 컬럼과 1대1이다. 제목·범위 표기·출처 표기·대시보드 식별자·출처 스냅샷 시각·데이터 형태(`A` 또는 `B`)·요약·해설·고정 문구·트래킹 지표·판정 목록·분해·못 만드는 지표·제약 안내·강등 여부·버전 번호·게시 시각, 그리고 각주 근거 목록(`footnote` `kind` `source_id` `display_value`). 판정 목록(`judgments`)은 NOT NULL이라 비어도 키가 빠지지 않고 빈 배열로 온다. 제약 안내(`constraint_warnings`)는 코드와 문구 쌍이고 없으면 `None`이다. 대시보드 식별자·데이터 형태·제약 안내는 값이 없을 수 있으나 키는 늘 있다.
 
 **이 함수와 [[#BriefingStoreReader.read_judgments]]는 쓰임이 다르다.** 판정 읽기는 C 리포트를 만들려고 **판정만** 가져오는 길이라 A가 쓴 문장을 읽지 않는다. 이 함수는 A 리포트 화면에 그대로 다시 뿌리려고 사본을 뜨는 길이라 문장을 가져온다. **가져온 문장은 C의 서술에 쓰지 않는다.**
 
 **예외** 접속 실패면 예외를 올린다. [[#ReportPublisher.publish]]는 그 도메인 사본만 건너뛰고 배치를 이어 간다.
 
-**테스트 관점** 반환 키가 [[TBL-DOM-003#a_report_snapshot]] 컬럼과 빠짐없이 맞는지(하나만 어긋나도 사본이 빈 칸으로 게시된다). C 리포트 문장에 이 함수가 가져온 문장이 인용으로 들어가지 않는지(문자열 대조, 동일 비율 0%). 클래스에 쓰기 계열 메서드가 없는지.
+**테스트 관점** 반환 키가 [[TBL-DOM-003#a_report_snapshot]] 컬럼과 빠짐없이 맞는지(하나만 어긋나도 사본이 빈 칸으로 게시된다). 뒤에 더해진 넷(`dashboard_id` `data_form` `judgments` `constraint_warnings`)이 반환에 다 있는지. C 리포트 문장에 이 함수가 가져온 문장이 인용으로 들어가지 않는지(문자열 대조, 동일 비율 0%). 클래스에 쓰기 계열 메서드가 없는지.
 
 근거: [[TBL-INFRA-001#C5]] · [[TBL-INFRA-001#C10]] · [[TBL-SEQ-001#SEQ-12]] · [[TBL-UI-001#UI-7]]
 
@@ -1473,6 +1475,5 @@ A3 판매  globalCountryByModel                                                 
 - [ ] [[#FormBPivotParser.detect_file_base_date]]가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다
 - [ ] [[#HChatClient.complete]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 것은 가정이며 실호출 확인 범위가 좁다. 지원되지 않으면 세 역할의 검증 단계가 늘어난다
 - [ ] [[#PipelineRunner.run]]의 `llm_enabled`와 `backfill_mode`를 스위치 하나로 합칠지. API 요청 본문에는 `backfillMode` 하나뿐이다([[TBL-SEQ-001]] 7장 F4)
-- [ ] [[#ReportPublisher.diff_watchlist]]의 멱등 처리. 이 문서는 `(report_id, country_code)` upsert로 두었으나 [[TBL-DOM-003#report_alert_event]]에 재계산을 막을 키가 따로 없다([[TBL-SEQ-001]] 7장 F5)
 - [ ] 설정 변경 경로. [[TBL-DOM-003#threshold_setting]] 새 버전 행을 SQL로 넣을지 CLI를 만들지. 정해지면 함수가 하나 는다
 - [ ] 현업 피드백("맞다·아니다·모르겠다") 저장 함수. 화면에 넣을지가 미결이라 이 문서에도 두지 않았다([[TBL-PRD-001#R28]])
