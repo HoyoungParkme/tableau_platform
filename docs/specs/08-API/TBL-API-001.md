@@ -52,7 +52,7 @@ upstream: [TBL-UI-001, TBL-DOM-001, TBL-INFRA-001, TBL-UC-001, TBL-PRD-001]
 | `rank`, `ranking`, `priority` | 관련도 순위로 읽힌다 |
 | `confidence`, `strength`, `certainty` | 판정의 세기를 모델이 정하는 것으로 읽힌다 |
 
-허용하는 순서 필드는 `sortOrder` 하나다. 이것은 관련도가 아니라 **정렬 규칙이 낳은 자리 번호**다. 규칙은 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순이다([[TBL-DOM-001#CauseCandidate]]). 같은 입력이면 같은 번호가 나온다. 응답의 `candidateSortRule`에 이 문장을 그대로 실어 화면이 글자로 적는다([[TBL-UI-001#UI-10]] 규칙).
+허용하는 순서 필드는 `sortOrder` 하나다. 이것은 관련도가 아니라 **정렬 규칙이 낳은 자리 번호**다. 규칙은 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순이고, 셋이 모두 같으면 후보 식별자 사전순이다([[TBL-DOM-001#CauseCandidate]]). 넷째 열쇠까지 계약으로 둬야 동률에서 자리 번호가 흔들리지 않고 같은 입력이면 같은 번호가 나온다. 다만 응답의 `candidateSortRule`에 싣는 문장은 앞의 셋만 쓴다. 넷째는 동률을 가르는 장치이지 읽는 사람에게 설명할 기준이 아니라서 화면이 글자로 적는 문장에서는 뺀다([[TBL-UI-001#UI-10]] 규칙).
 
 4.4절의 `sortOrder`도 같다. 기여값 내림차순이 낳은 자리이지 중요도가 아니다.
 
@@ -641,7 +641,7 @@ components:
             schema: { $ref: '#/components/schemas/Problem' }
 ```
 
-### 3.2 관리 — 적재 (세션)
+### 3.2 관리·적재 (세션)
 
 #### POST/api/admin/ingest/preflight 적재 사전 검증
 
@@ -1035,7 +1035,7 @@ components:
             schema: { $ref: '#/components/schemas/Problem' }
 ```
 
-### 3.3 관리 — 배치 (세션)
+### 3.3 관리·배치 (세션)
 
 #### GET/api/admin/batch/status 배치 상태 조회
 
@@ -1350,7 +1350,7 @@ components:
             schema: { $ref: '#/components/schemas/Problem' }
 ```
 
-### 3.4 관리 — 마스터 (세션)
+### 3.4 관리·마스터 (세션)
 
 #### GET/api/admin/master/summary 마스터 조회
 
@@ -2089,7 +2089,7 @@ MissingMetric:
 
 ## 5. 미결사항
 
-먼저 참조 규약 하나를 적는다. **4장 공용 스키마 열셋은 항목이 될 수 없다.** 이 문서의 항목 ID 패턴이 메서드와 경로여서 스키마 이름은 항목 ID가 되지 못한다. 하류 문서는 `[[TBL-API-001#...]]`가 아니라 절 번호로 가리킨다(예: 4.3절 Anomaly, 4.8절 StageFlow).
+먼저 참조 규약 하나를 적는다. **4장 공용 스키마 열셋은 항목이 될 수 없다.** 이 문서의 항목 ID 패턴이 메서드와 경로여서 스키마 이름은 항목 ID가 되지 못한다. 하류 문서는 이 문서의 항목 참조 표기를 쓰지 말고 절 번호로 가리킨다(예: 4.3절 Anomaly, 4.8절 StageFlow).
 
 - [ ] 현업 서명 토큰의 발급 주체, 만료 시간, 갱신 방식. VODA 포털 팀과 맞춰야 한다(1.1절)
 - [ ] A 리포트 내려받기 파일 형식. `download.format` 값이 정해지지 않았다([[TBL-UI-001#UI-7]])
