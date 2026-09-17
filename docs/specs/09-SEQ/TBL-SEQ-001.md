@@ -871,11 +871,10 @@ sequenceDiagram
 
 | # | 어느 문서 | 무엇이 어긋났나 | 이 문서가 임시로 택한 것 |
 |:--|:--|:--|:--|
-| F2 | [[TBL-UC-001#UC-S4]] | 4단계의 저장 대상이 `briefing`, `briefing_claim`, `evidence`로 적혀 있다. ERD 확정 이름은 [[TBL-DOM-003#c_report]] [[TBL-DOM-003#report_claim]] [[TBL-DOM-003#report_evidence]]다 | [[#SEQ-21]]은 ERD 이름을 썼다. 유스케이스 쪽 수정 진행 중이라 닫지 않고 둔다 |
 | F3 | [[TBL-UC-001#UC-S1]] · [[TBL-DOM-002#IngestService]] | 회귀 급변의 처리가 갈린다. UC는 1a에서 "배치를 멈추고 A에게 알린다", 클래스 명세는 "적재는 완료하고 배치 자동 실행만 막는다"다. 수동 적재와 배치 1단계 중 어느 쪽 이야기인지 문장으로 갈리지 않는다 | 수동 적재는 완료하고 차단만, 배치 안에서는 멈춤으로 그렸다([[#SEQ-13]] [[#SEQ-14]]) |
 | F8 | [[TBL-DOM-002]] | 생명선으로 세울 수 없는 타입 넷이 있다. `SchemaRegistry`, `CrosswalkTable`, `BriefingStorePort`, `LlmPort`다. 앞의 둘은 클래스 스물여덟 밖의 실체이고 뒤의 둘은 포트다 | 포트 둘은 구현체([[TBL-DOM-002#BriefingStoreReader]] [[TBL-DOM-002#HChatClient]])로 그렸고 앞의 둘은 그리지 않았다 |
 
-F1·F4·F5·F6·F7은 닫혔다. F1은 게시 스키마에 A 리포트 사본([[TBL-DOM-003#a_report_snapshot]] [[TBL-DOM-003#a_report_evidence]])과 지표 시계열 사본([[TBL-DOM-003#market_series]])을 두는 쪽으로 정해져 열람 경로가 [[TBL-INFRA-001#C10]]과 어긋나지 않는다. F4는 `backfillMode`와 `llmEnabled`를 둘 다 남기고 쓰임을 가르는 쪽으로, F7은 1단계와 3단계 실패를 멈춤으로 정해졌다([[TBL-INFRA-001#C20]]). F5는 [[TBL-DOM-003#report_alert_event]]에 유일 제약 (report_id, country_code)가 있고 `diff_watchlist`가 그 제약에 기대 upsert로 넣는 쪽으로 정해졌다. 8단계 게시와 게시 전환 양쪽에서 돌아도 알림이 두 벌 남지 않는다. F6은 [[TBL-MS-001]]이 `as_of`와 `is_carried_over`를 둘 다 항목으로 싣고 `as_of`를 4단계 파이프라인 함수로 명시했으며 그 근거에 이 F6을 인용한 것으로 닫혔다. API 바인딩에 `get_series`만 있는 것은 열람 경로의 목록이고, 파이프라인 계약은 미니스펙이 따로 싣는다. 닫힌 번호는 다시 쓰지 않는다.
+F1·F2·F4·F5·F6·F7은 닫혔다. F1은 게시 스키마에 A 리포트 사본([[TBL-DOM-003#a_report_snapshot]] [[TBL-DOM-003#a_report_evidence]])과 지표 시계열 사본([[TBL-DOM-003#market_series]])을 두는 쪽으로 정해져 열람 경로가 [[TBL-INFRA-001#C10]]과 어긋나지 않는다. F2는 [[TBL-UC-001#UC-S4]] 기본 흐름 4번이 ERD 확정 이름([[TBL-DOM-003#c_report]] [[TBL-DOM-003#report_claim]] [[TBL-DOM-003#report_evidence]])을 채택해 [[#SEQ-21]]과 같아진 것으로 닫혔다. F4는 `backfillMode`와 `llmEnabled`를 둘 다 남기고 쓰임을 가르는 쪽으로, F7은 1단계와 3단계 실패를 멈춤으로 정해졌다([[TBL-INFRA-001#C20]]). F5는 [[TBL-DOM-003#report_alert_event]]에 유일 제약 (report_id, country_code)가 있고 `diff_watchlist`가 그 제약에 기대 upsert로 넣는 쪽으로 정해졌다. 8단계 게시와 게시 전환 양쪽에서 돌아도 알림이 두 벌 남지 않는다. F6은 [[TBL-MS-001]]이 `as_of`와 `is_carried_over`를 둘 다 항목으로 싣고 `as_of`를 4단계 파이프라인 함수로 명시했으며 그 근거에 이 F6을 인용한 것으로 닫혔다. API 바인딩에 `get_series`만 있는 것은 열람 경로의 목록이고, 파이프라인 계약은 미니스펙이 따로 싣는다. 닫힌 번호는 다시 쓰지 않는다.
 
 ## 8. 미결사항
 
