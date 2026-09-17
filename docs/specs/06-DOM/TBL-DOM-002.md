@@ -44,7 +44,7 @@ upstream: [TBL-API-001, TBL-DOM-001, TBL-INFRA-001, TBL-UI-001, TBL-UC-001, TBL-
 | 서술 | [[#EventNamer]] | 사건에 이름을 붙인다 | 6 | LLM |
 | 서술 | [[#CauseLinkWriter]] | 변동과 후보를 잇는 문단을 쓴다 | 7 | LLM |
 | 서술 | [[#ClaimWriter]] | 리포트 문장을 쓴다 | 8 | LLM |
-| 서술 | [[#CitationVerifier]] | 인용이 후보 밖으로 나갔는지 대조한다 | 8 | 코드 |
+| 서술 | [[#CitationVerifier]] | 인용이 후보 밖으로 나갔는지 대조한다 | 7~8 | 코드 |
 | 서술 | [[#DegradeHandler]] | 실패한 역할을 강등으로 기록한다 | 6~8 | 코드 |
 | 게시·열람 | [[#ReportPublisher]] | 근거 번호를 매기고 C 리포트 한 본과 A 리포트 사본을 게시한다 | 8 | 코드 |
 | 게시·열람 | [[#CReportService]] | C 리포트를 읽어 준다 | 없음 | 코드 |
@@ -547,7 +547,7 @@ classDiagram
 
 **속성.** `plan_source: str`은 계획 정본이며 기본값이 사업계획이다([[TBL-DOM-001#ThresholdSetting]]).
 
-**메서드.** `join`은 [[TBL-DOM-001#CountryDayFact]] 행을 만든다. `resolve_exposure`는 완성차·반조립 구분을 정하고 어느 경로로 얻었는지를 남긴다([[TBL-DOM-001#ModelExposure]]). `attach_market_asof`는 그 기간의 마지막 날 기준 시장지표 값을 붙인다. `count_events`는 그 국가·기간에 걸린 사건 수를 센다. `skip_when_country_null`은 국가가 비어 있는 행을 뺀다.
+**메서드.** `join`은 [[TBL-DOM-001#CountryDayFact]] 행을 만든다. **비교 값과 비교 방식을 고르는 주체가 이 메서드다.** 계획이 있으면 계획 대비, 없으면 전년 동월, 그다음 전월 순으로 골라 결합 행의 `compare_value`와 `compare_basis`에 굳힌다. [[#AnomalyDetector]]는 그 칸을 읽기만 한다. `resolve_exposure`는 완성차·반조립 구분을 정하고 어느 경로로 얻었는지를 남긴다([[TBL-DOM-001#ModelExposure]]). `attach_market_asof`는 그 기간의 마지막 날 기준 시장지표 값을 붙인다. `count_events`는 그 국가·기간에 걸린 사건 수를 센다. `skip_when_country_null`은 국가가 비어 있는 행을 뺀다.
 
 **관계.** [[TBL-DOM-001#CountryDayFact]]를 만드는 유일한 클래스다. 결과가 [[#StageFlowCalculator]]와 [[#AnomalyDetector]]로 간다.
 
@@ -613,7 +613,7 @@ classDiagram
 
 **속성.** `setting: ThresholdSetting`이 임계값과 감지 단위를 준다.
 
-**메서드.** `detect`는 [[TBL-DOM-001#Anomaly]] 목록을 돌려준다. 출처가 셋이라 만드는 메서드도 셋이다. `pick_compare_basis`는 계획이 있으면 계획 대비, 없으면 전년 동월, 그다음 전월 순으로 고른다. `progress_rate`는 실적과 계획으로 직접 계산한다. `detection_unit`은 기본값 `modelGroup`을 돌려준다.
+**메서드.** `detect`는 [[TBL-DOM-001#Anomaly]] 목록을 돌려준다. 출처가 셋이라 만드는 메서드도 셋이다. `pick_compare_basis`는 결합 행에 이미 굳은 `compare_value`와 `compare_basis`를 읽어 변동에 옮긴다. 고르는 주체는 [[#FactJoiner]]다. `progress_rate`는 실적과 계획으로 직접 계산한다. `detection_unit`은 기본값 `modelGroup`을 돌려준다.
 
 **관계.** 변동을 만드는 유일한 클래스다. 셋에서 받아 하나로 모은다.
 
@@ -706,9 +706,9 @@ classDiagram
 
 **속성.** `setting`이 최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준을 준다.
 
-**메서드.** `judge`는 `red` `yellow` `none` 중 하나와 그 근거를 돌려준다. `build_watch_items`는 [[TBL-DOM-001#WatchItem]] 목록을 만들고 신호등 순으로 정렬한다. `build_domain_status`는 도메인 하나의 상태 카드를 만든다. `basis`는 어느 후보의 어떤 값이 기준을 넘겼는지를 담는다. `is_country_axis`는 축 종류가 `country`인지 본다.
+**메서드.** `judge`는 `red` `yellow` `none` `notApplicable` 중 하나와 그 근거를 돌려준다. 축 종류가 `country`가 아닌 변동은 `notApplicable`이다. `build_watch_items`는 [[TBL-DOM-001#WatchItem]] 목록을 만들고 신호등 순으로 정렬한다. `build_domain_status`는 도메인 하나의 상태 카드를 만든다. `basis`는 어느 후보의 어떤 값이 기준을 넘겼는지를 담는다. `is_country_axis`는 축 종류가 `country`인지 본다.
 
-**규칙.** 사건 후보가 기사 수 ≥ 최소, 출처 수 ≥ 최소, 날짜 차이 ≤ 시간창 셋을 모두 채우고 완성차 노출이 확인되면 `red`. 셋을 채웠으나 노출이 미확인이면 `yellow`. 하나라도 못 채우면 `none`이고 목록에는 남는다.
+**규칙.** 사건 후보가 기사 수 ≥ 최소, 출처 수 ≥ 최소, 날짜 차이 ≤ 시간창 셋을 모두 채우고 완성차 노출이 확인되면 `red`. 셋을 채웠으나 노출이 미확인이면 `yellow`. 하나라도 못 채우면 `none`이고 목록에는 남는다. **축 종류가 `country`가 아니면 임계값을 보기 전에 `notApplicable`로 끝낸다.** `is_country_axis`가 거짓인 변동이 여기이고, 국가 축이 없는 생산이 그것이다.
 
 **도메인 상태 규칙.** `build_domain_status`는 그 도메인 안 변동들의 신호등 최댓값을 카드의 신호등으로 쓴다. 판정 출처를 함께 담는데 `aJudgment` `supplementaryAggregate` `notReceived` 셋 중 하나이고, 2단계에서 A 판정을 읽었는지 보완 집계로 내려갔는지 아예 못 받았는지를 가른다([[#AJudgmentReader]]). 기여 분해 상위 몇 건도 사본으로 함께 담는다. 생산 도메인은 국가 축이 없어 변동이 국가 카드에 오르지 못하므로 신호등이 `notApplicable`이고 화면 표기가 "판정 대상 아님"이다([[TBL-API-001]] 4.4절). 후보를 못 찾아 `none`이 된 것과 아예 판정 대상이 아닌 것을 같은 색으로 적지 않는다.
 
@@ -717,8 +717,6 @@ classDiagram
 **판정 근거.** **신호등은 규칙 산출물이다.** LLM을 끄고 배치를 돌려도 같은 값이 나와야 한다([[TBL-INFRA-001#C19]] [[TBL-PRD-001#R11]]). 근거를 함께 저장하는 이유는 화면에서 왜 그 색인지 보여 주기 위해서다([[TBL-UC-001#UC-S8]]).
 
 워치리스트 줄과 도메인 상태 카드를 이 클래스가 만드는 것이 경계의 핵심이다. 게시기에서 만들면 8단계 산출물이 되고, 8단계는 LLM이 섞인 단계라 "LLM을 꺼도 워치리스트와 도메인 상태가 같다"를 보장할 수 없다.
-
-**도메인 상태에서 LLM이 쓰는 것은 문장 한 줄뿐이다.** 신호등, 판정 출처, 기여 분해는 여기 5단계에서 확정된다. [[#ClaimWriter]]의 `write_domain_status`는 그 값을 받아 문장만 쓰고, 값을 고치지 않는다. 카드를 채워 게시하는 것은 [[#ReportPublisher]]의 `publish`다.
 
 **축 종류가 `plant`인 변동은 여기서 빠진다.** 생산에는 목적지 국가가 없어 국가 카드에 오를 수 없다([[TBL-INFRA-001#C16]]).
 
