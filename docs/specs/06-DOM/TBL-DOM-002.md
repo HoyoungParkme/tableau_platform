@@ -16,11 +16,11 @@ upstream: [TBL-API-001, TBL-DOM-001, TBL-INFRA-001, TBL-UI-001, TBL-UC-001, TBL-
 
 클래스는 스물여덟이다. 계층 다섯으로 나눈다. 적재, 판정, 서술, 게시·열람, 어댑터다. 여기에 여덟 단계를 진행시키는 뼈대 클래스 하나가 앞에 붙는다.
 
-**이 문서의 핵심 제약은 계층 경계다.** 판정 계층은 코드만 쓰고 배치 5단계에서 끝난다([[TBL-INFRA-001#C19]]). 서술 계층은 LLM을 부르고 6~8단계에 있다. 서술 계층이 통째로 죽어도 변동·후보·근접도·신호등은 그대로 게시된다([[TBL-INFRA-001#C13]]). 이것이 성립하도록 클래스를 나눴고, 5장에 어느 클래스가 죽어도 되고 어느 클래스가 죽으면 안 되는지를 표로 적었다.
+**이 문서의 핵심 제약은 계층 경계다.** 판정 계층은 코드만 쓰고 배치 5단계에서 끝난다([[TBL-INFRA-001#C19]]). 서술 계층은 LLM을 부르고 6~8단계에 있다. 서술 계층이 통째로 죽어도 변동·후보·근접도·신호등은 그대로 게시된다([[TBL-INFRA-001#C13]]). 변동별 신호등뿐 아니라 도메인 상태 3카드의 신호등도 판정 계층이 낸다. 이것이 성립하도록 클래스를 나눴고, 5장에 어느 클래스가 죽어도 되고 어느 클래스가 죽으면 안 되는지를 표로 적었다.
 
-**지시받은 계층 배치에서 하나를 바꿨다.** 사건 묶음기를 서술 계층이 아니라 판정 계층에 두었다. 근거는 두 가지다. 사건 묶음은 배치 3단계이고 코드 전용이며([[TBL-INFRA-001#C19]]), 그 산출물인 기사 수와 출처 수가 신호등의 입력이다([[TBL-DOM-001#Event]]). 서술 계층에 두면 "서술이 전부 죽어도 판정은 나간다"는 문장이 성립하지 않는다. 사건에 **이름을 붙이는** 일만 LLM이고 그것은 [[#EventNamer]]로 따로 뗐다.
+**사건 묶음기는 판정 계층에 있다.** 근거는 두 가지다. 사건 묶음은 배치 3단계이고 코드 전용이며([[TBL-INFRA-001#C19]]), 그 산출물인 기사 수와 출처 수가 신호등의 입력이다([[TBL-DOM-001#Event]]). 서술 계층에 두면 "서술이 전부 죽어도 판정은 나간다"는 문장이 성립하지 않는다. 사건에 **이름을 붙이는** 일만 LLM이고 그것은 [[#EventNamer]]로 따로 뗐다.
 
-지시받은 목록에 없었으나 넣은 클래스가 넷이다. [[#PipelineRunner]] [[#BatchService]] [[#MasterService]] [[#MarketService]]다. 앞의 하나는 여덟 단계를 돌리는 주체가 없으면 [[TBL-SEQ-001]]이 생명선을 그릴 수 없어서이고, 뒤의 셋은 [[TBL-API-001]]이 서비스 이름을 이미 고정해 두어 빠뜨리면 엔드포인트 일곱이 바인딩할 클래스를 잃기 때문이다.
+다른 문서가 이름을 고정해 두어 여기에 함께 선 클래스가 넷이다. [[#PipelineRunner]] [[#BatchService]] [[#MasterService]] [[#MarketService]]다. 앞의 하나는 여덟 단계를 돌리는 주체가 없으면 [[TBL-SEQ-001]]이 생명선을 그릴 수 없어서이고, 뒤의 셋은 [[TBL-API-001]]이 서비스 이름을 고정해 두어 빠뜨리면 엔드포인트 일곱이 바인딩할 클래스를 잃기 때문이다.
 
 ## 1. 설계 클래스 식별
 
@@ -40,20 +40,20 @@ upstream: [TBL-API-001, TBL-DOM-001, TBL-INFRA-001, TBL-UI-001, TBL-UC-001, TBL-
 | 판정 | [[#AnomalyDetector]] | 변동을 확정한다 | 4 | 코드 |
 | 판정 | [[#CandidateSearcher]] | 변동에 원인 후보를 붙인다 | 5 | 코드 |
 | 판정 | [[#ProximityCalculator]] | 근접도 값 넷을 세고 순서를 매긴다 | 5 | 코드 |
-| 판정 | [[#TrafficLightJudge]] | 신호등과 워치리스트 줄을 만든다 | 5 | 코드 |
+| 판정 | [[#TrafficLightJudge]] | 신호등과 워치리스트 줄과 도메인 상태를 만든다 | 5 | 코드 |
 | 서술 | [[#EventNamer]] | 사건에 이름을 붙인다 | 6 | LLM |
 | 서술 | [[#CauseLinkWriter]] | 변동과 후보를 잇는 문단을 쓴다 | 7 | LLM |
 | 서술 | [[#ClaimWriter]] | 리포트 문장을 쓴다 | 8 | LLM |
 | 서술 | [[#CitationVerifier]] | 인용이 후보 밖으로 나갔는지 대조한다 | 8 | 코드 |
 | 서술 | [[#DegradeHandler]] | 실패한 역할을 강등으로 기록한다 | 6~8 | 코드 |
-| 게시·열람 | [[#ReportPublisher]] | 근거 번호를 매기고 한 본을 게시한다 | 8 | 코드 |
+| 게시·열람 | [[#ReportPublisher]] | 근거 번호를 매기고 C 리포트 한 본과 A 리포트 사본을 게시한다 | 8 | 코드 |
 | 게시·열람 | [[#CReportService]] | C 리포트를 읽어 준다 | 없음 | 코드 |
 | 게시·열람 | [[#DomainReportService]] | A 리포트를 읽어 준다 | 없음 | 코드 |
 | 게시·열람 | [[#MarketService]] | 시장지표 시계열을 읽어 준다 | 없음 | 코드 |
 | 게시·열람 | [[#BatchService]] | 배치를 보고 다시 돌리고 게시 전환한다 | 없음 | 코드 |
 | 게시·열람 | [[#MasterService]] | 크로스워크와 미매핑을 다룬다 | 없음 | 코드 |
 | 어댑터 | [[#HChatClient]] | 사내 게이트웨이에 LLM을 부른다 | 6~8 | 코드 |
-| 어댑터 | [[#BriefingStoreReader]] | 브리핑 갈래 저장소를 읽는다 | 2 | 코드 |
+| 어댑터 | [[#BriefingStoreReader]] | 브리핑 갈래 저장소를 읽는다 | 2·8 | 코드 |
 
 "실행 주체"가 LLM인 클래스 셋이 [[TBL-INFRA-001#C4]]가 말한 LLM 세 번이다. [[#CitationVerifier]]와 [[#DegradeHandler]]는 서술 계층에 있지만 코드다. 모델이 쓴 것을 검사하고 실패를 기록하는 일이라 모델에 맡기면 검사가 되지 않는다.
 
@@ -63,7 +63,7 @@ upstream: [TBL-API-001, TBL-DOM-001, TBL-INFRA-001, TBL-UI-001, TBL-UC-001, TBL-
 
 | 엔티티 | 만드는 클래스 | 읽는 클래스 |
 |:--|:--|:--|
-| [[TBL-DOM-001#DomainReport]] | 밖에서 온다 | [[#AJudgmentReader]] [[#DomainReportService]] |
+| [[TBL-DOM-001#DomainReport]] | 밖에서 온다 | [[#BriefingStoreReader]] [[#ReportPublisher]] [[#DomainReportService]] |
 | [[TBL-DOM-001#DomainJudgment]] | 밖에서 온다 | [[#AJudgmentReader]] [[#AnomalyDetector]] |
 | [[TBL-DOM-001#Contribution]] | 밖에서 온다 | [[#AJudgmentReader]] [[#AnomalyDetector]] |
 | [[TBL-DOM-001#CountryDayFact]] | [[#FactJoiner]] | [[#StageFlowCalculator]] [[#AnomalyDetector]] |
@@ -88,7 +88,13 @@ upstream: [TBL-API-001, TBL-DOM-001, TBL-INFRA-001, TBL-UI-001, TBL-UC-001, TBL-
 | [[TBL-DOM-001#IngestFile]] | [[#IngestService]] | [[#RegressionChecker]] [[#BatchService]] |
 | [[TBL-DOM-001#BatchRun]] | [[#PipelineRunner]] | [[#BatchService]] |
 
-**"밖에서 온다"가 셋이다.** A 리포트와 그 판정과 기여는 브리핑 갈래가 소유하고 C는 읽어서 복사만 한다([[TBL-INFRA-001#C5]]). [[#AJudgmentReader]]에 쓰기 메서드가 없는 것이 이 표의 첫 세 줄이다.
+**"밖에서 온다"가 셋이고, 그것을 받는 경로가 둘이다.** A 리포트와 그 판정과 기여는 브리핑 갈래가 소유하고 이 시스템은 읽어서 복사만 한다([[TBL-INFRA-001#C5]]). 두 경로는 읽는 것도 다르고 사본을 두는 자리도 다르다.
+
+**C 생성 경로는 판정만 읽는다.** [[#AJudgmentReader]]가 2단계에서 [[TBL-DOM-001#DomainJudgment]]와 [[TBL-DOM-001#Contribution]]을 읽어 데이터마트에 판정 사본으로 둔다. 이 사본에 A가 쓴 문장은 담기지 않는다. C의 서술은 판정 값에서 다시 만든다.
+
+**A 리포트 열람 경로는 문장까지 통째로 받는다.** [[#BriefingStoreReader]]의 `read_report_document`가 A 리포트의 문장·각주 근거·버전을 그대로 읽고, [[#ReportPublisher]]의 `publish_a_report`가 그것을 게시 스키마 사본으로 올린다. [[#DomainReportService]]는 그 사본만 읽는다. 열람 경로가 게시 스키마 밖으로 나가지 않는 이유가 이 사본이다([[TBL-INFRA-001#C10]]).
+
+두 경로 모두 쓰기가 없다. [[#AJudgmentReader]]와 [[#BriefingStoreReader]]에 쓰기 메서드가 없는 것이 이 표의 첫 세 줄이다.
 
 **읽는 클래스가 없는 개념이 하나다.** [[TBL-DOM-001#OemSales]]는 표본이 2019년 두 나라뿐이라 판정에 쓰지 않는다. 적재는 하되 쓰는 쪽을 만들지 않았다. 표본이 늘면 그때 [[#CandidateSearcher]]가 읽는다.
 
@@ -158,19 +164,21 @@ flowchart TB
   CL -.-> HC
   CW -.-> HC
   AJ -.-> BR
+  RP -.-> BR
   RP --> CR
+  RP --> DR
   BS --> PR
 ```
 
 읽는 법. 실선은 부르는 방향이고 점선은 바깥으로 나가는 호출이다. **TL에서 RP로 가는 선이 L3를 거치지 않는다.** 이것이 5장 경계의 그림이다. 서술 계층 전체를 지워도 신호등과 후보 순서는 게시기까지 도달한다.
 
-L5가 L3와 L2에만 걸려 있는 것도 규칙이다. 판정 계층에서 바깥으로 나가는 유일한 선은 AJ에서 BR로 가는 것 하나이고 그것은 사내 DB 읽기다([[TBL-INFRA-001#C5]]). H-chat으로 나가는 선은 전부 L3에서만 출발한다([[TBL-INFRA-001#C2]]).
+L5로 나가는 선의 출발지가 어디인지도 규칙이다. 판정 계층에서 바깥으로 나가는 선은 AJ에서 BR로 가는 것 하나이고, 게시 계층에서 나가는 선은 RP에서 BR로 가는 것 하나다. 둘 다 사내 DB 읽기다([[TBL-INFRA-001#C5]]). 앞은 A 판정을 읽어 데이터마트 사본으로 두고, 뒤는 A 리포트 본문을 읽어 게시 스키마 사본으로 옮긴다. H-chat으로 나가는 선은 전부 L3에서만 출발한다([[TBL-INFRA-001#C2]]).
 
-**의존은 위에서 아래로만 흐른다.** L2는 L3를 import 하지 않고, L1은 L2를 import 하지 않는다. 화살표가 거꾸로 가는 것이 셋 있는데 전부 같은 뜻이다. RC에서 PR로 가는 것은 회귀 급변이 자동 실행을 막는 신호이고, BS에서 PR로 가는 것은 사람이 누른 재실행이며, RP에서 CR로 가는 것은 게시된 것만 읽힌다는 뜻이다. 셋 다 호출이 아니라 상태 전달이다.
+**의존은 위에서 아래로만 흐른다.** L2는 L3를 import 하지 않고, L1은 L2를 import 하지 않는다. 화살표가 거꾸로 가는 것이 셋 있는데 전부 같은 뜻이다. RC에서 PR로 가는 것은 회귀 급변이 자동 실행을 막는 신호이고, BS에서 PR로 가는 것은 사람이 누른 재실행이며, RP에서 CR·DR로 가는 것은 게시된 것만 읽힌다는 뜻이다. 셋 다 호출이 아니라 상태 전달이다.
 
 ## 3. 폴더 구조
 
-[[SYNC-STD-001]] 1.9의 기본형을 쓰되 네 곳에서 벗어난다. 벗어난 이유를 아래에 적었다.
+싱크독 공통 규약 1.9의 기본형을 쓰되 네 곳에서 벗어난다. 벗어난 이유를 아래에 적었다.
 
 ```
 <저장소>/
@@ -383,8 +391,8 @@ classDiagram
     +parse(file_path, source_type, file_base_date) DataFrame
     +expand_merged_header(raw) list
     +split_period_and_measure(header_cell) tuple
-    +drop_total_rows(df) DataFrame
-    +detect_file_base_date(raw) str
+    +drop_total_rows(df) tuple[DataFrame, int]
+    +detect_file_base_date(raw) date|None
   }
   FormDetector ..> FormBPivotParser
   FormBPivotParser --> RecordStandardizer
@@ -392,7 +400,7 @@ classDiagram
 
 **속성.** `header_row_count: int`는 2 또는 3이다. `file_base_date: str`은 파일이 담은 기준일이며 파일에서 못 읽으면 관리자가 넣는다([[TBL-API-001#POST/api/admin/ingest/preflight]]).
 
-**메서드.** `expand_merged_header`는 병합된 헤더 칸을 아래로 채워 컬럼마다 (기간 구분, 지표 종류) 한 쌍을 만든다. `split_period_and_measure`는 헤더 한 칸을 그 쌍으로 푼다. 기간 구분은 일·월·누계·년 넷이고 지표 종류는 아홉이다(운영계획·사업계획·실적·진도율·전년대비, 선적·실 도매·도매(공식)·소매). `drop_total_rows`는 총계 행을 세어 두고 판정 대상에서 뺀다. `detect_file_base_date`는 파일 안에서 기준일을 찾아보고 없으면 `None`을 돌려준다.
+**메서드.** `expand_merged_header`는 병합된 헤더 칸을 아래로 채워 컬럼마다 (기간 구분, 지표 종류) 한 쌍을 만든다. `split_period_and_measure`는 헤더 한 칸을 그 쌍으로 푼다. 기간 구분은 일·월·누계·년 넷이고 지표 종류는 아홉이다(운영계획·사업계획·실적·진도율·전년대비, 선적·실 도매·도매(공식)·소매). `drop_total_rows`는 총계 행을 뺀 표와 뺀 행수를 함께 돌려준다. 행수를 같이 돌려주므로 총계 행이 몇 줄이었는지가 적재 뒤에도 남는다. `detect_file_base_date`는 파일 안에서 기준일을 찾아보고 없으면 `None`을 돌려준다.
 
 **관계.** [[#FormDetector]]가 고르고 [[#RecordStandardizer]]에게 넘긴다.
 
@@ -459,7 +467,7 @@ classDiagram
 
 ### 4.3 판정 계층
 
-배치 2~5단계다. **이 계층의 어느 클래스도 [[#HChatClient]]를 import 하지 않는다.** 5단계가 끝나면 화면에 나갈 판정이 전부 확정된다([[TBL-INFRA-001#C19]]).
+배치 2~5단계다. **이 계층의 어느 클래스도 [[#HChatClient]]를 import 하지 않는다.** 5단계가 끝나면 화면에 나갈 판정이 전부 확정된다([[TBL-INFRA-001#C19]]). 변동별 신호등과 워치리스트뿐 아니라 도메인 상태 3카드의 신호등도 여기 포함된다([[#TrafficLightJudge]]).
 
 #### AJudgmentReader A 판정 읽기
 
@@ -514,7 +522,7 @@ classDiagram
 
 **관계.** 산출물이 [[#CandidateSearcher]]의 입력이고, 기사 수와 출처 수는 [[#TrafficLightJudge]]의 입력이다. [[#EventNamer]]는 이미 만들어진 묶음에 이름만 덧입힌다.
 
-**판정 근거.** **이 클래스를 판정 계층에 둔 것이 지시받은 배치에서 바꾼 한 가지다**(0장). 묶음은 규칙이고 이름만 LLM이다([[TBL-DOM-001#Event]]). 기사 수로만 세면 많이 보도된 나라가 자동으로 커지므로 묶어서 세고, 한 사건이 몇 개 매체에서 나왔는지를 따로 센다. 이 두 값이 신호등 규칙의 입력이라 이 클래스가 죽으면 신호등도 죽는다. 그래서 6~8단계와 달리 실패 시 강등이 아니라 멈춤이다.
+**판정 근거.** **이 클래스는 판정 계층에 있다**(0장). 묶음은 규칙이고 이름만 LLM이다([[TBL-DOM-001#Event]]). 기사 수로만 세면 많이 보도된 나라가 자동으로 커지므로 묶어서 세고, 한 사건이 몇 개 매체에서 나왔는지를 따로 센다. 이 두 값이 신호등 규칙의 입력이라 이 클래스가 죽으면 신호등도 죽는다. 그래서 6~8단계와 달리 실패 시 강등이 아니라 멈춤이다.
 
 심각도를 모델이 매기지 않는 것은 [[TBL-PRD-001#R26]]과 같은 이유다. 기사에 이미 붙어 온 영향도의 최대값을 쓴다.
 
@@ -630,7 +638,7 @@ classDiagram
     +search_market(anomaly) list
     +search_cross_domain(anomaly) list
     +resolve_country_match(anomaly, target) str
-    -apply_limit(candidates) tuple
+    +apply_limit(candidates) tuple
   }
   AnomalyDetector --> CandidateSearcher
   EventClusterer --> CandidateSearcher
@@ -679,7 +687,7 @@ classDiagram
 
 #### TrafficLightJudge 신호등 판정기
 
-신호등을 규칙으로 정하고 워치리스트 줄을 만든다.
+신호등을 규칙으로 정하고 워치리스트 줄과 도메인 상태 카드를 만든다.
 
 ```mermaid
 classDiagram
@@ -687,6 +695,7 @@ classDiagram
     +ThresholdSetting setting
     +judge(anomaly, candidates) TrafficLight
     +build_watch_items(anomalies) list
+    +build_domain_status(domain, anomalies) DomainStatus
     +basis(candidate) dict
     -meets_threshold(candidate) bool
     -is_country_axis(anomaly) bool
@@ -697,15 +706,19 @@ classDiagram
 
 **속성.** `setting`이 최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준을 준다.
 
-**메서드.** `judge`는 `red` `yellow` `none` 중 하나와 그 근거를 돌려준다. `build_watch_items`는 [[TBL-DOM-001#WatchItem]] 목록을 만들고 신호등 순으로 정렬한다. `basis`는 어느 후보의 어떤 값이 기준을 넘겼는지를 담는다. `is_country_axis`는 축 종류가 `country`인지 본다.
+**메서드.** `judge`는 `red` `yellow` `none` 중 하나와 그 근거를 돌려준다. `build_watch_items`는 [[TBL-DOM-001#WatchItem]] 목록을 만들고 신호등 순으로 정렬한다. `build_domain_status`는 도메인 하나의 상태 카드를 만든다. `basis`는 어느 후보의 어떤 값이 기준을 넘겼는지를 담는다. `is_country_axis`는 축 종류가 `country`인지 본다.
 
 **규칙.** 사건 후보가 기사 수 ≥ 최소, 출처 수 ≥ 최소, 날짜 차이 ≤ 시간창 셋을 모두 채우고 완성차 노출이 확인되면 `red`. 셋을 채웠으나 노출이 미확인이면 `yellow`. 하나라도 못 채우면 `none`이고 목록에는 남는다.
+
+**도메인 상태 규칙.** `build_domain_status`는 그 도메인 안 변동들의 신호등 최댓값을 카드의 신호등으로 쓴다. 판정 출처를 함께 담는데 `aJudgment` `supplementaryAggregate` `notReceived` 셋 중 하나이고, 2단계에서 A 판정을 읽었는지 보완 집계로 내려갔는지 아예 못 받았는지를 가른다([[#AJudgmentReader]]). 기여 분해 상위 몇 건도 사본으로 함께 담는다. 생산 도메인은 국가 축이 없어 변동이 국가 카드에 오르지 못하므로 신호등이 `notApplicable`이고 화면 표기가 "판정 대상 아님"이다([[TBL-API-001]] 4.4절). 후보를 못 찾아 `none`이 된 것과 아예 판정 대상이 아닌 것을 같은 색으로 적지 않는다.
 
 **관계.** 판정 계층의 마지막 클래스다. 산출물이 [[#ReportPublisher]]로 바로 간다. 서술 계층을 거치지 않는다.
 
 **판정 근거.** **신호등은 규칙 산출물이다.** LLM을 끄고 배치를 돌려도 같은 값이 나와야 한다([[TBL-INFRA-001#C19]] [[TBL-PRD-001#R11]]). 근거를 함께 저장하는 이유는 화면에서 왜 그 색인지 보여 주기 위해서다([[TBL-UC-001#UC-S8]]).
 
-워치리스트 줄을 이 클래스가 만드는 것이 경계의 핵심이다. 게시기에서 만들면 8단계 산출물이 되고, 8단계는 LLM이 섞인 단계라 "LLM을 꺼도 워치리스트가 같다"를 보장할 수 없다.
+워치리스트 줄과 도메인 상태 카드를 이 클래스가 만드는 것이 경계의 핵심이다. 게시기에서 만들면 8단계 산출물이 되고, 8단계는 LLM이 섞인 단계라 "LLM을 꺼도 워치리스트와 도메인 상태가 같다"를 보장할 수 없다.
+
+**도메인 상태에서 LLM이 쓰는 것은 문장 한 줄뿐이다.** 신호등, 판정 출처, 기여 분해는 여기 5단계에서 확정된다. [[#ClaimWriter]]의 `write_domain_status`는 그 값을 받아 문장만 쓰고, 값을 고치지 않는다. 카드를 채워 게시하는 것은 [[#ReportPublisher]]의 `publish`다.
 
 **축 종류가 `plant`인 변동은 여기서 빠진다.** 생산에는 목적지 국가가 없어 국가 카드에 오를 수 없다([[TBL-INFRA-001#C16]]).
 
@@ -722,7 +735,7 @@ classDiagram
   class EventNamer {
     +LlmPort llm
     +name_events(events) int
-    +build_prompt(event) dict
+    -build_prompt(event) dict
     +fallback_to_representative(event) str
   }
   EventNamer --> HChatClient
@@ -732,7 +745,7 @@ classDiagram
 
 **속성.** `llm: LlmPort`는 게이트웨이 포트다.
 
-**메서드.** `name_events`는 이름을 붙인 건수를 돌려준다. `build_prompt`는 그 사건의 기사 제목과 출처만 담는다. `fallback_to_representative`는 실패했을 때 대표 기사 제목을 이름으로 쓰고 명명 주체를 그렇게 남긴다.
+**메서드.** `name_events`는 이름을 붙인 건수를 돌려주며 바깥에서 부르는 입구가 이것 하나다. `build_prompt`는 사설이고 `name_events` 안에서만 돈다. 그 사건의 기사 제목과 출처만 담는다. `fallback_to_representative`는 실패했을 때 대표 기사 제목을 이름으로 쓰고 명명 주체를 그렇게 남긴다.
 
 **관계.** [[#EventClusterer]]가 만든 묶음을 받아 이름 칸만 채운다. 묶음을 다시 만들지 않는다.
 
@@ -745,9 +758,8 @@ classDiagram
 ```mermaid
 classDiagram
   class CauseLinkWriter {
-    +LlmPort llm
-    +write(anomaly, candidates) CauseLink
-    +build_prompt(anomaly, candidates) dict
+    +write(anomaly, candidates, llm: LlmPort) CauseLink
+    -build_prompt(anomaly, candidates) dict
     +extract_citations(text) list
   }
   CauseLinkWriter --> HChatClient
@@ -755,9 +767,9 @@ classDiagram
   CauseLinkWriter --> DegradeHandler
 ```
 
-**속성.** `llm: LlmPort`.
+**속성.** 없다. 게이트웨이 포트를 호출 인자로 받는다.
 
-**메서드.** `write`는 [[TBL-DOM-001#CauseLink]] 한 건을 돌려준다. `build_prompt`는 그 변동의 후보 목록만 담는다. 후보 밖의 사실을 넣지 않는다. `extract_citations`는 문단에서 인용한 후보 식별자를 뽑는다.
+**메서드.** `write`는 변동과 후보 목록과 포트를 받아 [[TBL-DOM-001#CauseLink]] 한 건을 돌려준다. `build_prompt`는 사설이고 `write` 안에서만 돈다. 그 변동의 후보 목록만 담고 후보 밖의 사실을 넣지 않는다. `extract_citations`는 문단에서 인용한 후보 식별자를 뽑는다.
 
 **관계.** 변동마다 최대 하나 붙는다. 결과를 [[#CitationVerifier]]가 검사한다.
 
@@ -772,11 +784,10 @@ classDiagram
 ```mermaid
 classDiagram
   class ClaimWriter {
-    +LlmPort llm
-    +write_headline(context) Claim
-    +write_domain_status(domain, context) Claim
-    +write_card(anomaly, context) Claim
-    +build_prompt(section, context) dict
+    +write_headline(context, llm: LlmPort) Claim
+    +write_domain_status(domain, context, llm: LlmPort) Claim
+    +write_card(anomaly, context, llm: LlmPort) Claim
+    -build_prompt(section, context) dict
   }
   ClaimWriter --> HChatClient
   ClaimWriter --> CitationVerifier
@@ -784,9 +795,9 @@ classDiagram
   ReportPublisher ..> ClaimWriter : 근거 번호를 먼저 넘긴다
 ```
 
-**속성.** `llm: LlmPort`.
+**속성.** 없다. 게이트웨이 포트를 호출 인자로 받는다.
 
-**메서드.** 구역마다 메서드가 하나다. 각각 [[TBL-DOM-001#Claim]] 한 건을 돌려주고 각주 번호 목록을 함께 담는다.
+**메서드.** 구역마다 메서드가 하나다. 각각 [[TBL-DOM-001#Claim]] 한 건을 돌려주고 각주 번호 목록을 함께 담는다. `build_prompt`는 사설이고 세 메서드가 안에서만 쓴다. **`write_domain_status`는 문장만 쓴다.** 도메인 상태 카드의 신호등·판정 출처·기여 분해는 5단계에서 [[#TrafficLightJudge]]가 이미 정해 두었고 이 메서드는 그것을 입력으로 받는다.
 
 **관계.** 근거 번호는 [[#ReportPublisher]]가 먼저 매겨 이 클래스에 넘긴다. 모델이 번호를 만들지 않는다.
 
@@ -827,7 +838,7 @@ classDiagram
   class DegradeHandler {
     +degrade(role, reason, target) None
     +degraded_roles(batch_run_id) list
-    +is_degraded(report) bool
+    -is_degraded(report) bool
   }
   EventNamer --> DegradeHandler
   CauseLinkWriter --> DegradeHandler
@@ -838,7 +849,7 @@ classDiagram
 
 **속성.** 없다.
 
-**메서드.** `degrade`는 역할(`naming` `causeLink` `narration`)과 사유를 받아 기록한다. 사유는 LLM 오류, 내용 필터, 형식 위반, 인용 검증 실패, 백필 모드 다섯이다([[TBL-API-001]] 4.7절). `degraded_roles`는 그 배치에서 강등된 역할 목록을 돌려준다.
+**메서드.** `degrade`는 역할(`naming` `causeLink` `narration`)과 사유를 받아 기록한다. 사유는 LLM 오류, 내용 필터, 형식 위반, 인용 검증 실패, 백필 모드 다섯이다([[TBL-API-001]] 4.7절). `degraded_roles`는 그 배치에서 강등된 역할 목록을 돌려준다. `is_degraded`는 사설이고 `degraded_roles`가 비었는지 보는 내부 판정이다.
 
 **관계.** 서술 계층 넷이 전부 이 클래스로 실패를 보낸다. 결과가 [[#ReportPublisher]]와 리포트의 강등 표시로 간다.
 
@@ -848,13 +859,14 @@ classDiagram
 
 #### ReportPublisher 게시기
 
-근거에 번호를 매기고 리포트 한 본을 게시 스키마에 넣는다.
+근거에 번호를 매기고 C 리포트 한 본을 게시 스키마에 넣는다. A 리포트 사본도 이 클래스가 올린다.
 
 ```mermaid
 classDiagram
   class ReportPublisher {
     +number_evidence(anomalies, candidates) list
     +publish(batch_run, base_date) CReport
+    +publish_a_report(domain, document) str
     +diff_watchlist(current, previous) list
     +copy_display_values(evidence) None
     -next_version(base_date) int
@@ -862,14 +874,18 @@ classDiagram
   TrafficLightJudge --> ReportPublisher
   DegradeHandler --> ReportPublisher
   ReportPublisher --> CReportService
+  ReportPublisher --> DomainReportService
+  ReportPublisher ..> BriefingStoreReader : A 리포트 본문 읽기
   ReportPublisher ..> ClaimWriter : 번호를 먼저 넘긴다
 ```
 
 **속성.** 없다.
 
-**메서드.** `number_evidence`는 8단계 맨 앞에서 돌아 [[TBL-DOM-001#Evidence]] 번호를 먼저 매긴다. `publish`는 [[TBL-DOM-001#CReport]] 한 버전을 만든다. `diff_watchlist`는 직전 게시본과 국가별 신호등을 비교해 [[TBL-DOM-001#AlertEvent]]를 만들고 변화 배지를 붙인다. `copy_display_values`는 표시용 값을 근거 행에 복사한다. `next_version`은 같은 기준일의 다음 버전 번호를 돌려준다.
+**메서드.** `number_evidence`는 8단계 맨 앞에서 돌아 [[TBL-DOM-001#Evidence]] 번호를 먼저 매긴다. `publish`는 [[TBL-DOM-001#CReport]] 한 버전을 만든다. 도메인 상태 3카드를 채우는 것도 이 메서드이며, 값은 [[#TrafficLightJudge]]의 `build_domain_status` 산출물을 그대로 옮기고 문장만 [[#ClaimWriter]]에게서 받는다. `publish_a_report`는 브리핑 갈래가 게시한 A 리포트를 문장·각주 근거·버전까지 받아 게시 스키마 사본으로 올리고 그 사본의 식별자를 돌려준다. `diff_watchlist`는 직전 게시본과 국가별 신호등을 비교해 [[TBL-DOM-001#AlertEvent]]를 만들고 변화 배지를 붙인다. `copy_display_values`는 표시용 값을 근거 행에 복사한다. `next_version`은 같은 기준일의 다음 버전 번호를 돌려준다.
 
-**관계.** 판정 계층과 서술 계층의 산출물이 여기서 합쳐진다. 서술이 비어 있어도 게시한다.
+**관계.** 판정 계층과 서술 계층의 산출물이 여기서 합쳐진다. 서술이 비어 있어도 게시한다. A 리포트 본문은 [[#BriefingStoreReader]]에게서 받아 [[#DomainReportService]]가 읽을 자리에 둔다.
+
+**A 리포트 사본을 이 클래스가 올리는 이유.** 열람 경로는 게시 스키마만 본다([[TBL-INFRA-001#C10]]). A 리포트 화면이 원본 저장소를 직접 보면 그 제약이 깨지고, 브리핑 갈래가 원본을 고치면 어제 본 문장이 오늘 달라진다. 사본에 게시 버전을 함께 남기므로 같은 버전을 다시 열면 같은 문장이 나온다. 이 사본은 C 생성에 쓰지 않는다. C의 서술은 판정 값에서만 만든다(1.1절).
 
 **판정 근거.** 번호 매기기가 문장 쓰기보다 먼저 도는 순서가 이 클래스의 계약이다([[#ClaimWriter]]). 표시값을 복사해 두는 이유는 열람할 때 조인을 없애기 위해서다([[TBL-PRD-001#N5]] [[TBL-INFRA-001#C9]]).
 
@@ -911,6 +927,7 @@ classDiagram
     +build_domain_extra(domain, report) dict
     +list_missing_metrics(domain) list
   }
+  ReportPublisher --> DomainReportService
   DomainReportService ..> DomainReport
 ```
 
@@ -918,7 +935,7 @@ classDiagram
 
 **메서드.** 앞의 둘이 [[TBL-API-001#GET/api/intel/areport/domain/{domain}]]과 [[TBL-API-001#GET/api/intel/areport/version/{domainReportId}]]에 걸린다. `build_domain_extra`는 도메인마다 다른 덩어리를 만든다. `list_missing_metrics`는 데이터 구조상 못 만드는 지표를 이유와 함께 돌려준다([[TBL-API-001]] 4.13절).
 
-**관계.** [[TBL-DOM-001#DomainReport]]를 읽기만 한다. 만들지 않는다.
+**관계.** [[#ReportPublisher]]가 올린 게시 사본을 읽기만 한다. 만들지 않는다. 브리핑 갈래 저장소를 직접 보지 않으므로 열람 경로가 게시 스키마 밖으로 나가지 않는다([[TBL-INFRA-001#C10]]).
 
 **판정 근거.** **응답 어디에도 뉴스·시장지표 인용이 없다.** 이것이 인수 기준이다([[TBL-PRD-001#R29]]). C 리포트로 가는 링크 필드도 두지 않는다. A에서 C로 가는 화면 흐름이 없기 때문이다.
 
@@ -1036,7 +1053,7 @@ JSON 모드를 쓰는 것은 가정이다. 게이트웨이가 응답 스키마 �
 
 #### BriefingStoreReader 브리핑 갈래 저장소 리더
 
-A 판정과 내부 분해를 읽는다. 읽기만 한다.
+A 판정과 내부 분해를 읽고, A 리포트 본문도 읽는다. 읽기만 한다.
 
 ```mermaid
 classDiagram
@@ -1044,19 +1061,23 @@ classDiagram
     +str dsn
     +read_judgments(base_date, domain) list
     +read_contributions(judgment_id) list
+    +read_report_document(base_date, domain) dict
     +snapshot_id(base_date) str
     +ping() bool
   }
   AJudgmentReader --> BriefingStoreReader
+  ReportPublisher --> BriefingStoreReader
 ```
 
 **속성.** `dsn: str`은 읽기 전용 계정의 접속 문자열이다.
 
-**메서드.** `read_judgments`는 도메인·국가·기간 키로 판정을 읽는다. `read_contributions`는 그 판정의 기여를 읽는다. `snapshot_id`는 그 기준일 스냅샷의 식별자를 돌려주고 재현에 쓴다. `ping`은 접속을 확인한다.
+**메서드.** `read_judgments`는 도메인·국가·기간 키로 판정을 읽는다. `read_contributions`는 그 판정의 기여를 읽는다. 둘은 C 생성 경로가 쓰며 문장을 가져오지 않는다. `read_report_document`는 그 도메인의 게시된 A 리포트를 통째로 읽는다. 요약과 해설 문장, 고정 문구, 트래킹 지표, 분해, 못 만드는 지표, 문장에 달린 각주 근거, 게시 버전과 게시 시각까지 담는다. `snapshot_id`는 그 기준일 스냅샷의 식별자를 돌려주고 재현에 쓴다. `ping`은 접속을 확인하며 배치 2단계에 들어가기 전과 관리 화면의 연동 점검이 부른다.
 
-**관계.** `BriefingStorePort`의 구현체다. [[#AJudgmentReader]]만 부른다.
+**관계.** `BriefingStorePort`의 구현체다. 부르는 쪽이 둘이다. [[#AJudgmentReader]]가 판정을 읽고, [[#ReportPublisher]]가 `read_report_document`로 A 리포트 본문을 읽어 게시 사본으로 옮긴다.
 
 **판정 근거.** **쓰기 메서드를 두지 않는다.** 계정 권한으로도 막지만 클래스에도 쓰기 메서드가 없어야 실수할 자리가 없다([[TBL-INFRA-001#C5]]).
+
+**판정 읽기와 본문 읽기를 메서드로 갈라 둔 이유.** 두 경로의 쓰임이 다르기 때문이다. 판정은 C의 변동 판정에 들어가고 문장이 섞이면 안 된다. 본문은 A 리포트 화면에 그대로 나가야 하므로 문장까지 필요하다. 한 메서드로 합치면 C 생성 쪽이 문장을 받게 되고, 그것을 쓰지 않는다는 규칙이 코드에서 보이지 않는다.
 
 접근 방식이 아직 정해지지 않았다. 같은 DB인지 별도 인스턴스인지, 읽기 계정을 어떻게 받는지가 미결이다([[TBL-INFRA-001]] 9장). 그래서 포트로 감싸 두고 실패하면 보완 집계로 내려가는 경로를 [[#AJudgmentReader]]에 두었다.
 
@@ -1074,6 +1095,8 @@ classDiagram
 
 **한 문장.** 판정 계층은 코드만 쓰고 5단계에서 끝난다. 서술 계층은 그 결과를 사람이 읽을 수 있게 만드는 일이며, 통째로 죽어도 판정 산출물은 그대로 게시된다([[TBL-INFRA-001#C19]] [[TBL-INFRA-001#C13]]).
 
+**도메인 상태 3카드도 판정 계층 산출물이다.** 카드의 신호등과 판정 출처와 기여 분해는 [[#TrafficLightJudge]]의 `build_domain_status`가 5단계에서 낸다. 8단계의 [[#ClaimWriter]]가 쓰는 것은 카드에 얹히는 문장 한 줄뿐이다. 문장이 비어도 카드의 색과 값은 그대로 나간다. 색과 문장을 같은 클래스가 만들면 LLM이 죽었을 때 카드가 통째로 빈다.
+
 **죽으면 안 되는 클래스와 죽어도 되는 클래스.**
 
 | 죽으면 배치가 멈춘다 | 죽어도 리포트는 나간다 |
@@ -1084,15 +1107,15 @@ classDiagram
 | [[#ReportPublisher]] | [[#HChatClient]] |
 | | [[#AJudgmentReader]] (보완 집계로 내려간다) |
 
-**LLM이 꺼져도 같아야 하는 것 넷.** 변동 목록, 원인 후보 목록, 근접도 값 넷, 신호등과 후보 순서다. 이것을 확인하는 방법이 `llm_enabled=False`로 같은 기준일을 돌려 대조하는 회귀 검사다([[#PipelineRunner]] [[TBL-INFRA-001#C19]]).
+**LLM이 꺼져도 같아야 하는 것 다섯.** 변동 목록, 원인 후보 목록, 근접도 값 넷, 변동별 신호등과 후보 순서, 도메인 상태 3카드의 신호등이다. 이것을 확인하는 방법이 `llm_enabled=False`로 같은 기준일을 돌려 대조하는 회귀 검사다([[#PipelineRunner]] [[TBL-INFRA-001#C19]]).
 
 **코드에서 지키는 방법 셋.**
 
 1. `judgment/` 아래 어느 파일도 `adapters/`를 import 하지 않는다. import 하면 판정 경로에 LLM이 섞인 것이다.
-2. [[#TrafficLightJudge]]가 워치리스트 줄까지 만들고 [[#ReportPublisher]]에 바로 넘긴다. 서술 계층을 거치지 않는다.
+2. [[#TrafficLightJudge]]가 워치리스트 줄과 도메인 상태 카드까지 만들고 [[#ReportPublisher]]에 바로 넘긴다. 서술 계층을 거치지 않는다.
 3. 서술 계층의 실패는 예외가 아니라 [[#DegradeHandler]] 호출이다. 예외로 던지면 호출부 하나만 빠뜨려도 배치가 멈춘다.
 
-**경계를 넘는 값은 한 방향으로만 흐른다.** 서술 계층은 판정 계층의 산출물을 읽기만 하고 고치지 않는다. [[#EventNamer]]가 사건의 이름 칸만 채우고 기사 수를 건드리지 않는 것, [[#CauseLinkWriter]]가 후보를 인용만 하고 만들지 않는 것이 그것이다. [[#CitationVerifier]]가 검사하는 것도 이 방향이 지켜졌는지다.
+**경계를 넘는 값은 한 방향으로만 흐른다.** 서술 계층은 판정 계층의 산출물을 읽기만 하고 고치지 않는다. [[#EventNamer]]가 사건의 이름 칸만 채우고 기사 수를 건드리지 않는 것, [[#CauseLinkWriter]]가 후보를 인용만 하고 만들지 않는 것, [[#ClaimWriter]]의 `write_domain_status`가 카드의 신호등을 고치지 않는 것이 그것이다. [[#CitationVerifier]]가 검사하는 것도 이 방향이 지켜졌는지다.
 
 ## 6. 미결사항
 
@@ -1101,6 +1124,7 @@ classDiagram
 - [ ] [[#FormBPivotParser]]의 `detect_file_base_date`가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다([[TBL-INFRA-001#C15]])
 - [ ] [[#AJudgmentReader]]가 읽을 스냅샷의 실제 키와 필드. 이것이 정해져야 `validate_shape`의 대조 목록이 확정된다([[TBL-DOM-001#DomainJudgment]])
 - [ ] [[#BriefingStoreReader]]의 접속 방식. 같은 DB인지 별도 인스턴스인지, 읽기 계정을 어떻게 받는지
+- [ ] [[#BriefingStoreReader]]의 `read_report_document`가 읽을 A 리포트 문서의 실제 키와 필드. 게시 사본 컬럼과 1:1로 맞춰야 한다([[TBL-DOM-003]])
 - [ ] [[#HChatClient]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 것은 현재 가정이며 실호출 확인 범위가 좁다
 - [ ] [[#ProximityCalculator]]의 `day_diff`를 기간 구분에 따라 보정할지. 누계·년 변동은 후보가 구조적으로 멀어 보인다. 지금은 보정하지 않고 화면에 기간 구분을 적는 것으로 둔다
 - [ ] [[#TrafficLightJudge]]의 임계값 실제 수치. 최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준이 전부 현업 검토 대기다
