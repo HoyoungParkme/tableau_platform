@@ -22,7 +22,7 @@ upstream: [TBL-API-001, TBL-DOM-001, TBL-INFRA-001, TBL-UI-001, TBL-UC-001, TBL-
 
 지시받은 목록에 없었으나 넣은 클래스가 넷이다. [[#PipelineRunner]] [[#BatchService]] [[#MasterService]] [[#MarketService]]다. 앞의 하나는 여덟 단계를 돌리는 주체가 없으면 [[TBL-SEQ-001]]이 생명선을 그릴 수 없어서이고, 뒤의 셋은 [[TBL-API-001]]이 서비스 이름을 이미 고정해 두어 빠뜨리면 엔드포인트 일곱이 바인딩할 클래스를 잃기 때문이다.
 
-## 1. 클래스 식별
+## 1. 설계 클래스 식별
 
 | 계층 | 클래스 | 한 줄 | 배치 단계 | 실행 주체 |
 |:--|:--|:--|:--|:--|
@@ -57,7 +57,44 @@ upstream: [TBL-API-001, TBL-DOM-001, TBL-INFRA-001, TBL-UI-001, TBL-UC-001, TBL-
 
 "실행 주체"가 LLM인 클래스 셋이 [[TBL-INFRA-001#C4]]가 말한 LLM 세 번이다. [[#CitationVerifier]]와 [[#DegradeHandler]]는 서술 계층에 있지만 코드다. 모델이 쓴 것을 검사하고 실패를 기록하는 일이라 모델에 맡기면 검사가 되지 않는다.
 
-## 2. 계층 모델
+### 1.1 엔티티 대응
+
+[[TBL-DOM-001]]의 개념 24개를 어느 클래스가 만들고 어느 클래스가 읽는지다. **개념 하나를 만드는 클래스는 하나뿐이다.** 둘이면 같은 값이 두 경로로 생겨 어느 쪽이 맞는지 알 수 없게 된다.
+
+| 엔티티 | 만드는 클래스 | 읽는 클래스 |
+|:--|:--|:--|
+| [[TBL-DOM-001#DomainReport]] | 밖에서 온다 | [[#AJudgmentReader]] [[#DomainReportService]] |
+| [[TBL-DOM-001#DomainJudgment]] | 밖에서 온다 | [[#AJudgmentReader]] [[#AnomalyDetector]] |
+| [[TBL-DOM-001#Contribution]] | 밖에서 온다 | [[#AJudgmentReader]] [[#AnomalyDetector]] |
+| [[TBL-DOM-001#CountryDayFact]] | [[#FactJoiner]] | [[#StageFlowCalculator]] [[#AnomalyDetector]] |
+| [[TBL-DOM-001#SalesStageFlow]] | [[#StageFlowCalculator]] | [[#AnomalyDetector]] [[#CReportService]] |
+| [[TBL-DOM-001#ModelExposure]] | [[#FactJoiner]] | [[#TrafficLightJudge]] |
+| [[TBL-DOM-001#Anomaly]] | [[#AnomalyDetector]] | [[#CandidateSearcher]] [[#TrafficLightJudge]] [[#CauseLinkWriter]] [[#ReportPublisher]] |
+| [[TBL-DOM-001#ThresholdSetting]] | 운영이 새 버전 행을 넣는다 | [[#PipelineRunner]]와 판정 계층 전부 |
+| [[TBL-DOM-001#Article]] | [[#RecordStandardizer]] | [[#EventClusterer]] [[#CandidateSearcher]] |
+| [[TBL-DOM-001#Event]] | [[#EventClusterer]] | [[#EventNamer]](이름 칸만) [[#CandidateSearcher]] |
+| [[TBL-DOM-001#MarketPoint]] | [[#RecordStandardizer]] | [[#FactJoiner]] [[#CandidateSearcher]] [[#MarketService]] |
+| [[TBL-DOM-001#OemSales]] | [[#RecordStandardizer]] | 아직 없다. 자리만 있다 |
+| [[TBL-DOM-001#CauseCandidate]] | [[#CandidateSearcher]] | [[#ProximityCalculator]] [[#TrafficLightJudge]] [[#CauseLinkWriter]] [[#CitationVerifier]] |
+| [[TBL-DOM-001#CauseLink]] | [[#CauseLinkWriter]] | [[#CitationVerifier]] [[#ReportPublisher]] |
+| [[TBL-DOM-001#WatchItem]] | [[#TrafficLightJudge]] | [[#ReportPublisher]] [[#CReportService]] |
+| [[TBL-DOM-001#CReport]] | [[#ReportPublisher]] | [[#CReportService]] |
+| [[TBL-DOM-001#Claim]] | [[#ClaimWriter]] | [[#CitationVerifier]] [[#ReportPublisher]] |
+| [[TBL-DOM-001#Evidence]] | [[#ReportPublisher]] | [[#ClaimWriter]] [[#CReportService]] |
+| [[TBL-DOM-001#AlertEvent]] | [[#ReportPublisher]] | [[#CReportService]] [[#BatchService]] |
+| [[TBL-DOM-001#Country]] | [[#MasterService]] | [[#RecordStandardizer]] [[#FactJoiner]] |
+| [[TBL-DOM-001#Strait]] | [[#MasterService]] | [[#CandidateSearcher]] |
+| [[TBL-DOM-001#GlovisEntity]] | [[#MasterService]] | [[#TrafficLightJudge]] |
+| [[TBL-DOM-001#IngestFile]] | [[#IngestService]] | [[#RegressionChecker]] [[#BatchService]] |
+| [[TBL-DOM-001#BatchRun]] | [[#PipelineRunner]] | [[#BatchService]] |
+
+**"밖에서 온다"가 셋이다.** A 리포트와 그 판정과 기여는 브리핑 갈래가 소유하고 C는 읽어서 복사만 한다([[TBL-INFRA-001#C5]]). [[#AJudgmentReader]]에 쓰기 메서드가 없는 것이 이 표의 첫 세 줄이다.
+
+**읽는 클래스가 없는 개념이 하나다.** [[TBL-DOM-001#OemSales]]는 표본이 2019년 두 나라뿐이라 판정에 쓰지 않는다. 적재는 하되 쓰는 쪽을 만들지 않았다. 표본이 늘면 그때 [[#CandidateSearcher]]가 읽는다.
+
+**[[TBL-DOM-001#Evidence]]를 [[#ReportPublisher]]가 만들고 [[#ClaimWriter]]가 읽는 방향에 주의한다.** 각주 번호를 코드가 먼저 매기고 모델이 그것을 받아 쓴다. 반대로 하면 없는 각주가 생긴다.
+
+## 2. 의존 관계
 
 ```mermaid
 flowchart TB
@@ -128,6 +165,8 @@ flowchart TB
 읽는 법. 실선은 부르는 방향이고 점선은 바깥으로 나가는 호출이다. **TL에서 RP로 가는 선이 L3를 거치지 않는다.** 이것이 5장 경계의 그림이다. 서술 계층 전체를 지워도 신호등과 후보 순서는 게시기까지 도달한다.
 
 L5가 L3와 L2에만 걸려 있는 것도 규칙이다. 판정 계층에서 바깥으로 나가는 유일한 선은 AJ에서 BR로 가는 것 하나이고 그것은 사내 DB 읽기다([[TBL-INFRA-001#C5]]). H-chat으로 나가는 선은 전부 L3에서만 출발한다([[TBL-INFRA-001#C2]]).
+
+**의존은 위에서 아래로만 흐른다.** L2는 L3를 import 하지 않고, L1은 L2를 import 하지 않는다. 화살표가 거꾸로 가는 것이 셋 있는데 전부 같은 뜻이다. RC에서 PR로 가는 것은 회귀 급변이 자동 실행을 막는 신호이고, BS에서 PR로 가는 것은 사람이 누른 재실행이며, RP에서 CR로 가는 것은 게시된 것만 읽힌다는 뜻이다. 셋 다 호출이 아니라 상태 전달이다.
 
 ## 3. 폴더 구조
 
