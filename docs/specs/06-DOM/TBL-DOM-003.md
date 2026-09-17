@@ -280,8 +280,8 @@ erDiagram
   sales_stage_flow {
     bigint stage_flow_id PK
     text country_code
-    numeric entity_stage_stay
-    numeric distribution_stay
+    numeric entity_stage_gap
+    numeric dealer_stage_gap
     text wholesale_basis
     text derivation_type
   }
@@ -898,10 +898,10 @@ erDiagram
 | `actual_wholesale` | numeric(18,3) | Y | 실 도매 |
 | `official_wholesale` | numeric(18,3) | N | 도매(공식) |
 | `retail` | numeric(18,3) | N | 소매 |
-| `entity_stage_stay` | numeric(18,3) | N | 법인 구간. 선적 빼기 도매정본. 음수 허용 |
-| `entity_stage_stay_rate` | numeric(10,6) | Y | 도매정본으로 나눈 값 |
-| `distribution_stay` | numeric(18,3) | N | 딜러 구간. 도매정본 빼기 소매. 음수 허용 |
-| `distribution_stay_rate` | numeric(10,6) | N | 도매정본으로 나눈 값 |
+| `entity_stage_gap` | numeric(18,3) | N | 법인 구간. 선적 빼기 도매정본. 음수 허용. 변동의 지표 이름은 `entityStageStay` |
+| `entity_stage_gap_rate` | numeric(10,6) | Y | 도매정본으로 나눈 값 |
+| `dealer_stage_gap` | numeric(18,3) | N | 딜러 구간. 도매정본 빼기 소매. 음수 허용. 변동의 지표 이름은 `distributionStay` |
+| `dealer_stage_gap_rate` | numeric(10,6) | N | 도매정본으로 나눈 값 |
 | `wholesale_basis` | text | N | `officialWholesale` `actualWholesale`. 어느 기준으로 계산했는가 |
 | `wholesale_alternative_diff` | numeric(18,3) | Y | 다른 도매 기준과의 차이 |
 | `derivation_type` | text | N | `derived` `measured` |
@@ -911,9 +911,9 @@ erDiagram
 
 기본키 `stage_flow_id`. 유일 제약 `(batch_run_id, country_code, period_type, file_base_date)`.
 
-**부호는 앞 단계에서 뒤 단계를 뺀 값이다.** 미주 누계 실측으로 법인 구간 `entity_stage_stay`는 679,551 빼기 677,201로 2,350이고, 딜러 구간 `distribution_stay`는 677,201 빼기 643,097로 34,104이며 비율이 0.050이다([[TBL-API-001]] 1.4절).
+**부호는 앞 단계에서 뒤 단계를 뺀 값이다.** 미주 누계 실측으로 법인 구간 `entity_stage_gap`은 679,551 빼기 677,201로 2,350이고, 딜러 구간 `dealer_stage_gap`은 677,201 빼기 643,097로 34,104이며 비율이 0.050이다([[TBL-API-001]] 1.4절).
 
-**구간 이름이 둘뿐이다.** `entity_stage_stay`가 법인 구간이고 화면 표기는 법인 단계 체류, `distribution_stay`가 딜러 구간이고 화면 표기는 유통 체류다([[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]]). 도매와 소매 사이를 가리키는 다른 이름을 쓰지 않는다. 같은 값이 두 이름으로 불리면 API 지표 목록과 화면 문구가 어긋난다.
+**구간이 둘이고 이름이 층마다 하나씩이다.** 컬럼 `entity_stage_gap`이 법인 구간이고 변동의 지표 이름은 `entityStageStay`, 화면 표기는 법인 단계 체류다. 컬럼 `dealer_stage_gap`이 딜러 구간이고 변동의 지표 이름은 `distributionStay`, 화면 표기는 유통 체류다([[TBL-API-001]]의 StageFlow 스키마 [[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]]). 컬럼 이름은 API 응답 필드 이름을 그대로 따르고 지표 이름과는 일대일로 맞선다. 도매와 소매 사이를 가리키는 `wholesaleToRetailGap` 같은 다른 이름을 쓰지 않는다. 같은 값이 두 이름으로 불리면 API 지표 목록과 화면 문구가 어긋난다.
 
 **음수에 `CHECK`를 걸지 않는다.** 소매가 도매를 넘는 국가는 이전에 쌓인 물량을 덜어내는 중이고 그 자체가 읽을 값이다. 실측에서 푸에르토리코 -0.137, 콜롬비아 -0.105다([[TBL-PRD-001#R30]]).
 
