@@ -921,7 +921,7 @@ erDiagram
 
 **음수에 `CHECK`를 걸지 않는다.** 소매가 도매를 넘는 국가는 이전에 쌓인 물량을 덜어내는 중이고 그 자체가 읽을 값이다. 실측에서 푸에르토리코 -0.137, 콜롬비아 -0.105다([[TBL-PRD-001#R30]]).
 
-**`wholesale_basis`를 행마다 남기는 이유.** 도매가 두 기준으로 들어오고 미주 누계에서 27,135대 차이가 난다. 어느 기준으로 계산했는지가 행에 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라진다.
+**`wholesale_basis`를 행마다 남기는 이유.** 도매가 두 기준으로 들어오고 전사 누계에서 실 도매 2,356,496과 도매(공식) 2,383,631이 27,135대 차이가 난다. 이 27,135는 전사 누계의 차이이고 앞 문단의 2,350과 34,104가 선 미주 누계 값이 아니다. 미주 구간의 실 도매 누계는 실측이 없으므로 이 숫자로 미주 구간 검증식을 세우지 않는다. 어느 기준으로 계산했는지가 행에 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라진다.
 
 **구간을 둘로 나눈 이유.** 실측에서 앞 구간은 대부분 국가가 0에 가깝고 뒤 구간이 벌어진다. 다만 앞 구간도 캐나다 0.083처럼 벌어지는 국가가 있어 둘 다 저장한다.
 
@@ -1050,7 +1050,7 @@ erDiagram
 
 기본키 `candidate_id`. 유일 제약 `(anomaly_id, sort_order)`.
 
-**정렬 순서.** `day_diff` 오름차순, 같으면 `source_count` 내림차순, 그다음 `article_count` 내림차순이다. `sort_order`는 이 규칙이 낳은 자리 번호이고 같은 입력이면 같은 번호가 나온다.
+**정렬 순서.** `day_diff` 오름차순, 같으면 `source_count` 내림차순, 그다음 `article_count` 내림차순, 셋이 모두 같으면 `candidate_id` 사전순이다. 넷째 열쇠가 계약에 있어야 동률에서 자리가 흔들리지 않고, `sort_order`는 이 규칙이 낳은 자리 번호이며 같은 입력이면 같은 번호가 나온다. 화면이 글자로 적는 정렬 규칙 문장([[#c_report]]의 `candidate_sort_rule`)은 앞의 셋만 쓴다. 넷째는 동률을 가르는 장치이지 읽는 사람에게 설명할 기준이 아니기 때문이다.
 
 **이 테이블에 등급·점수 컬럼이 없다는 것이 이 문서의 핵심 제약이다.** `score` `grade` `relevance` `rank` `confidence`와 그 변형을 두지 않는다. 근접도 값 넷이 정렬과 신호등의 유일한 입력이고 모델은 이 값을 바꾸거나 새로 만들 수 없다([[TBL-PRD-001#R26]] [[TBL-PRD-001#R27]]).
 
@@ -1312,7 +1312,7 @@ erDiagram
 | `published_at` | timestamptz | N | 브리핑 갈래가 게시한 시각 |
 | `title` | text | N | 지면 제목 |
 | `scope_label` | text | Y | 범위 문구. 예 미주 29개국 · 누계 기준 |
-| `source_label` | text | Y | 출처 대시보드 이름 |
+| `source_label` | text | N | 출처 대시보드 이름 |
 | `dashboard_id` | text | Y | 출처 대시보드 식별자 |
 | `source_snapshot_at` | timestamptz | Y | 그 리포트가 읽은 스냅샷 일시 |
 | `data_form` | text | N | 그 리포트가 읽은 데이터 형태. `A` `B` |
@@ -1333,7 +1333,7 @@ erDiagram
 
 **문장까지 복사하는 것이 [[#domain_report_snapshot]]과 갈리는 지점이다.** 경로가 둘이기 때문이다. C 생성 경로는 A의 판정만 읽고 A가 쓴 문장을 C의 서술에 쓰지 않는다. A 리포트 열람 경로는 화면이 A 리포트를 그대로 보여 주는 것이므로 문장이 있어야 한다. 열람 계정은 `pub` 밖을 보지 못하니([[TBL-INFRA-001#C10]]) 문장이 이 스키마에 사본으로 있어야 한다. 읽어 오는 쪽은 [[TBL-DOM-002#BriefingStoreReader]]이고 화면에 내주는 쪽은 [[TBL-DOM-002#DomainReportService]]다.
 
-**판정과 출처 칸 넷을 여기에 둔 이유.** 열람 응답이 판정 목록과 출처 셋을 반드시 들고 나간다([[TBL-API-001]] 4.4절 DomainReport). 판정 목록은 `judgments`가, 출처 셋은 `source_label`(대시보드 이름)과 `source_snapshot_at`(스냅샷 일시)과 `data_form`(데이터 형태)이 짝을 이뤄 채운다. `dashboard_id`는 그 대시보드의 식별자이고 `constraint_warnings`는 지면 머리의 제약 경고다([[TBL-UI-001#UI-7]]). 열람 계정이 `pub` 밖을 보지 못하므로([[TBL-INFRA-001#C10]]) 이 값들이 사본에 없으면 응답을 채울 길이 없다. `judgments`는 [[#domain_judgment]]와 [[#contribution]]의 사본이고 정본은 `mart`다. C 생성은 여전히 `mart`만 읽고 이 칸을 보지 않는다.
+**판정과 출처 칸 넷을 여기에 둔 이유.** 열람 응답이 판정 목록과 출처 셋을 반드시 들고 나간다([[TBL-API-001]] 4.4절 DomainReport). 판정 목록은 `judgments`가, 출처 셋은 `source_label`(대시보드 이름)과 `source_snapshot_at`(스냅샷 일시)과 `data_form`(데이터 형태)이 짝을 이뤄 채운다. `dashboard_id`는 그 대시보드의 식별자이고 `constraint_warnings`는 지면 머리의 제약 경고다([[TBL-UI-001#UI-7]]). `source_label`과 `data_form`은 응답에서 둘 다 필수이므로 널을 허용하지 않는다. `constraint_warnings`는 응답에서 필수가 아니므로 널을 허용한다. 열람 계정이 `pub` 밖을 보지 못하므로([[TBL-INFRA-001#C10]]) 이 값들이 사본에 없으면 응답을 채울 길이 없다. `judgments`는 [[#domain_judgment]]와 [[#contribution]]의 사본이고 정본은 `mart`다. C 생성은 여전히 `mart`만 읽고 이 칸을 보지 않는다.
 
 **못 만드는 지표를 칸으로 들고 있는 이유.** A2 재고 지면은 없는 것 넷을, A3 판매 지면은 하나를 목록으로 보여 준다([[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]]). 화면이 그 목록을 코드에 박으면 원천이 들어온 날 화면을 고쳐야 한다. 사본에 두면 브리핑 갈래가 목록을 줄이는 것으로 끝난다.
 
