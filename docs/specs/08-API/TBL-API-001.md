@@ -14,7 +14,7 @@ upstream: [TBL-UI-001, TBL-DOM-001, TBL-INFRA-001, TBL-UC-001, TBL-PRD-001]
 
 두 묶음이다. **현업 열람**은 `/api/intel` 아래 다섯 개이며 서명 토큰으로 연다. **관리**는 `/api/admin` 아래 열네 개이며 세션으로 연다. 열람 쪽은 읽기만 하고 LLM을 부르지 않는다([[TBL-PRD-001#N5]]).
 
-이 문서의 핵심 제약은 하나다. **등급·점수·순위를 뜻하는 필드를 응답 어디에도 두지 않는다.** 원인 후보가 들고 있는 것은 코드가 센 값 넷뿐이며(날짜 차이, 기사 수, 출처 수, 국가 일치 방식) 그 값이 정렬과 신호등의 유일한 입력이다([[TBL-PRD-001#R26]] [[TBL-DOM-001#CauseCandidate]], PRD 6.14). 금지 필드명은 [[#1.3]]이 아니라 1.3절에 목록으로 적었다.
+이 문서의 핵심 제약은 하나다. **등급·점수·순위를 뜻하는 필드를 응답 어디에도 두지 않는다.** 원인 후보가 들고 있는 것은 코드가 센 값 넷뿐이며(날짜 차이, 기사 수, 출처 수, 국가 일치 방식) 그 값이 정렬과 신호등의 유일한 입력이다([[TBL-PRD-001#R26]] [[TBL-DOM-001#CauseCandidate]], PRD 6.14). 금지 필드명은 1.3절에 목록으로 적었다.
 
 여기서 정하지 않는 것. 서비스 함수의 내부 흐름은 [[TBL-SEQ-001]]이, 클래스와 함수 시그니처는 [[TBL-MS-001]]이 정한다. 테이블과 컬럼은 DOM 클래스 명세와 ERD가 정하며 이 문서보다 뒤에 나온다.
 
@@ -38,7 +38,7 @@ upstream: [TBL-UI-001, TBL-DOM-001, TBL-INFRA-001, TBL-UC-001, TBL-PRD-001]
 - 날짜는 `YYYY-MM-DD`, 시각은 RFC 3339 UTC 오프셋 포함이다.
 - 비율은 소수다. `0.252`는 25.2%를 뜻한다. 화면이 백분율로 그린다.
 - 열람 응답은 게시된 결과의 조회다. 서버가 그 자리에서 다시 계산하거나 H-chat을 부르지 않는다([[TBL-PRD-001#N5]], p95 2초).
-- 값이 없는 것과 만들 수 없는 것을 구분한다. 값이 없으면 `null`, 데이터 구조상 만들 수 없으면 해당 필드를 아예 내리지 않고 `missingMetrics`에 이유와 함께 넣는다([[#missing_metric]]).
+- 값이 없는 것과 만들 수 없는 것을 구분한다. 값이 없으면 `null`, 데이터 구조상 만들 수 없으면 해당 필드를 아예 내리지 않고 `missingMetrics`에 이유와 함께 넣는다(4.13절).
 - 열람 응답은 기사 원문 URL 외에 외부 주소를 담지 않는다. 이미지·글꼴·스크립트 주소를 응답에 넣지 않는다.
 
 ### 1.3 두지 않는 필드
@@ -52,13 +52,13 @@ upstream: [TBL-UI-001, TBL-DOM-001, TBL-INFRA-001, TBL-UC-001, TBL-PRD-001]
 | `rank`, `ranking`, `priority` | 관련도 순위로 읽힌다 |
 | `confidence`, `strength`, `certainty` | 판정의 세기를 모델이 정하는 것으로 읽힌다 |
 
-허용되는 순서 필드는 `sortOrder` 하나다. 이것은 관련도가 아니라 **정렬 규칙이 낳은 자리 번호**다. 규칙은 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순이다([[TBL-DOM-001#CauseCandidate]]). 같은 입력이면 같은 번호가 나온다. 응답의 `candidateSortRule`에 이 문장을 그대로 실어 화면이 글자로 적는다([[TBL-UI-001#UI-10]] 규칙).
+허용하는 순서 필드는 `sortOrder` 하나다. 이것은 관련도가 아니라 **정렬 규칙이 낳은 자리 번호**다. 규칙은 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순이다([[TBL-DOM-001#CauseCandidate]]). 같은 입력이면 같은 번호가 나온다. 응답의 `candidateSortRule`에 이 문장을 그대로 실어 화면이 글자로 적는다([[TBL-UI-001#UI-10]] 규칙).
 
-[[#contribution]]의 `sortOrder`도 같다. 기여값 내림차순이 낳은 자리이지 중요도가 아니다.
+4.4절의 `sortOrder`도 같다. 기여값 내림차순이 낳은 자리이지 중요도가 아니다.
 
 ### 1.4 기간 키와 부호
 
-**시간 축은 칸 두 개다.** 단일 기준일을 쓰지 않는다([[TBL-INFRA-001#C15]] [[TBL-DOM-001#Anomaly]]). 모든 판정·결합·유도 행이 `periodKey`를 가진다([[#period_key]]).
+**시간 축은 칸 두 개다.** 단일 기준일을 쓰지 않는다([[TBL-INFRA-001#C15]] [[TBL-DOM-001#Anomaly]]). 모든 판정·결합·유도 행이 `periodKey`를 가진다(4.2절).
 
 - `periodType`은 `day` `month` `cumulative` `year` 넷이다. 각각 일·월·누계·년이다.
 - `fileBaseDate`는 그 값이 온 파일의 기준일이다. 형태 A(IF 원장)면 행의 기준일자와 같고, 형태 B(피벗 리포트)면 파일이 붙여 준 날이다([[TBL-INFRA-001#C6]]).
@@ -86,7 +86,7 @@ upstream: [TBL-UI-001, TBL-DOM-001, TBL-INFRA-001, TBL-UC-001, TBL-PRD-001]
 
 ## 2. 에러
 
-RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `status` `detail` `instance`이고 아래 표의 확장 필드가 더 붙는다. 스키마는 [[#problem]].
+RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `status` `detail` `instance`이고 아래 표의 확장 필드가 더 붙는다. 스키마는 4.1절.
 
 | type | status | 언제 | 확장 필드 |
 |:--|--:|:--|:--|
@@ -121,7 +121,7 @@ RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `stat
 
 응답에 담기는 덩어리는 아홉이다. 기준일과 소스별 최신일, 시장지표 바 4종, 헤드라인과 인과 배지, 도메인 상태 3장, 변동 목록, 변동별 후보 목록, 후보별 근거, 연관 설명, 강등과 배치 번호. 근거 패널까지 이 응답에 들어 있어 펼칠 때 추가 호출이 없다([[TBL-UC-001#UC-H2]]).
 
-`anomalies`는 신호등 순(`red` → `yellow` → `none`)으로 이미 정렬돼 온다. 각 변동의 `candidates`도 [[#1.3]]이 아니라 1.3절의 정렬 규칙으로 이미 정렬돼 온다. 화면은 순서를 다시 계산하지 않는다.
+`anomalies`는 신호등 순(`red` → `yellow` → `none`)으로 이미 정렬돼 온다. 각 변동의 `candidates`도 1.3절의 정렬 규칙으로 이미 정렬돼 온다. 화면은 순서를 다시 계산하지 않는다.
 
 ```yaml
 /api/intel/creport/latest:
@@ -357,7 +357,7 @@ A1 생산·A2 재고·A3 판매 중 한 도메인의 최신 게시 리포트를 
 |:--|:--|
 | `production` | 누적 계획·실적·달성률, 계획 정본과 대안 기준 차이, 법인별 달성률 행(실적/계획), 완성차·반조립 구성비, 내수·수출 구성비 |
 | `inventory` | 원천 부재 플래그와 배너 문구, 도매·소매 누계와 차이·비율, 국가별 체류 비중 행, MOS 상태, 원천을 받으면 채워질 자리 4 |
-| `sales` | 단계별 흐름 4계열 누계와 구간 차이 2([[#stage_flow]]), 국가별 격차 행을 쌓이는 쪽·덜어내는 쪽으로 나눈 두 묶음, 한 국가 차종별 도매·소매·차이 |
+| `sales` | 단계별 흐름 4계열 누계와 구간 차이 2(4.8절), 국가별 격차 행을 쌓이는 쪽·덜어내는 쪽으로 나눈 두 묶음, 한 국가 차종별 도매·소매·차이 |
 
 ```yaml
 /api/intel/areport/domain/{domain}:
@@ -1544,9 +1544,9 @@ components:
 
 ## 4. 스키마
 
-엔드포인트가 공유하는 조각들이다. OpenAPI의 `components.schemas` 아래에 들어간다.
+엔드포인트가 공유하는 조각들이다. OpenAPI의 `components.schemas` 아래에 들어간다. REST 문서의 항목은 엔드포인트뿐이라 아래 열셋은 절로 두고 번호로 가리킨다.
 
-#### problem 에러 본문
+### 4.1 problem 에러 본문
 
 RFC 9457 `application/problem+json`. 확장 필드는 2장 표를 따른다.
 
@@ -1588,7 +1588,7 @@ Problem:
     limitBytes: { type: integer }
 ```
 
-#### period_key 기간 키
+### 4.2 period_key 기간 키
 
 시간 축 두 칸이다. 단일 기준일을 쓰지 않는다([[TBL-INFRA-001#C15]]).
 
@@ -1609,11 +1609,11 @@ PeriodKey:
     dataForm: { type: string, enum: [A, B] }
 ```
 
-#### anomaly 변동
+### 4.3 anomaly 변동
 
 C 리포트가 다루는 변동 한 건. [[TBL-DOM-001#Anomaly]]의 속성을 그대로 옮긴다.
 
-`axisType`이 `plant`인 변동은 이 배열에 들어오지 않는다([[#1.6]]이 아니라 1.6절). `source`가 `supplementaryAggregate`면 기여 분해가 비고 화면이 "보완 집계"를 적는다. `derived`면 [[#stage_flow]]에서 유도된 재고 신호이며 화면이 유도 표기를 붙인다.
+`axisType`이 `plant`인 변동은 이 배열에 들어오지 않는다(1.6절). `source`가 `supplementaryAggregate`면 기여 분해가 비고 화면이 "보완 집계"를 적는다. `derived`면 4.8절에서 유도된 재고 신호이며 화면이 유도 표기를 붙인다.
 
 ```yaml
 Anomaly:
@@ -1700,7 +1700,7 @@ Anomaly:
     batchRunId: { type: string }
 ```
 
-#### contribution 내부 분해 기여
+### 4.4 contribution 내부 분해 기여
 
 변동을 만든 하위 항목과 그 몫. A 판정이 낸 값을 C가 그대로 실어 나른다([[TBL-DOM-001#Contribution]]).
 
@@ -1723,7 +1723,7 @@ Contribution:
     sortOrder: { type: integer, description: 기여값 내림차순이 낳은 자리 }
 ```
 
-#### cause_candidate 원인 후보
+### 4.5 cause_candidate 원인 후보
 
 변동에 붙은 후보 한 건과 근접도 값 넷. **이 스키마에 등급·점수 필드가 없다는 것이 이 문서의 핵심 제약이다**([[TBL-PRD-001#R26]], PRD 6.14).
 
@@ -1810,7 +1810,7 @@ CauseCandidate:
         periodKey: { $ref: '#/components/schemas/PeriodKey' }
 ```
 
-#### traffic_light 신호등과 근거
+### 4.6 traffic_light 신호등과 근거
 
 규칙 산출물이다. LLM을 꺼도 같은 값이 나온다([[TBL-PRD-001#R11]] [[TBL-UC-001#UC-S8]] 7단계).
 
@@ -1844,7 +1844,7 @@ TrafficLight:
     settingVersion: { type: string }
 ```
 
-#### cause_link 연관 설명
+### 4.7 cause_link 연관 설명
 
 후보와 변동을 잇는 문단 하나. H-chat이 쓰고 검증기가 인용 ID를 대조한다([[TBL-DOM-001#CauseLink]] [[TBL-UC-001#UC-S9]]).
 
@@ -1876,7 +1876,7 @@ CauseLink:
       enum: [llmFailure, contentFilter, jsonViolation, citationVerificationFailed, backfillMode, null]
 ```
 
-#### stage_flow 단계별 흐름
+### 4.8 stage_flow 단계별 흐름
 
 판매 네 계열의 값과 단계 사이의 차이. 재고 원천이 없는 동안 재고 신호가 나오는 자리다([[TBL-PRD-001#R30]] [[TBL-DOM-001#SalesStageFlow]]).
 
@@ -1920,7 +1920,7 @@ StageFlow:
     sortOrder: { type: integer, nullable: true }
 ```
 
-#### market_metric 시장지표 값
+### 4.9 market_metric 시장지표 값
 
 지표 바 한 칸과 후보 상세가 함께 쓴다([[TBL-DOM-001#MarketPoint]]).
 
@@ -1941,7 +1941,7 @@ MarketMetric:
     displayInBar: { type: boolean, default: true }
 ```
 
-#### evidence 근거와 각주
+### 4.10 evidence 근거와 각주
 
 문장이 가리키는 근거 한 줄. 번호는 코드가 먼저 매기고 모델이 아니다([[TBL-DOM-001#Evidence]]).
 
@@ -1961,7 +1961,7 @@ Evidence:
     url: { type: string, nullable: true, description: 기사 원문. 새 창으로만 연다 }
 ```
 
-#### form_detection 형태 판별 결과
+### 4.11 form_detection 형태 판별 결과
 
 완성차 데이터의 형태 A·B 판별과 그 근거([[TBL-INFRA-001#C6]] [[TBL-DOM-001#IngestFile]]).
 
@@ -1992,7 +1992,7 @@ FormDetection:
           found: { type: string }
 ```
 
-#### tracking_metric A 리포트 트래킹 지표
+### 4.12 tracking_metric A 리포트 트래킹 지표
 
 A 리포트 사이드의 지표 셋. 현업 인터뷰 전까지 임시 지정임을 표시한다([[TBL-UC-001#UC-H4]] 1a).
 
@@ -2011,7 +2011,7 @@ TrackingMetric:
     note: { type: string, nullable: true }
 ```
 
-#### missing_metric 못 만드는 지표
+### 4.13 missing_metric 못 만드는 지표
 
 데이터 구조상 만들 수 없는 지표. 빈 자리를 추정값으로 채우지 않고 이유와 함께 목록으로 보여 준다([[TBL-PRD-001#R29]] 넷째 인수 기준).
 
@@ -2033,9 +2033,9 @@ MissingMetric:
 
 - [ ] 현업 서명 토큰의 발급 주체, 만료 시간, 갱신 방식. VODA 포털 팀과 맞춰야 한다(1.1절)
 - [ ] A 리포트 내려받기 파일 형식. `download.format` 값이 정해지지 않았다([[TBL-UI-001#UI-7]])
-- [ ] A 판정 스냅샷을 브리핑 갈래에서 어떤 키와 모양으로 받는지. 이것이 정해져야 `judgments`와 [[#contribution]]의 필드가 확정된다([[TBL-DOM-001#DomainJudgment]])
+- [ ] A 판정 스냅샷을 브리핑 갈래에서 어떤 키와 모양으로 받는지. 이것이 정해져야 `judgments`와 4.4절의 필드가 확정된다([[TBL-DOM-001#DomainJudgment]])
 - [ ] 후보 상한 기본값(사건 5, 기사 10, 지표 6)과 시간창 기본값. 지금은 설정값이라는 것만 정했다([[TBL-PRD-001#R26]])
-- [ ] 신호등 임계값(최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준)을 응답에 내릴지. 지금은 [[#traffic_light]]의 `basis`에만 담고 화면에 기준선을 그리지 않는다
+- [ ] 신호등 임계값(최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준)을 응답에 내릴지. 지금은 4.6절의 `basis`에만 담고 화면에 기준선을 그리지 않는다
 - [ ] [[#GET/api/intel/creport/latest]] 응답 크기. 후보와 근거를 한 번에 담으면 국가가 늘었을 때 커진다. 근거 패널을 별도 호출로 나눌지 [확인 필요]
 - [ ] 미매핑 엑셀 내려받기를 `format=xlsx`로 같은 엔드포인트에서 받을지 별도 주소를 둘지
 - [ ] 관리 API의 감사 로그를 어디에 남길지. 지금은 해제·확정 응답에 행위자만 담았다
