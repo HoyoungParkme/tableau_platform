@@ -1932,7 +1932,7 @@ CauseLink:
 
 부호 규약은 1.4절에 적었다. 음수를 예외로 두지 않는다.
 
-`actualWholesale`(실 도매)과 `officialWholesale`(도매 공식)은 기준이 다른 두 값이다. 전사 누계로는 실 도매 2,356,496 대 도매(공식) 2,383,631로 27,135가 벌어지며, 이 27,135는 전사 누계 차이이고 미주 구간 값이 아니다. 미주 구간의 실 도매 누계 실측값은 [확인 필요]라 예시 값을 두지 않는다.
+`actualWholesale`(실 도매)과 `officialWholesale`(도매 공식)은 기준이 다른 두 값이다. 미주 누계 상세 행 기준으로는 실 도매 664,269 대 도매(공식) 677,201로 12,932대가 벌어진다. 도매(공식) 대비 1.9%다. 같은 파일의 전체 총계 행은 실 도매 1,692,227 대 도매(공식) 1,706,430으로 차이가 14,203대이지만, 총계 행은 상세 행과 범위가 다르므로 상세 행 합과 더하지 않고 대조에만 쓴다.
 
 두 구간 차이는 4.3절 `metric`의 두 값과 짝이다. `entityStageGap`이 `entityStageStay`(법인 구간, 화면 표기 법인 단계 체류)이고 `dealerStageGap`이 `distributionStay`(딜러 구간, 화면 표기 유통 체류)다.
 
@@ -1970,7 +1970,7 @@ StageFlow:
     wholesaleAlternativeDiff:
       type: number
       nullable: true
-      description: 다른 도매 기준과의 차이. 전사 누계로는 27,135이며 미주 구간 값이 아니다
+      description: 다른 도매 기준과의 차이. 미주 누계 상세 행 기준으로는 12,932다. 총계 행 기준 차이는 14,203이나 범위가 달라 상세 행과 더하지 않는다
     derivationType:
       type: string
       enum: [derived, measured]
