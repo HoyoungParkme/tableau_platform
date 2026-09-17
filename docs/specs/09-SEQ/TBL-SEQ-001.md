@@ -508,8 +508,8 @@ sequenceDiagram
   CS->>PX: 후보 목록
   PX->>PX: day_diff. 변동의 file_base_date가 기준점, 사건은 last_seen_date
   PX->>PX: calculate. 날짜 차이, 기사 수, 출처 수, 국가 일치 방식 넷
-  PX->>PX: sort. 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순
-  PX->>PX: sort_rule_text(). 이 규칙을 한 문장으로 돌려준다
+  PX->>PX: sort. 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순, 그래도 같으면 후보 식별자 사전순
+  PX->>PX: sort_rule_text(). 화면에 내려갈 문장은 앞의 셋만 돌려준다
   PX-->>CS: 정렬된 목록과 자리 번호
   CS->>CS: apply_limit(candidates). 상한을 적용하고 잘린 건수를 함께 돌려준다
   CS->>DB_MART: cause_candidate. sort_order, 근접도 값 넷, 잘린 건수
@@ -530,11 +530,14 @@ sequenceDiagram
   TLJ-->>RUN: 5단계 완료. 화면에 나갈 판정이 전부 확정됐다
   Note over CS,TLJ: 이 그림에 LLM 생명선이 없다. 등급, 점수, 순위를 만드는 호출도 없다
   Note over PX,DB_MART: sortOrder는 관련도 순위가 아니라 정렬 규칙이 낳은 자리 번호다
+  Note over PX,DB_MART: 정렬 열쇠는 넷이다. 넷째 후보 식별자 사전순은 동률을 가르는 장치라 화면 문장에는 적지 않는다
 ```
 
 **읽을 때 볼 것.** 생명선 목록에 [[TBL-DOM-002#HChatClient]]가 없는 것이 이 시퀀스의 요지다. LLM을 끄고 같은 기준일을 돌려도 같은 신호등과 같은 후보 순서가 나와야 하며, 그 대조를 회귀 검사에 둔다([[TBL-INFRA-001#C19]]). 첫 화살표가 `plant` 축을 걸러내고, 마지막에서 두 번째 화살표가 [[TBL-DOM-002#TrafficLightJudge]]에서 [[TBL-DOM-002#ReportPublisher]]로 바로 간다.
 
 워치리스트와 함께 도메인 상태 3건도 여기서 만들어진다. 도메인 상태 카드의 신호등은 그 도메인 안 변동 신호등의 최댓값이고, 판정 출처는 A 판정을 받았는지 보완 집계로 내려갔는지 아예 못 받았는지를 적는다. 기여 상위는 2단계에서 복사한 분해의 사본이다. 8단계 LLM은 이 셋 위에 문장만 얹는다([[#SEQ-21]]). 그래서 서술이 전부 실패해도 3카드의 신호등이 그대로 게시된다. 생산 카드는 국가 축이 없어 신호등 대상이 아니며 `notApplicable` "판정 대상 아님"으로 적는다. 후보가 없어 `none` "원인 미확인"이 된 국가와 뜻이 다르므로 같은 말로 적지 않는다.
+
+정렬 열쇠가 넷인 것도 같이 본다. 날짜 차이, 출처 수, 기사 수 셋이 모두 같은 후보가 남을 수 있어 후보 식별자 사전순을 넷째로 둔다. 넷째가 없으면 동률에서 자리 번호가 흔들려 "같은 입력이면 같은 후보 순서"라는 [[TBL-INFRA-001#C19]]의 대조가 성립하지 않는다. 다만 `sort_rule_text()`가 화면에 내려보내는 문장은 앞의 셋만 적는다. 넷째는 동률을 가르는 장치이지 읽는 사람에게 설명할 기준이 아니기 때문이다. 계약으로 넷을 못박는 자리는 [[TBL-MS-001]]이다.
 
 워치리스트를 게시기가 만들면 8단계 산출물이 되고 8단계에는 LLM이 섞여 있어 "LLM을 꺼도 워치리스트가 같다"를 보장할 수 없다. alt 세 갈래가 신호등 규칙 전부이며 모델이 끼어드는 자리가 없다. 잘린 건수를 따로 돌려주는 것은 화면에 적기 위해서다. 후보가 상한에 걸려 사라진 것을 모르면 "후보가 이것뿐"이라고 읽힌다.
 
@@ -868,12 +871,11 @@ sequenceDiagram
 
 | # | 어느 문서 | 무엇이 어긋났나 | 이 문서가 임시로 택한 것 |
 |:--|:--|:--|:--|
-| F2 | [[TBL-UC-001#UC-S4]] | 4단계의 저장 대상이 `briefing`, `briefing_claim`, `evidence`로 적혀 있다. ERD 확정 이름은 [[TBL-DOM-003#c_report]] [[TBL-DOM-003#report_claim]] [[TBL-DOM-003#report_evidence]]다 | [[#SEQ-21]]은 ERD 이름을 썼다 |
+| F2 | [[TBL-UC-001#UC-S4]] | 4단계의 저장 대상이 `briefing`, `briefing_claim`, `evidence`로 적혀 있다. ERD 확정 이름은 [[TBL-DOM-003#c_report]] [[TBL-DOM-003#report_claim]] [[TBL-DOM-003#report_evidence]]다 | [[#SEQ-21]]은 ERD 이름을 썼다. 유스케이스 쪽 수정 진행 중이라 닫지 않고 둔다 |
 | F3 | [[TBL-UC-001#UC-S1]] · [[TBL-DOM-002#IngestService]] | 회귀 급변의 처리가 갈린다. UC는 1a에서 "배치를 멈추고 A에게 알린다", 클래스 명세는 "적재는 완료하고 배치 자동 실행만 막는다"다. 수동 적재와 배치 1단계 중 어느 쪽 이야기인지 문장으로 갈리지 않는다 | 수동 적재는 완료하고 차단만, 배치 안에서는 멈춤으로 그렸다([[#SEQ-13]] [[#SEQ-14]]) |
-| F6 | [[TBL-DOM-002#MarketService]] | `as_of`와 `is_carried_over`는 [[TBL-DOM-002#FactJoiner]]가 쓰는 파이프라인 함수인데 API 바인딩 목록에는 `get_series`만 있다. [[TBL-MS-001]]이 파이프라인 계약으로 실어야 한다 | [[#SEQ-17]]에 `as_of` 호출을 그렸다 |
 | F8 | [[TBL-DOM-002]] | 생명선으로 세울 수 없는 타입 넷이 있다. `SchemaRegistry`, `CrosswalkTable`, `BriefingStorePort`, `LlmPort`다. 앞의 둘은 클래스 스물여덟 밖의 실체이고 뒤의 둘은 포트다 | 포트 둘은 구현체([[TBL-DOM-002#BriefingStoreReader]] [[TBL-DOM-002#HChatClient]])로 그렸고 앞의 둘은 그리지 않았다 |
 
-F1·F4·F5·F7은 닫혔다. F1은 게시 스키마에 A 리포트 사본([[TBL-DOM-003#a_report_snapshot]] [[TBL-DOM-003#a_report_evidence]])과 지표 시계열 사본([[TBL-DOM-003#market_series]])을 두는 쪽으로 정해져 열람 경로가 [[TBL-INFRA-001#C10]]과 어긋나지 않는다. F4는 `backfillMode`와 `llmEnabled`를 둘 다 남기고 쓰임을 가르는 쪽으로, F7은 1단계와 3단계 실패를 멈춤으로 정해졌다([[TBL-INFRA-001#C20]]). F5는 [[TBL-DOM-003#report_alert_event]]에 유일 제약 (report_id, country_code)가 있고 `diff_watchlist`가 그 제약에 기대 upsert로 넣는 쪽으로 정해졌다. 8단계 게시와 게시 전환 양쪽에서 돌아도 알림이 두 벌 남지 않는다. 닫힌 번호는 다시 쓰지 않는다.
+F1·F4·F5·F6·F7은 닫혔다. F1은 게시 스키마에 A 리포트 사본([[TBL-DOM-003#a_report_snapshot]] [[TBL-DOM-003#a_report_evidence]])과 지표 시계열 사본([[TBL-DOM-003#market_series]])을 두는 쪽으로 정해져 열람 경로가 [[TBL-INFRA-001#C10]]과 어긋나지 않는다. F4는 `backfillMode`와 `llmEnabled`를 둘 다 남기고 쓰임을 가르는 쪽으로, F7은 1단계와 3단계 실패를 멈춤으로 정해졌다([[TBL-INFRA-001#C20]]). F5는 [[TBL-DOM-003#report_alert_event]]에 유일 제약 (report_id, country_code)가 있고 `diff_watchlist`가 그 제약에 기대 upsert로 넣는 쪽으로 정해졌다. 8단계 게시와 게시 전환 양쪽에서 돌아도 알림이 두 벌 남지 않는다. F6은 [[TBL-MS-001]]이 `as_of`와 `is_carried_over`를 둘 다 항목으로 싣고 `as_of`를 4단계 파이프라인 함수로 명시했으며 그 근거에 이 F6을 인용한 것으로 닫혔다. API 바인딩에 `get_series`만 있는 것은 열람 경로의 목록이고, 파이프라인 계약은 미니스펙이 따로 싣는다. 닫힌 번호는 다시 쓰지 않는다.
 
 ## 8. 미결사항
 
