@@ -29,6 +29,8 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **항목 ID는 참조용 식별자이고, 구현 함수 이름은 1장 표의 실제 함수 이름을 쓴다.** 둘이 어긋나는 곳은 위 둘뿐이다. 구현·테스트·API 바인딩은 언제나 1장 표의 이름을 따르고, 항목 ID를 함수 이름에 맞추려고 바꾸지 않는다. 이름이 궁금한 사람은 1장 표를 보면 된다.
 
+**딜러 구간의 이름도 층위가 넷이다.** 화면 표기는 "유통 체류", 설계 문서의 구간 이름은 "딜러 구간", metric 이름은 `distributionStay`, 컬럼 이름은 `dealer_stage_gap`이다. 넷을 섞어 "딜러 단계 체류"로 적지 않는다. 법인 쪽은 화면 표기가 "법인 단계 체류", 구간 이름이 "법인 구간", metric이 `entityStageStay`, 컬럼이 `entity_stage_gap`이다.
+
 ## 1. 함수 목록
 
 함수는 백셋이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-002]] 1장을 그대로 따른다.
@@ -232,7 +234,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **출력** 원장 그대로의 표와 골격 행 수.
 
-**테스트 관점** **[확인 필요] — 형태 A 실물 파일을 아직 본 적이 없다.** IF 레이아웃 정의(생산 17열, 판매·재고 23열)로만 검증한다.
+**테스트 관점** **[확인 필요] 형태 A 실물 파일을 아직 본 적이 없다.** IF 레이아웃 정의(생산 17열, 판매·재고 23열)로만 검증한다.
 
 근거: [[TBL-SEQ-001#SEQ-14]] · [[TBL-INFRA-001#C6]]
 
@@ -293,7 +295,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **처리** 기간 구분은 `일→day` `월→month` `누계→cumulative` `년→year`. 지표 종류는 아홉으로 매핑한다. `운영계획→operationPlan` `사업계획→businessPlan` `실적→actual` `진도율→progressRate` `전년대비→yoyRate` `선적→shipment` `실 도매→actualWholesale` `도매(공식)→officialWholesale` `소매→retail`. 어느 쪽도 못 풀면 그 칸 원문을 담아 예외.
 
-**테스트 관점** 아홉 매핑이 [[TBL-DOM-003#vehicle_measure]]의 `measure_type` 아홉과 글자까지 같은지. 실 도매와 도매(공식)이 서로 다른 값으로 갈리는지(둘을 합치면 미주 누계에서 27,135대가 사라진다).
+**테스트 관점** 아홉 매핑이 [[TBL-DOM-003#vehicle_measure]]의 `measure_type` 아홉과 글자까지 같은지. 실 도매와 도매(공식)이 서로 다른 값으로 갈리는지(전사 누계에서 실 도매 2,356,496과 도매(공식) 2,383,631로 갈려 차이가 27,135대다. 둘을 한 값으로 합치면 이 차이가 사라진다).
 
 근거: [[TBL-INFRA-001#C18]] · [[TBL-DOM-003#vehicle_measure]]
 
@@ -594,7 +596,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 근거: [[TBL-API-001]] 1.4절
 
-#### StageFlowCalculator.dealer_stage_gap 딜러 단계 체류
+#### StageFlowCalculator.dealer_stage_gap 유통 체류
 
 **시그니처** `dealer_stage_gap(wholesale: float, retail: float) -> float`
 
@@ -620,7 +622,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **처리** `official − actual`. 어느 쪽이 정본인지와 무관하게 부호를 고정한다. 한쪽이 없으면 `None`.
 
-**테스트 관점** 미주 누계에서 27,135. 같은 국가의 체류율이 `wholesale_basis`에 따라 달라질 때 이 값으로 그 차이가 설명되는지.
+**테스트 관점** 전사 누계에서 실 도매 2,356,496과 도매(공식) 2,383,631로 27,135. 이 27,135는 전사 누계의 차이이고, 미주 구간의 실 도매 누계는 실측이 없으므로 미주 구간 값으로 검증식을 짜지 않는다. 같은 국가의 체류율이 `wholesale_basis`에 따라 달라질 때 이 값으로 그 차이가 설명되는지.
 
 근거: [[TBL-INFRA-001#C18]] · [[TBL-DOM-003#sales_stage_flow]]
 
