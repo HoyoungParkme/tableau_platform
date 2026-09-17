@@ -25,11 +25,13 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 | [[#IngestService.preflight_upload]] | `IngestService.preflight` | [[TBL-API-001#POST/api/admin/ingest/preflight]] |
 | [[#BatchService.switch_published_version]] | `BatchService.publish_version` | [[TBL-API-001#POST/api/admin/batch/publish/{reportId}]] |
 
-`BriefingQuery.detail` `ConfigService.save` `IngestService.preflight` `BatchService.publish_version` 넷이 이전 판에서 삭제된 ID이며 재사용하지 않는다. 이 어긋남을 어떻게 정리할지는 10장에 남겼다.
+`BriefingQuery.detail` `ConfigService.save` `IngestService.preflight` `BatchService.publish_version` 넷이 이전 판에서 삭제된 ID이며 재사용하지 않는다.
+
+**항목 ID는 참조용 식별자이고, 구현 함수 이름은 1장 표의 실제 함수 이름을 쓴다.** 둘이 어긋나는 곳은 위 둘뿐이다. 구현·테스트·API 바인딩은 언제나 1장 표의 이름을 따르고, 항목 ID를 함수 이름에 맞추려고 바꾸지 않는다. 이름이 궁금한 사람은 1장 표를 보면 된다.
 
 ## 1. 함수 목록
 
-함수는 아흔아홉이다. 계층 다섯과 단계 여덟은 [[TBL-DOM-002]] 1장을 그대로 따른다.
+함수는 103개이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-002]] 1장을 그대로 따른다.
 
 | 계층 | 클래스 | 함수 | 단계 |
 |:--|:--|:--|:--|
@@ -47,20 +49,22 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 | 판정 | [[TBL-DOM-002#AnomalyDetector]] | `detect` `from_a_judgment` `from_stage_flow` `from_supplementary` `pick_compare_basis` `progress_rate` | 4 |
 | 판정 | [[TBL-DOM-002#CandidateSearcher]] | `search` `search_events` `search_market` `search_cross_domain` `resolve_country_match` `apply_limit` | 5 |
 | 판정 | [[TBL-DOM-002#ProximityCalculator]] | `calculate` `day_diff` `sort` `sort_rule_text` | 5 |
-| 판정 | [[TBL-DOM-002#TrafficLightJudge]] | `judge` `build_watch_items` `basis` | 5 |
+| 판정 | [[TBL-DOM-002#TrafficLightJudge]] | `judge` `build_domain_status` `build_watch_items` `basis` | 5 |
 | 서술 | [[TBL-DOM-002#EventNamer]] | `name_events` `fallback_to_representative` | 6 |
 | 서술 | [[TBL-DOM-002#CauseLinkWriter]] | `write` `extract_citations` | 7 |
 | 서술 | [[TBL-DOM-002#ClaimWriter]] | `write_headline` `write_domain_status` `write_card` | 8 |
 | 서술 | [[TBL-DOM-002#CitationVerifier]] | `verify_cause_link` `verify_claim` `out_of_scope_ids` | 7~8 |
 | 서술 | [[TBL-DOM-002#DegradeHandler]] | `degrade` `degraded_roles` | 6~8 |
-| 게시 | [[TBL-DOM-002#ReportPublisher]] | `number_evidence` `publish` `diff_watchlist` `copy_display_values` | 8 |
+| 게시 | [[TBL-DOM-002#ReportPublisher]] | `number_evidence` `publish` `publish_a_report` `diff_watchlist` `copy_display_values` | 8 |
 | 열람 | [[TBL-DOM-002#CReportService]] | `get_latest` `get_by_id` | 없음 |
 | 열람 | [[TBL-DOM-002#DomainReportService]] | `get_latest_by_domain` `get_by_id` `build_domain_extra` `list_missing_metrics` | 없음 |
 | 열람 | [[TBL-DOM-002#MarketService]] | `get_series` `as_of` `is_carried_over` | 4에서도 쓴다 |
 | 관리 | [[TBL-DOM-002#BatchService]] | `get_status` `list_runs` `get_run` `request_rerun` `publish_version` | 없음 |
 | 관리 | [[TBL-DOM-002#MasterService]] | `get_summary` `list_unmapped` `upload_crosswalk` `confirm_crosswalk` | 없음 |
 | 어댑터 | [[TBL-DOM-002#HChatClient]] | `complete` `remaining_tokens` | 6~8 |
-| 어댑터 | [[TBL-DOM-002#BriefingStoreReader]] | `read_judgments` `read_contributions` `snapshot_id` | 2 |
+| 어댑터 | [[TBL-DOM-002#BriefingStoreReader]] | `read_judgments` `read_contributions` `read_report_document` `snapshot_id` `ping` | 2 |
+
+[[TBL-DOM-002#EventNamer]] [[TBL-DOM-002#CauseLinkWriter]] [[TBL-DOM-002#ClaimWriter]]의 `build_prompt`와 [[TBL-DOM-002#DegradeHandler]]의 `is_degraded`는 사설 헬퍼라 이 표에도 항목에도 두지 않는다. 호출부 안에서만 쓰이고 다른 클래스가 부르지 않는다.
 
 ## 2. 공통 계약
 
@@ -99,7 +103,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **테스트 관점** 같은 `base_date`를 `llm_enabled=False`로 한 번, 참으로 한 번 돌려 [[TBL-DOM-003#watch_item]]의 `traffic_light`와 [[TBL-DOM-003#cause_candidate]]의 `sort_order`가 전건 일치하는지. 어느 단계에서 끊겨도 `batch_stage_result`가 여덟 행으로 남는지(미실행은 `pending`).
 
-근거: [[TBL-SEQ-001#SEQ-13]] · [[TBL-INFRA-001#C19]] · [[TBL-PRD-001#N3]]
+근거: [[TBL-SEQ-001#SEQ-13]] · [[TBL-INFRA-001#C19]] · [[TBL-INFRA-001#C20]] · [[TBL-PRD-001#N3]]
 
 #### PipelineRunner.stage_names 단계 이름 여덟
 
@@ -143,7 +147,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **시그니처** `commit(preflight_id: str, options: CommitOptions) -> IngestFile`
 
-**입력** `options.confirm_overwrite: bool`, `options.file_base_date: date | None`(사전 검증에서 관리자가 넣은 값).
+**입력** `options.confirm_overwrite: bool`, `options.file_base_date: date | None`(사전 검증에서 관리자가 넣은 값), `options.backfill_mode: bool`(기본값 거짓). **계획 정본과 도매 정본을 고르는 인자는 받지 않는다.** 정본 선택은 [[TBL-DOM-003#threshold_setting]]의 새 버전으로만 바뀐다. 적재 한 건이 정본을 바꾸면 과거 판정과 어긋난다.
 
 **처리**
 1. `preflight_id`가 만료·소비됐으면 409로 끝낸다.
@@ -154,12 +158,14 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 6. [[#RecordStandardizer.collect_unmapped]] → [[TBL-DOM-003#unmapped_value]].
 7. [[#RegressionChecker.check]]. 급변이면 [[TBL-DOM-003#ingest_regression]]을 남기고 `ingest_file.abrupt=true`, `status=blocked`로 둔다. **적재 자체는 완료한다. 막히는 것은 배치 자동 실행뿐이다.**
 8. [[TBL-DOM-003#ingest_file]] 한 행(`row_count` `total_row_count` `missing_rate` `match_rate` `duplicate_rate` `period_types` `measure_types` `load_seq`).
+9. 한 파일에 계획 두 종류(운영계획·사업계획)나 도매 두 종류(실 도매·도매 공식)가 함께 들어왔으면 **그 사실만** `dual_values`에 남긴다. 각 건은 `kind`(`plan` 또는 `wholesale`)와 두 값이다. **어느 쪽이 정본인지는 여기서 정하지 않는다.**
+10. `options.backfill_mode`를 [[TBL-DOM-003#batch_run]]의 `backfill_mode`로 그대로 넘긴다. 그 값이 참이면 [[#PipelineRunner.run]]이 6~8단계의 LLM 역할을 건너뛰고 해당 [[TBL-DOM-003#batch_stage_result]]를 `skipped`로 남긴다. **판정 1~5단계는 그대로 돌고 게시도 한다.**
 
 **출력** `IngestFile`.
 
 **예외** `/problems/preflight-expired` 409 · `/problems/overwrite-not-confirmed` 409(`idempotencyUnit`, `target`).
 
-**테스트 관점** 같은 파일을 두 번 넣어도 `vehicle_measure` 행수가 같은지(형태 B는 파일 기준일 단위 통째 덮어쓰기). 총계 행이 `is_total_row=true`로 들어가 판정 쿼리에서 빠지되 `total_row_count`로 세어져 있는지. 결측 `-`이 `NULL`이고 0이 아닌지.
+**테스트 관점** 같은 파일을 두 번 넣어도 `vehicle_measure` 행수가 같은지(형태 B는 파일 기준일 단위 통째 덮어쓰기). 총계 행이 `is_total_row=true`로 들어가 판정 쿼리에서 빠지되 `total_row_count`로 세어져 있는지. 결측 `-`이 `NULL`이고 0이 아닌지. 요청 본문에 정본 선택 키를 넣어도 받지 않는지. `backfill_mode=true`로 적재한 뒤 도는 배치에서 6~8단계가 `skipped`이고 신호등과 후보 순서가 정상 배치와 전건 같은지.
 
 근거: [[TBL-SEQ-001#SEQ-14]] · [[TBL-API-001#POST/api/admin/ingest/commit]] · [[TBL-PRD-001#R1]]
 
@@ -177,9 +183,9 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **시그니처** `list_history(filters: dict, cursor: str | None) -> tuple[list[IngestFile], str | None]`
 
-**처리** `source` `data_form` `abrupt` `기간`으로 거르고 `loaded_at` 내림차순으로 커서 페이징한다. 집계하지 않는다.
+**처리** `source` `data_form` `abrupt` `기간`으로 거르고 `loaded_at` 내림차순으로 커서 페이징한다. 집계하지 않는다. 각 행에 그 파일이 품고 있던 기간 구분 목록 `period_types`(`day` `month` `cumulative` `year`)를 함께 싣는다. 목록에서 바로 "이 파일에 누계가 들어 있었다"를 읽게 하기 위해서다.
 
-**테스트 관점** 같은 커서를 두 번 부르면 같은 쪽이 나오는지.
+**테스트 관점** 같은 커서를 두 번 부르면 같은 쪽이 나오는지. 형태 B 행의 `periodTypes`에 실제로 들어 있던 구분만 담기고 네 값 밖이 나오지 않는지.
 
 근거: [[TBL-API-001#GET/api/admin/ingest/history]]
 
@@ -405,12 +411,12 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 **시그니처** `read(base_date: date) -> list[DomainJudgment]`
 
 **처리**
-1. [[#BriefingStoreReader.read_judgments]]로 `production` `inventory` `sales` 셋을 차례로 읽는다.
-2. 접속이 안 되면 → 셋 모두 [[#AJudgmentReader.fallback_to_supplementary]]로 내려간다.
+1. [[#BriefingStoreReader.ping]]으로 저장소에 붙는지 먼저 본다. 거짓이면 셋 모두 [[#AJudgmentReader.fallback_to_supplementary]]로 내려가고 여기서 끝낸다.
+2. [[#BriefingStoreReader.read_judgments]]로 `production` `inventory` `sales` 셋을 차례로 읽는다. 읽는 중에 접속이 끊겨도 같은 자리로 내려간다.
 3. 읽은 payload마다 [[#AJudgmentReader.validate_shape]]. 어긋나면 그 도메인만 보완 집계로 내려간다.
 4. 정상이면 [[#BriefingStoreReader.read_contributions]]로 기여 상위 항목을 함께 읽는다. **A 리포트가 쓴 문장은 읽지 않는다.**
 5. [[#AJudgmentReader.copy_snapshot]].
-6. 미수신 도메인 목록을 함께 돌려주고 리포트의 `notices`에 담긴다.
+6. 미수신 도메인 목록을 함께 돌려준다. [[#ReportPublisher.publish]]가 이 목록을 리포트 `notices`의 `aJudgmentNotReceived`로 도메인마다 한 건씩 담는다.
 
 **출력** 도메인 셋의 판정 목록과 미수신 목록. **값을 다시 계산하지 않는다.**
 
@@ -462,7 +468,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 1. 기사를 (국가, 카테고리)로 나눈다. 해협 기사는 [[TBL-DOM-003#strait_country]]로 인접국을 보태 같은 묶음에 넣는다.
 2. `last_seen_date`가 시간창 안인 열린 사건이 있으면 → 그 사건에 [[TBL-DOM-003#event_article]]을 붙이고 `last_seen_date`를 갱신한다 · 없으면 → [[TBL-DOM-003#event]]를 새로 만들고 `first_seen_date`를 기록한다.
 3. [[#EventClusterer.count_sources]] [[#EventClusterer.pick_representative]] [[#EventClusterer.max_impact]]를 채운다.
-4. `title`은 이 단계에서 이미 대표 기사 제목으로 채우고 `named_by=rule`로 둔다. **명명이 실패해도 제목이 비지 않는다.**
+4. `title`은 이 단계에서 이미 대표 기사 제목으로 채우고 `named_by=representativeArticle`로 둔다. **명명이 실패해도 제목이 비지 않는다.** `named_by`는 `llm`과 `representativeArticle` 둘뿐이고 6단계가 이름을 붙이면 `llm`으로 바뀐다.
 5. 시간창을 넘긴 사건은 상태를 종료로 바꾼다.
 6. 국가 태그가 없는 기사는 국가 없음 묶음에 두고 후보 검색 대상에서 뺀다.
 
@@ -513,13 +519,15 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 **처리**
 1. [[TBL-DOM-003#vehicle_measure]]에서 `is_total_row=false`인 행을 읽는다.
 2. **`country_code`가 `NULL`인 행을 뺀다. 생산이 여기서 빠진다.**
-3. 국가 × 기간 키로 모아 `shipment` `actual_wholesale` `official_wholesale` `retail`을 채운다. 재고 네 칸은 원천이 없어 전부 `NULL`이다.
-4. [[#FactJoiner.resolve_exposure]] [[#FactJoiner.attach_market_asof]] [[#FactJoiner.count_events]]를 붙인다.
-5. [[TBL-DOM-003#country_period_fact]]에 넣는다. 유일 제약은 `(batch_run_id, country_code, period_type, file_base_date)`.
+3. 국가 × 기간 키로 모아 `shipment` `actual_wholesale` `official_wholesale` `retail`을 채운다. **재고 원천이 없는 동안 `inventory_source`는 `derived`로 고정하고 재고 네 칸은 전부 `NULL`로 둔다.** 0으로 채우지 않는다. 실측 원천이 들어오면 네 칸을 채우고 `inventory_source`를 `measured`로 바꾼다.
+4. 설정의 계획 정본(`self.setting.plan_source`, `operationPlan` 또는 `businessPlan`)으로 고른 계획 값을 `plan_value`에 채우고, 고른 이름을 `plan_source`에, 고르지 않은 계획과의 차이를 `plan_alternative_diff`에 남긴다. 계획이 한 종류만 들어온 행의 `plan_alternative_diff`는 `NULL`이다.
+5. 비교 대상을 같은 행에 굳힌다. `plan_value`가 있으면 → `compare_value=plan_value`, `compare_basis=plan` · 없고 전년 동월 값이 있으면 → 그 값과 `yoy` · 둘 다 없으면 → 전월 값과 `mom`. **계획이 있으면 계획 대비를 먼저 본다는 규칙이 보완 집계 경로에서도 서게 하는 칸이다**([[TBL-PRD-001#R8]], [[TBL-PRD-001]] 6.4). [[#AnomalyDetector.pick_compare_basis]]는 여기서 채운 칸을 읽을 뿐 다시 고르지 않는다.
+6. [[#FactJoiner.resolve_exposure]] [[#FactJoiner.attach_market_asof]] [[#FactJoiner.count_events]]를 붙인다.
+7. [[TBL-DOM-003#country_period_fact]]에 넣는다. 유일 제약은 `(batch_run_id, country_code, period_type, file_base_date)`.
 
 **출력** 결합 행 목록.
 
-**테스트 관점** 결과에 생산 도메인 행이 0건인지. 실적이 있는 미주 29개국 전부에 행이 있는지. 같은 국가의 월 행과 누계 행이 따로 서는지.
+**테스트 관점** 결과에 생산 도메인 행이 0건인지. 실적이 있는 미주 29개국 전부에 행이 있는지. 같은 국가의 월 행과 누계 행이 따로 서는지. 재고 네 칸이 전건 `NULL`이고 `inventory_source`가 전건 `derived`인지. 계획이 들어 있는 파일에서 `plan_value`가 비지 않고 `compare_basis=plan`인지. 계획 정본 설정을 바꿔 다시 돌리면 `plan_value`와 `plan_source`가 함께 바뀌고 `setting_version`이 그 사실을 행에 남기는지.
 
 근거: [[TBL-SEQ-001#SEQ-17]] · [[TBL-INFRA-001#C16]] · [[TBL-PRD-001#R7]]
 
@@ -529,9 +537,9 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **처리** 형태 B → 판매 파일의 `cbu_ckd` 컬럼을 그대로 읽고 `acquisition_path=columnDirect` · 형태 A → 생산 모델코드로 유도하고 `acquisition_path=productionDerived`, `derivation_ratio`를 남긴다 · 유도 실패 → 노출 미확인이고 그 국가는 [[#TrafficLightJudge.judge]]에서 RED까지 올라가지 못한다.
 
-**출력** [[TBL-DOM-003#model_exposure]] 한 행. 유도 근거는 `confidence_note`에 **글로** 적는다. 수치 점수를 두지 않는다.
+**출력** [[TBL-DOM-003#model_exposure]] 한 행. 유도 근거는 `derivation_note`에 **글로** 적는다. 수치 점수를 두지 않는다. 칸 이름에 `confidence`를 쓰지 않는 이유는 금지 이름 회귀 검사(2장)에 예외를 두지 않기 위해서다.
 
-**테스트 관점** 형태 B 샘플에서 `acquisition_path`가 전건 `columnDirect`인지. 유도 실패 국가가 YELLOW에서 멈추는지.
+**테스트 관점** 형태 B 샘플에서 `acquisition_path`가 전건 `columnDirect`인지. 유도 실패 국가가 YELLOW에서 멈추는지. 반환과 컬럼 이름에 `confidence`가 한 곳도 없는지(이름으로 찾는 회귀 검사).
 
 근거: [[TBL-PRD-001#R10]] · [[TBL-DOM-003#model_exposure]]
 
@@ -647,11 +655,18 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **시그니처** `from_stage_flow(flow: SalesStageFlow) -> list[Anomaly]`
 
-**처리** `abs(flow.dealer_stage_gap_rate) ≥ setting.stay_threshold`면 `metric=wholesaleToRetailGap`으로 변동을 만든다 · 법인 구간이 임계를 넘으면 `metric=distributionStay`로 하나 더 만든다 · 둘 다 미달이면 빈 목록. `source=derived`, `stage_flow_id` 연결, `domain=inventory`.
+**처리** 구간 둘을 각각 본다. 이름과 계산이 서로 바뀌지 않게 아래를 계약으로 굳힌다.
+
+```
+딜러 구간 = 도매 정본 − 소매 = flow.dealer_stage_gap   → metric = distributionStay   (화면 "유통 체류")
+법인 구간 = 선적 − 도매 정본 = flow.entity_stage_gap   → metric = entityStageStay    (화면 "법인 단계 체류")
+```
+
+`abs(flow.dealer_stage_gap_rate) ≥ setting.stay_threshold`면 `metric=distributionStay`로 변동을 만든다 · 법인 구간 비율이 임계를 넘으면 `metric=entityStageStay`로 하나 더 만든다 · 둘 다 미달이면 빈 목록. `source=derived`, `stage_flow_id` 연결, `domain=inventory`. **`wholesaleToRetailGap`은 쓰지 않는다.** [[TBL-API-001]] 4.3절 `Anomaly.metric` enum에 그 값이 없다.
 
 **출력** 변동 0~2건. 음수 비율도 절대값으로 임계를 보고 방향은 값의 부호가 말한다.
 
-**테스트 관점** 칠레 0.252와 페루 0.212가 변동으로 올라오는지. 푸에르토리코 -0.137이 방향 표시와 함께 올라오는지. 화면에 유도값 표기가 붙는지.
+**테스트 관점** 미주 누계(선적 679,551 · 도매 정본 677,201 · 소매 643,097)에서 `metric=distributionStay` 변동의 값이 **34,104**, `metric=entityStageStay` 변동의 값이 **2,350**인지. 두 지표 이름이 뒤바뀌면 이 두 값이 서로 자리를 바꾸므로 한 번에 걸린다. 칠레 0.252와 페루 0.212가 `distributionStay`로 올라오는지. 푸에르토리코 -0.137이 방향 표시와 함께 올라오는지. 화면에 유도값 표기가 붙는지.
 
 근거: [[TBL-PRD-001#R30]] · [[TBL-PRD-001#R9]] · [[TBL-INFRA-001#C17]]
 
@@ -669,7 +684,7 @@ upstream: [TBL-SEQ-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001, TBL-INFRA-001, TB
 
 **시그니처** `pick_compare_basis(fact: CountryPeriodFact) -> str`
 
-**처리** 계획 정본(`setting.plan_source`) 값이 `NULL`이 아니면 → `plan` · 아니고 전년 동월 값이 있으면 → `yoy` · 둘 다 없으면 → `mom`. 고른 기준과 비교 기간을 행에 남긴다.
+**처리** [[#FactJoiner.join]]이 결합 행에 이미 채워 둔 `fact.compare_basis`를 그대로 쓴다. 규칙은 같다. `fact.plan_value`가 `NULL`이 아니면 → `plan` · 아니고 전년 동월 값이 있으면 → `yoy` · 둘 다 없으면 → `mom`. 고른 기준과 비교 기간, 그리고 그때 쓴 `fact.compare_value`를 변동 행에 남긴다. **여기서 계획을 다시 고르지 않는다.** 계획 정본은 설정이 정하고 결합이 채운다.
 
 **테스트 관점** 인입 샘플처럼 계획이 들어 있는 파일에서 전건 `plan`이 나오는지. 47개월 시계열만 있는 판매 계열에서 `yoy`로 내려가는지.
 
@@ -806,11 +821,11 @@ day_diff = abs((후보 관측일 − anomaly.file_base_date).days)
 key = (day_diff 오름차순, source_count 내림차순, article_count 내림차순, candidate_id 사전순)
 ```
 
-앞의 셋이 확정 규칙이고, 마지막 `candidate_id`는 셋이 모두 같을 때 **재현을 보장하기 위한 마지막 열쇠**다([[TBL-PRD-001#N3]]). 정렬 결과의 자리 번호가 `sort_order`가 되며 이것은 관련도 순위가 아니다.
+**네 열쇠 모두가 계약이다.** 앞의 셋은 화면이 문장으로 밝히는 규칙이고, 마지막 `candidate_id` 사전순은 셋이 모두 같을 때 순서를 끝까지 깨는 열쇠다. 이 열쇠가 없으면 같은 입력에서도 `sort_order`가 흔들려 재현이 깨지므로 구현에서 뺄 수 없다([[TBL-PRD-001#N3]]). 정렬 결과의 자리 번호가 `sort_order`가 되며 이것은 관련도 순위가 아니다.
 
 **출력** 정렬된 목록. 화면은 다시 정렬하지 않는다.
 
-**테스트 관점** 같은 목록을 순서만 섞어 두 번 넣어도 결과가 같은지. 날짜 차이가 같고 출처 수가 3과 5이면 5가 앞인지. 잘린 후보를 빼도 남은 것의 상대 순서가 같은지.
+**테스트 관점** 같은 목록을 순서만 섞어 두 번 넣어도 결과가 같은지. 날짜 차이가 같고 출처 수가 3과 5이면 5가 앞인지. 잘린 후보를 빼도 남은 것의 상대 순서가 같은지. **앞의 셋이 모두 같은 후보 다섯을 순서만 바꿔 열 번 넣어도 `sort_order`가 매번 같은지**(마지막 열쇠가 빠지면 여기서 흔들린다).
 
 근거: [[TBL-PRD-001#R26]] · [[TBL-DOM-003#cause_candidate]]
 
@@ -818,7 +833,7 @@ key = (day_diff 오름차순, source_count 내림차순, article_count 내림차
 
 **시그니처** `sort_rule_text() -> str`
 
-**처리** 아래 한 문장을 그대로 돌려준다. 응답의 `candidateSortRule`과 화면 글자가 이 값을 쓴다.
+**처리** 아래 한 문장을 그대로 돌려준다. 응답의 `candidateSortRule`과 화면 글자가 이 값을 쓴다. [[#ProximityCalculator.sort]]의 마지막 열쇠(`candidate_id` 사전순)는 동률을 깨는 장치라 이 문장에 넣지 않는다. 읽는 사람이 판단에 쓰는 규칙은 앞의 셋이다.
 
 ```
 날짜 차이 오름차순 → 출처 수 내림차순 → 기사 수 내림차순
@@ -835,7 +850,7 @@ key = (day_diff 오름차순, source_count 내림차순, article_count 내림차
 **입력** 변동 한 건, 정렬된 후보 목록, 인스턴스의 `setting`. **LLM 클라이언트를 인자로도 속성으로도 받지 않는다. 이 함수가 사는 `judgment/traffic_light.py`는 `adapters/`를 import 하지 않는다.**
 
 **처리**
-1. `anomaly.axis_type != 'country'`이면 → `level=none`, `basis=None`. 생산은 여기서 빠진다.
+1. `anomaly.axis_type != 'country'`이면 → `level=notApplicable`, `label='판정 대상 아님'`, `basis=None`. 생산은 여기서 빠진다. **`none`('원인 미확인')으로 적지 않는다.** 후보를 찾지 못한 것과 처음부터 판정 대상이 아닌 것은 다른 사실이다.
 2. 후보 중 `candidate_type='event'`인 것을 `sort_order` 오름차순으로 보며 아래 셋을 모두 채우는 첫 후보를 고른다.
 
 ```
@@ -847,13 +862,35 @@ day_diff      ≤ setting.event_window_days
 3. 그런 후보가 있고 노출이 확인됐으면 → `level=red`, `label='확인 필요'` · 있으나 노출 미확인이면 → `level=yellow`, `label='주의'` · 하나라도 못 채우면 → `level=none`, `label='원인 미확인'`이고 **목록에는 남는다.**
 4. [[#TrafficLightJudge.basis]]로 값과 기준값을 쌍으로 담고 `setting_version`을 남긴다.
 
-**출력** `TrafficLight(level, label, basis, settingVersion)`.
+**출력** `TrafficLight(level, label, basis, settingVersion)`. `level`은 `red` `yellow` `none` `notApplicable` 넷이고 `label`은 '확인 필요' '주의' '원인 미확인' '판정 대상 아님'과 1대1이다([[TBL-API-001]] 4장 `TrafficLight`).
 
 **예외** 없다. 후보가 비어도 `none`으로 정상 반환한다.
 
-**테스트 관점** **`llm_enabled=False`로 돌린 배치와 신호등이 전건 일치하는지.** 색만 바꿔도 `label`이 함께 바뀌는지(색만으로 구분하지 않는다). 생산 변동이 국가 카드에 오르지 않는지. 노출 미확인 국가가 RED로 올라가지 않는지. 임계값을 바꾸면 결과가 바뀌되 그때 `setting_version`이 행에 남는지.
+**테스트 관점** **`llm_enabled=False`로 돌린 배치와 신호등이 전건 일치하는지.** 색만 바꿔도 `label`이 함께 바뀌는지(색만으로 구분하지 않는다). 생산 변동이 국가 카드에 오르지 않고 `level=notApplicable`인지. 노출 미확인 국가가 RED로 올라가지 않는지. 임계값을 바꾸면 결과가 바뀌되 그때 `setting_version`이 행에 남는지.
 
 근거: [[TBL-SEQ-001#SEQ-18]] · [[TBL-PRD-001#R11]] · [[TBL-INFRA-001#C19]] · [[TBL-DOM-003#watch_item]]
+
+#### TrafficLightJudge.build_domain_status 도메인 상태 판정
+
+**시그니처** `build_domain_status(domain: str, anomalies: list[Anomaly]) -> DomainStatus`
+
+**입력** 도메인 하나(`production` `inventory` `sales`)와 그 도메인 변동 목록. 변동마다 [[#TrafficLightJudge.judge]]가 매긴 신호등과 A 판정에서 온 기여 분해가 이미 붙어 있다. **LLM 인자가 없고 인스턴스 속성으로도 받지 않는다. 도메인 상태 3카드의 신호등도 5단계 규칙 산출물이다.**
+
+**처리**
+1. `domain='production'`이면 → `trafficLight.level=notApplicable`, `label='판정 대상 아님'`. 생산은 국가 축이 없어 원인 후보를 받지 못한다([[TBL-INFRA-001#C16]]). **`none`('원인 미확인')으로 적지 않는다.**
+2. 나머지 도메인은 도메인 안 변동 신호등의 **최댓값**을 쓴다. 센 것부터 `red` → `yellow` → `none`이고, 변동이 하나도 없으면 `none`이다.
+3. `judgmentSource`를 정한다. [[#AJudgmentReader.read]]가 그 도메인 판정을 정상으로 읽었으면 `aJudgment` · 보완 집계로 내려갔으면 `supplementaryAggregate` · 접속 실패나 모양 검사 실패로 아무것도 못 받았으면 `notReceived`.
+4. `topContributions`에 [[TBL-DOM-003#contribution]] 사본의 상위 항목을 자리 번호 순으로 담는다. **사본을 그대로 옮기고 여기서 다시 계산하지 않는다.** 보완 집계면 빈 목록이다.
+5. `externalCauseAllowed`는 `domain='production'`이면 거짓, 나머지는 참이다.
+6. `claim`은 비워 둔다. **문장은 8단계 [[#ClaimWriter.write_domain_status]]가 채운다.**
+
+**출력** `DomainStatus(domain, domainLabel, trafficLight, claim, judgmentSource, externalCauseAllowed, topContributions)`. 도메인 셋이므로 세 건이 나오고 [[#ReportPublisher.publish]]가 [[TBL-DOM-003#c_report]]의 `domain_status`에 넣는다.
+
+**예외** 없다. 변동이 0건이어도 세 건을 다 만든다. 카드가 사라지는 일은 없다.
+
+**테스트 관점** `llm_enabled=False`로 돌린 배치와 세 카드의 신호등·판정 출처·기여 상위가 전건 일치하는지. 생산 카드가 `notApplicable`이고 `none`이 아닌지. 도메인 안에 RED 변동이 하나라도 있으면 카드가 RED인지. 브리핑 저장소를 막아 놓고 돌리면 세 카드의 `judgmentSource`가 `notReceived`이고 리포트 `notices`에 `aJudgmentNotReceived`가 도메인 셋으로 함께 담기는지.
+
+근거: [[TBL-UI-001#UI-10]] · [[TBL-INFRA-001#C19]] · [[TBL-INFRA-001#C16]] · [[TBL-PRD-001#R11]]
 
 #### TrafficLightJudge.build_watch_items 워치리스트 줄 만들기
 
@@ -953,11 +990,11 @@ day_diff      ≤ setting.event_window_days
 
 **시그니처** `write_domain_status(domain: str, context: dict, llm: LlmPort) -> Claim`
 
-**처리** 생산·재고·판매 세 장을 각각 쓴다. 종합 관점으로 새로 쓰고 A 리포트 문장을 복사하지 않는다. **`domain='production'`이면 프롬프트에 외부 후보를 아예 넣지 않는다.** 검증기로 뒤에서 거르지 않고 입력으로 막는다.
+**처리** 생산·재고·판매 세 장의 **문장만** 쓴다. 신호등·판정 출처·기여 상위는 5단계 [[#TrafficLightJudge.build_domain_status]]가 이미 확정했고, 이 함수는 그 `DomainStatus`를 입력으로 받아 읽을 문장으로 옮길 뿐이다. **셋 중 어느 값도 바꾸지 않고 다시 계산하지도 않는다.** 종합 관점으로 새로 쓰고 A 리포트 문장을 복사하지 않는다. **`domain='production'`이면 프롬프트에 외부 후보를 아예 넣지 않는다.** 검증기로 뒤에서 거르지 않고 입력으로 막는다.
 
-**출력** `Claim` 한 건. 생산 장의 `externalCauseAllowed`는 언제나 거짓이다.
+**출력** `Claim` 한 건. [[#ReportPublisher.publish]]가 `DomainStatus`의 `claim` 칸에 끼워 넣는다. 생산 장의 `externalCauseAllowed`는 언제나 거짓이고 그 값도 5단계가 정한 것이다.
 
-**테스트 관점** 생산 문장에 뉴스·시장지표 인용이 0건인지. 도메인 상태 문장이 2층 A 리포트 문장과 동일하지 않은지(표본 대조, 동일 비율 0%).
+**테스트 관점** 생산 문장에 뉴스·시장지표 인용이 0건인지. 도메인 상태 문장이 2층 A 리포트 문장과 동일하지 않은지(표본 대조, 동일 비율 0%). **이 함수를 통째로 막아도 세 카드의 신호등·판정 출처·기여 상위가 그대로 게시되는지**(문장 칸만 템플릿으로 내려간다).
 
 근거: [[TBL-INFRA-001#C16]] · [[TBL-PRD-001#R15]] · [[TBL-API-001]] 1.6절
 
@@ -1057,15 +1094,52 @@ day_diff      ≤ setting.event_window_days
 1. 같은 기준일의 다음 버전 번호를 매긴다.
 2. [[TBL-DOM-003#report_anomaly]] [[TBL-DOM-003#report_watch_item]] [[TBL-DOM-003#report_claim]] [[TBL-DOM-003#report_evidence]] [[TBL-DOM-003#report_claim_evidence]]에 **참조가 아니라 복사**로 넣는다. `axis_type='plant'`인 변동은 게시하지 않는다.
 3. 서술이 강등됐으면 → 템플릿에 변동·후보 제목·근접도 값을 채우고 각주를 후보 순서대로 기계 부여한다 · 정상이면 → 검증을 통과한 문장과 각주를 넣는다.
-4. `degraded` `degrade_reasons` `candidate_sort_rule` `setting_version` `a_judgment_snapshot_id` `data_latest_date`를 채운다. `data_latest_date`는 소스별 파일 기준일 중 가장 늦은 것이다.
-5. [[#ReportPublisher.diff_watchlist]].
-6. 정기 배치는 `published=true`, 재생성은 `published=false`로 만들고 사람이 [[#BatchService.switch_published_version]]으로 전환한다. **기존 게시본을 덮지 않는다.**
+4. [[#TrafficLightJudge.build_domain_status]]가 만든 도메인 셋의 `DomainStatus`에 [[#ClaimWriter.write_domain_status]]의 문장을 끼워 [[TBL-DOM-003#c_report]]의 `domain_status`에 넣는다. **신호등·판정 출처·기여 상위는 5단계 값을 그대로 복사하고 여기서 다시 계산하지 않는다.** 서술이 강등됐으면 문장 칸만 템플릿으로 채우고 나머지 셋은 그대로 간다.
+5. 소스별 최신일 셋을 각각 채운다. `vehicle_latest_date`는 완성차 적재 파일 기준일의 최대, `news_latest_date`는 기사 관측일의 최대, `market_latest_date`는 시장지표 `as_of_date`의 최대다. `data_latest_date`는 **그 셋 중 가장 늦은 것**이고 따로 세지 않는다. 소스 하나가 비면 그 칸은 `NULL`이고 남은 칸들로 `data_latest_date`를 정한다.
+6. `notices`를 모아 채운다. 코드는 다섯이 전부이고 화면 예외 상태와 1대1이다([[TBL-UI-001#UI-10]]).
+
+```
+noAnomaly             게시할 변동이 0건일 때           (5단계, 리포트 전체)
+generationDegraded    degraded_roles가 비지 않을 때     (6~8단계, 리포트 전체와 카드 머리)
+aJudgmentNotReceived  미수신 도메인마다 한 건           (2단계, domain 칸을 채운다)
+batchFailed           직전 배치가 1·3·4·5단계에서 멈춰 이전 게시본을 유지했을 때 (lastSuccessDate 칸을 채운다)
+marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지표 바)
+```
+
+각 건은 `code` `domain` `message` `lastSuccessDate` 네 칸이다. 입력은 [[#AJudgmentReader.read]]의 미수신 목록, [[#DegradeHandler.degraded_roles]], [[#MarketService.is_carried_over]] 결과, 직전 배치 실패 이력 넷이다. `domain`은 `aJudgmentNotReceived`에만, `lastSuccessDate`는 `batchFailed`에만 채운다. 변동이 있으면 `noAnomaly`를 넣지 않는다. 첫 배치 전(게시본 없음)은 조회 0건으로 화면이 판단하므로 대응 코드가 없다.
+7. `degraded` `degrade_reasons` `candidate_sort_rule` `setting_version` `a_judgment_snapshot_id`를 채운다. `candidate_sort_rule`은 [[#ProximityCalculator.sort_rule_text]]가 준 한 문장이고 **리포트에 한 칸뿐이다.** 변동 카드마다 같은 문장을 되풀이해 싣지 않는다.
+8. `market_bar` 네 칸을 채운다. **지표가 이월됐어도 네 칸을 다 내려보내고 칸을 비우지 않는다.** 이월 사실은 `notices`의 `marketCarriedOver`가 말한다.
+9. 지표 시계열을 [[TBL-DOM-003#market_series]]에 사본으로 올리고, [[#BriefingStoreReader.read_report_document]]로 도메인 셋의 A 리포트를 읽어 [[#ReportPublisher.publish_a_report]]로 올린다. **열람 경로가 `mart`를 보지 않게 하는 마지막 단계다**([[TBL-INFRA-001#C10]]). 한 도메인을 못 읽어도 배치를 이어 가고 그 도메인 화면은 옛 사본을 계속 보여 준다.
+10. [[#ReportPublisher.diff_watchlist]].
+11. 정기 배치는 `published=true`, 재생성은 `published=false`로 만들고 사람이 [[#BatchService.switch_published_version]]으로 전환한다. **기존 게시본을 덮지 않는다.**
 
 **출력** `CReport(reportId, versionNo)`.
 
-**테스트 관점** 서술 셋이 전부 강등돼도 게시되는지, 그리고 그때 신호등과 후보 순서가 5단계 산출물과 전건 같은지. 같은 기준일에 `published=true`인 행이 언제나 하나인지(부분 유일 제약).
+**테스트 관점** 서술 셋이 전부 강등돼도 게시되는지, 그리고 그때 신호등·도메인 상태 3카드·후보 순서가 5단계 산출물과 전건 같은지. 같은 기준일에 `published=true`인 행이 언제나 하나인지(부분 유일 제약). 소스 하나가 비어도 `data_latest_date`가 남은 칸 중 가장 늦은 날인지. `notices`의 `code`가 다섯 밖으로 나가지 않는지. 변동 0건 배치에서 `noAnomaly` 한 건이 담기고 변동이 있는 배치에서는 담기지 않는지. `market_bar`가 비어 있는 게시본이 0건인지.
 
 근거: [[TBL-SEQ-001#SEQ-21]] · [[TBL-SEQ-001#SEQ-13]] · [[TBL-INFRA-001#C13]]
+
+#### ReportPublisher.publish_a_report A 리포트 사본 게시
+
+**시그니처** `publish_a_report(domain: str, document: dict) -> str`
+
+**입력** [[#BriefingStoreReader.read_report_document]]가 통째로 읽어 온 A 리포트 한 건. 제목·범위·출처 표기·요약·해설·고정 문구·트래킹 지표·분해·못 만드는 지표·각주 근거·버전 번호·게시 시각이 다 들어 있다.
+
+**처리**
+1. [[TBL-DOM-003#a_report_snapshot]]에 한 행을 넣는다. 유일 제약이 `(domain, report_base_date, version_no)`라 같은 버전을 두 번 받아도 한 행이다.
+2. 각주 근거를 [[TBL-DOM-003#a_report_evidence]]에 `footnote` 순으로 넣는다. 근거가 0건이어도 스냅샷은 성립한다.
+3. `base_date` `batch_run_id` `copied_at`을 남긴다. 원본이 나중에 바뀌어도 그날 화면은 이 사본을 읽는다.
+4. **문장을 새로 쓰거나 고치지 않는다. 받은 글자를 그대로 옮긴다.**
+
+**출력** `a_report_snapshot_id`. 읽어 온 문서가 없으면 아무것도 넣지 않고 빈 문자열을 돌려준다.
+
+**예외** 없다. 한 도메인이 실패해도 배치를 멈추지 않는다.
+
+**이 사본은 [[#AJudgmentReader.copy_snapshot]]이 만드는 판정 사본과 다른 테이블이다.** 판정 사본([[TBL-DOM-003#domain_report_snapshot]])은 C 리포트를 만들려고 두는 것이라 문장을 담지 않는다. 이 사본은 A 리포트 화면이 그대로 다시 뿌리려고 두는 것이라 문장을 담는다. 두 길은 섞이지 않는다.
+
+**테스트 관점** 사본의 요약·해설 글자가 브리핑 갈래 원본과 한 글자도 다르지 않은지. 같은 버전을 두 번 올려도 행이 하나인지. [[TBL-DOM-003#domain_report_snapshot]]에 문장 컬럼이 0개인지. 사본이 있는 도메인의 화면 조회에 `mart` 접근이 0회인지.
+
+근거: [[TBL-INFRA-001#C10]] · [[TBL-UI-001#UI-7]] · [[TBL-SEQ-001#SEQ-12]]
 
 #### ReportPublisher.diff_watchlist 워치리스트 변화 비교
 
@@ -1111,13 +1185,13 @@ day_diff      ≤ setting.event_window_days
 
 **시그니처** `get_latest_by_domain(domain: str) -> DomainReport`
 
-**처리** `production` `inventory` `sales` 중 하나의 최신 [[TBL-DOM-003#domain_report_snapshot]]과 그 [[TBL-DOM-003#domain_judgment]] [[TBL-DOM-003#contribution]]을 읽고 [[#DomainReportService.build_domain_extra]] [[#DomainReportService.list_missing_metrics]]를 붙인다. **응답 어디에도 뉴스·시장지표 인용이 없고 C 리포트로 가는 링크 필드도 없다.**
+**처리** `production` `inventory` `sales` 중 하나의 최신 [[TBL-DOM-003#a_report_snapshot]]과 그 [[TBL-DOM-003#a_report_evidence]]를 읽고 [[#DomainReportService.build_domain_extra]] [[#DomainReportService.list_missing_metrics]]를 붙인다. **조회 대상은 게시 스키마 사본뿐이다.** 요약·해설·고정 문구·각주 근거·버전 번호는 [[#ReportPublisher.publish_a_report]]가 옮겨 둔 글자를 그대로 내보내고 **이 시스템이 문장을 새로 쓰지 않는다**([[TBL-INFRA-001#C10]]). **응답 어디에도 뉴스·시장지표 인용이 없고 C 리포트로 가는 링크 필드도 없다.**
 
-**출력** `DomainReport(trackingMetrics 3, breakdownDimensions, missingMetrics, domainExtra)`.
+**출력** `DomainReport(summary, commentary, evidence, versions, trackingMetrics 3, breakdownDimensions, missingMetrics, domainExtra)`.
 
-**예외** 그 도메인 게시본이 없으면 404.
+**예외** 그 도메인 사본이 없으면 404.
 
-**테스트 관점** 응답 JSON에 기사·시장지표 계열 키가 0건인지. A1 응답의 축이 `plant`인지.
+**테스트 관점** 응답 JSON에 기사·시장지표 계열 키가 0건인지. A1 응답의 축이 `plant`인지. 응답 생성에 `mart`·`std` 조회가 0회인지. 화면 버전 알약과 사이드 버전 목록의 번호가 사본의 `version_no`와 같은지.
 
 근거: [[TBL-SEQ-001#SEQ-12]] · [[TBL-PRD-001#R29]]
 
@@ -1145,11 +1219,17 @@ day_diff      ≤ setting.event_window_days
 
 **시그니처** `list_missing_metrics(domain: str) -> list[MissingMetric]`
 
-**처리** 데이터 구조상 만들 수 없는 지표를 이유와 함께 돌려준다. **빈 자리를 추정값으로 채우지 않는다.** A1은 `destinationCountry` `powertrainBreakdown`, A2는 `afloat` `awaitingShipment` `entityVsDealer`, A3는 `globalCountryByModel` `countryDailySeries`.
+**처리** 데이터 구조상 만들 수 없는 지표를 이유와 함께 돌려준다. **빈 자리를 추정값으로 채우지 않는다.** 배정은 아래로 고정한다.
+
+```
+A1 생산  destinationCountry · powertrainBreakdown                              (둘)
+A2 재고  afloat · awaitingShipment · entityVsDealer · countryDailySeries        (넷)
+A3 판매  globalCountryByModel                                                   (하나)
+```
 
 **출력** `MissingMetric(code, label, reason, willFillWhen)` 목록.
 
-**테스트 관점** A1에 목적지 국가, A2에 항해중·선적대기가 이유와 함께 나오는지. `code`가 [[TBL-API-001]] 4.13절 enum 밖으로 나가지 않는지.
+**테스트 관점** A1에 목적지 국가, A2에 항해중·선적대기가 이유와 함께 나오는지. 건수가 A1 둘·A2 넷·A3 하나인지. `countryDailySeries`가 A3가 아니라 **A2**에 있는지(국가 일별 시계열은 재고 쪽에서 요구된 것이다). `code`가 [[TBL-API-001]] 4.13절 enum 밖으로 나가지 않는지.
 
 근거: [[TBL-PRD-001#R29]] · [[TBL-API-001]] 4.13절
 
@@ -1157,9 +1237,9 @@ day_diff      ≤ setting.event_window_days
 
 **시그니처** `get_series(indicator_id: str, days: int = 30) -> list[MarketMetric]`
 
-**처리** [[TBL-DOM-003#market_point]]에서 최근 `days`일 값을 날짜 오름차순으로 돌려준다. 이월된 값은 `carriedOver=true`로 표시한다.
+**처리** 게시 스키마 사본 [[TBL-DOM-003#market_series]]에서 최근 `days`일 값을 날짜 오름차순으로 돌려준다. 이월된 값은 `carriedOver=true`로 표시한다. **열람 경로는 `mart`의 [[TBL-DOM-003#market_point]]를 보지 않는다**([[TBL-INFRA-001#C10]]). 사본은 [[#ReportPublisher.publish]]가 8단계에 올린다. 같은 클래스의 [[#MarketService.as_of]]는 4단계 파이프라인 함수라 원본을 읽으며, 이 둘은 조회 대상이 다르다.
 
-**테스트 관점** 지표 4종(`GPR` `BRENT` `BDI` `SCFI`)이 전부 조회되는지. 값이 비어도 `asOfDate`가 내려가는지.
+**테스트 관점** 지표 4종(`GPR` `BRENT` `BDI` `SCFI`)이 전부 조회되는지. 값이 비어도 `asOfDate`가 내려가는지. 이 함수 실행 중 `mart` 조회가 0회인지.
 
 근거: [[TBL-API-001#GET/api/intel/market/series/{indicatorId}]] · [[TBL-SEQ-001#SEQ-11]]
 
@@ -1341,6 +1421,22 @@ day_diff      ≤ setting.event_window_days
 
 근거: [[TBL-PRD-001#R25]] · [[TBL-API-001]] 4.4절
 
+#### BriefingStoreReader.read_report_document A 리포트 통째 읽기
+
+**시그니처** `read_report_document(base_date: date, domain: str) -> dict | None`
+
+**처리** 브리핑 갈래가 게시한 A 리포트 한 건을 **문장·각주 근거·버전 번호·게시 시각까지 통째로** 읽는다. 읽기 전용 계정이고 쓰기 메서드를 두지 않는다. 그 기준일 게시본이 없으면 `None`.
+
+**출력** 반환 키는 [[TBL-DOM-003#a_report_snapshot]]과 [[TBL-DOM-003#a_report_evidence]]의 컬럼과 1대1이다. 제목·범위 표기·출처 표기·출처 스냅샷 시각·요약·해설·고정 문구·트래킹 지표·분해·못 만드는 지표·강등 여부·버전 번호·게시 시각, 그리고 각주 근거 목록(`footnote` `kind` `source_id` `display_value`).
+
+**이 함수와 [[#BriefingStoreReader.read_judgments]]는 쓰임이 다르다.** 판정 읽기는 C 리포트를 만들려고 **판정만** 가져오는 길이라 A가 쓴 문장을 읽지 않는다. 이 함수는 A 리포트 화면에 그대로 다시 뿌리려고 사본을 뜨는 길이라 문장을 가져온다. **가져온 문장은 C의 서술에 쓰지 않는다.**
+
+**예외** 접속 실패면 예외를 올린다. [[#ReportPublisher.publish]]는 그 도메인 사본만 건너뛰고 배치를 이어 간다.
+
+**테스트 관점** 반환 키가 [[TBL-DOM-003#a_report_snapshot]] 컬럼과 빠짐없이 맞는지(하나만 어긋나도 사본이 빈 칸으로 게시된다). C 리포트 문장에 이 함수가 가져온 문장이 인용으로 들어가지 않는지(문자열 대조, 동일 비율 0%). 클래스에 쓰기 계열 메서드가 없는지.
+
+근거: [[TBL-INFRA-001#C5]] · [[TBL-INFRA-001#C10]] · [[TBL-SEQ-001#SEQ-12]] · [[TBL-UI-001#UI-7]]
+
 #### BriefingStoreReader.snapshot_id 스냅샷 식별자
 
 **시그니처** `snapshot_id(base_date: date) -> str`
@@ -1351,21 +1447,32 @@ day_diff      ≤ setting.event_window_days
 
 근거: [[TBL-INFRA-001#C11]]
 
+#### BriefingStoreReader.ping 저장소 접속 확인
+
+**시그니처** `ping() -> bool`
+
+**처리** 브리핑 갈래 저장소에 가벼운 조회 하나를 던져 붙는지만 본다. 붙으면 참, 못 붙으면 **거짓을 돌려준다. 예외를 던지지 않는다.** 던지면 이 확인 하나 때문에 2단계가 아니라 배치 전체가 멈춘다.
+
+**출력** 참 또는 거짓. 어떤 데이터도 읽지 않고 어떤 행도 쓰지 않는다.
+
+**예외** 없다. 시간 초과도 거짓으로 접는다.
+
+**부르는 곳** [[#AJudgmentReader.read]]가 2단계 맨 앞에서 한 번 부른다. 거짓이면 도메인 셋을 모두 [[#AJudgmentReader.fallback_to_supplementary]]로 내리고 미수신 목록에 셋을 담는다. [[#BatchService.get_status]]도 같은 값을 관리 화면에 싣는다.
+
+**테스트 관점** 저장소를 막아 놓고 불렀을 때 예외가 아니라 거짓인지. 거짓일 때 배치가 8단계까지 가고 리포트 `notices`에 `aJudgmentNotReceived`가 도메인 셋으로 담기는지. 이 함수가 판정을 한 건도 읽지 않는지(쿼리 로그 대조).
+
+근거: [[TBL-INFRA-001#C5]] · [[TBL-SEQ-001#SEQ-15]]
+
 ## 10. 미결사항
 
-- [ ] **항목 ID와 함수 이름이 어긋난 둘을 어떻게 정리할지**(0.1절). `IngestService.preflight`와 `BatchService.publish_version`이 삭제된 ID라 재사용할 수 없어 항목 ID를 달리 붙였다. 함수 이름을 바꿀지, 항목 ID 어긋남을 그대로 둘지는 사람이 정한다
 - [ ] [[#TrafficLightJudge.judge]]의 임계값 실제 수치. `min_article_count` `min_source_count` `event_window_days` `cbu_share_threshold`가 전부 현업 검토 대기다. 값이 정해져야 RED·YELLOW·none의 비율을 가늠할 수 있다
-- [ ] [[#AnomalyDetector.from_stage_flow]]가 쓰는 지표 배정. 딜러 구간을 `wholesaleToRetailGap`, 법인 구간을 `distributionStay`로 두었으나 [[TBL-API-001]] 4.3절 enum의 확정 배정이 아니다 [확인 필요]
-- [ ] [[#ProximityCalculator.sort]]의 마지막 열쇠(후보 식별자 사전순)를 계약으로 굳힐지. 앞의 셋만으로는 동률에서 순서가 흔들려 [[TBL-PRD-001#N3]]이 깨진다
 - [ ] [[#TrafficLightJudge.build_watch_items]]의 2차·3차 정렬 열쇠. 이 문서는 `대표 후보 날짜 차이 → 국가 코드`로 두었으나 상위 문서에 확정 문장이 없다
 - [ ] [[#ProximityCalculator.day_diff]]를 기간 구분에 따라 보정할지. 누계·년 변동은 후보가 구조적으로 멀어 보인다. 지금은 보정하지 않고 화면에 기간 구분을 적는 것으로 둔다
 - [ ] [[#BriefingStoreReader.read_judgments]]의 반환 키와 필드. 정해져야 [[#AJudgmentReader.validate_shape]]의 대조 목록이 확정된다
 - [ ] [[#FormALedgerParser.check_columns]]가 대조할 실제 컬럼 목록. 형태 A 실물 파일을 아직 본 적이 없다
 - [ ] [[#FormBPivotParser.detect_file_base_date]]가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다
 - [ ] [[#HChatClient.complete]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 것은 가정이며 실호출 확인 범위가 좁다. 지원되지 않으면 세 역할의 검증 단계가 늘어난다
-- [ ] [[#DomainReportService.get_latest_by_domain]]과 [[#MarketService.get_series]]가 `pub` 밖(`mart`·`std`)을 읽는다. [[TBL-SEQ-001]] 7장 F1의 두 길 중 어느 쪽인지가 정해져야 이 두 함수의 조회 대상이 확정된다
 - [ ] [[#PipelineRunner.run]]의 `llm_enabled`와 `backfill_mode`를 스위치 하나로 합칠지. API 요청 본문에는 `backfillMode` 하나뿐이다([[TBL-SEQ-001]] 7장 F4)
 - [ ] [[#ReportPublisher.diff_watchlist]]의 멱등 처리. 이 문서는 `(report_id, country_code)` upsert로 두었으나 [[TBL-DOM-003#report_alert_event]]에 재계산을 막을 키가 따로 없다([[TBL-SEQ-001]] 7장 F5)
-- [ ] 배치 1단계와 3단계의 실패 처리. 이 문서는 [[TBL-DOM-002]]를 따라 둘 다 멈춤으로 두었으나 [[TBL-INFRA-001#C19]]에 확정 문장이 없다
 - [ ] 설정 변경 경로. [[TBL-DOM-003#threshold_setting]] 새 버전 행을 SQL로 넣을지 CLI를 만들지. 정해지면 함수가 하나 는다
 - [ ] 현업 피드백("맞다·아니다·모르겠다") 저장 함수. 화면에 넣을지가 미결이라 이 문서에도 두지 않았다([[TBL-PRD-001#R28]])
