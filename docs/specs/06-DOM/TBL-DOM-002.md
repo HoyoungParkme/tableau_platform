@@ -280,7 +280,7 @@ classDiagram
 | 4 | 결합 | 코드 | [[#FactJoiner]] [[#StageFlowCalculator]] [[#AnomalyDetector]] | 멈춤 |
 | 5 | 원인 후보·근접도·신호등 | 코드 | [[#CandidateSearcher]] [[#ProximityCalculator]] [[#TrafficLightJudge]] | 멈춤 |
 | 6 | 사건 명명 | LLM | [[#EventNamer]] | 강등하고 계속 |
-| 7 | 연관 설명 | LLM | [[#CauseLinkWriter]] | 강등하고 계속 |
+| 7 | 연관 설명 | LLM + 코드 | [[#CauseLinkWriter]] [[#CitationVerifier]] | 강등하고 계속 |
 | 8 | 서술·검증·게시 | LLM + 코드 | [[#ClaimWriter]] [[#CitationVerifier]] [[#ReportPublisher]] | 서술만 강등. 게시는 진행 |
 
 **관계.** 계층 다섯 전부를 부르는 유일한 클래스다. 반대로 어느 계층도 이 클래스를 부르지 않는다. 예외가 하나 있는데 [[#BatchService]]가 재실행을 요청할 때다.
@@ -585,7 +585,7 @@ classDiagram
 
 구간을 둘로 나눈 것은 실측 때문이다. 미주 누계에서 선적 679,551, 도매 677,201, 소매 643,097이고 뒤 구간이 34,104대(5.0%)로 벌어진다. 국가별로는 칠레 25.2%, 페루 21.2%다. 앞 구간도 캐나다 8.3%처럼 벌어지는 국가가 있어 둘 다 저장한다.
 
-`wholesale_basis`를 행에 남기는 이유는 도매가 두 기준으로 들어오고 미주 누계에서 27,135대 차이가 나기 때문이다([[TBL-RFQ-001#Q63]]). 어느 기준으로 계산했는지가 행에 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라진다.
+`wholesale_basis`를 행에 남기는 이유는 도매가 두 기준으로 들어오고 두 기준의 전사 누계가 어긋나기 때문이다. 실 도매 2,356,496대와 도매(공식) 2,383,631대의 차이가 27,135대다([[TBL-RFQ-001#Q63]]). 이 27,135대는 전사 누계 차이이며 미주 구간 값이 아니다. 미주 구간의 실 도매 누계는 실측이 없다. 어느 기준으로 계산했는지가 행에 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라진다.
 
 **이 값은 재고가 아니라 재고의 대체물이다.** 산출 구분을 `derived`로 남기고 화면이 유도 표기를 붙인다([[TBL-INFRA-001#C17]]). 원천이 들어오면 같은 자리를 실측값이 차지한다.
 
@@ -664,6 +664,7 @@ classDiagram
 ```mermaid
 classDiagram
   class ProximityCalculator {
+    <<stateless>>
     +calculate(anomaly, candidate) Proximity
     +day_diff(anomaly, candidate) int
     +sort(candidates) list
@@ -673,15 +674,15 @@ classDiagram
   ProximityCalculator --> TrafficLightJudge
 ```
 
-**속성.** 없다. 상태를 갖지 않는 순수 계산 클래스다.
+**속성.** 없다. 상태를 갖지 않는 순수 계산 클래스다. 상태를 들지 않으므로 다이어그램에 주석으로 표시한다.
 
-**메서드.** `calculate`는 날짜 차이·기사 수·출처 수·국가 일치 방식 넷을 돌려준다. `day_diff`는 변동의 파일 기준일을 기준점으로 세고 사건은 마지막 관측일을 쓴다. `sort`는 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순으로 정렬한다. `sort_rule_text`는 그 규칙을 한 문장으로 돌려주고 응답과 화면이 글자로 적는다([[TBL-API-001]] 1.3절).
+**메서드.** `calculate`는 날짜 차이·기사 수·출처 수·국가 일치 방식 넷을 돌려준다. `day_diff`는 변동의 파일 기준일을 기준점으로 세고 사건은 마지막 관측일을 쓴다. `sort`는 날짜 차이 오름차순, 같으면 출처 수 내림차순, 그다음 기사 수 내림차순, 그래도 같으면 후보 식별자 사전순으로 정렬한다. 넷째 열쇠인 후보 식별자 사전순은 구현에서 뺄 수 없는 계약이다([[TBL-MS-001]]). `sort_rule_text`는 앞의 셋만 한 문장으로 돌려주고 응답과 화면이 글자로 적는다([[TBL-API-001]] 1.3절). 넷째를 화면 문장에 넣지 않는 것은 그것이 동률을 가르는 장치이지 읽는 사람에게 설명할 기준이 아니기 때문이다.
 
 **관계.** [[#CandidateSearcher]]의 출력을 받아 [[#TrafficLightJudge]]로 넘긴다.
 
 **판정 근거.** **이 클래스에 등급·점수·순위를 만드는 메서드를 두지 않는다.** 관련도 등급을 개념에서 뺀 것이 [[TBL-PRD-001#R26]]이고, 여기에 점수 하나를 만들면 그 결정이 되살아난다. 가중치를 합친 종합 점수도 두지 않는다. 가중치의 근거가 다시 임의가 되기 때문이다.
 
-`sortOrder`는 관련도 순위가 아니라 정렬 규칙이 낳은 자리 번호다. 같은 입력이면 같은 번호가 나온다. 이 클래스가 상태를 갖지 않는 것도 같은 이유다. 상태가 있으면 실행 순서에 따라 값이 달라질 수 있다.
+`sortOrder`는 관련도 순위가 아니라 정렬 규칙이 낳은 자리 번호다. 같은 입력이면 같은 번호가 나온다. 앞의 셋이 모두 같아도 넷째 열쇠가 순서를 끝까지 가르기 때문이다. 이 클래스가 상태를 갖지 않는 것도 같은 이유다. 상태가 있으면 실행 순서에 따라 값이 달라질 수 있다.
 
 기간 구분이 넓은 변동에서 날짜 차이가 불리하게 나오는 것은 값이 그렇게 나오는 것이 맞다. 보정하지 않고 화면이 기간 구분을 함께 적어 읽는 사람이 감안하게 한다(6장 미결).
 
@@ -758,6 +759,7 @@ classDiagram
 ```mermaid
 classDiagram
   class CauseLinkWriter {
+    <<stateless>>
     +write(anomaly, candidates, llm: LlmPort) CauseLink
     -build_prompt(anomaly, candidates) dict
     +extract_citations(text) list
@@ -767,7 +769,7 @@ classDiagram
   CauseLinkWriter --> DegradeHandler
 ```
 
-**속성.** 없다. 게이트웨이 포트를 호출 인자로 받는다.
+**속성.** 없다. 게이트웨이 포트를 호출 인자로 받는다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** `write`는 변동과 후보 목록과 포트를 받아 [[TBL-DOM-001#CauseLink]] 한 건을 돌려준다. `build_prompt`는 사설이고 `write` 안에서만 돈다. 그 변동의 후보 목록만 담고 후보 밖의 사실을 넣지 않는다. `extract_citations`는 문단에서 인용한 후보 식별자를 뽑는다.
 
@@ -784,6 +786,7 @@ classDiagram
 ```mermaid
 classDiagram
   class ClaimWriter {
+    <<stateless>>
     +write_headline(context, llm: LlmPort) Claim
     +write_domain_status(domain, context, llm: LlmPort) Claim
     +write_card(anomaly, context, llm: LlmPort) Claim
@@ -795,7 +798,7 @@ classDiagram
   ReportPublisher ..> ClaimWriter : 근거 번호를 먼저 넘긴다
 ```
 
-**속성.** 없다. 게이트웨이 포트를 호출 인자로 받는다.
+**속성.** 없다. 게이트웨이 포트를 호출 인자로 받는다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** 구역마다 메서드가 하나다. 각각 [[TBL-DOM-001#Claim]] 한 건을 돌려주고 각주 번호 목록을 함께 담는다. `build_prompt`는 사설이고 세 메서드가 안에서만 쓴다. **`write_domain_status`는 문장만 쓴다.** 도메인 상태 카드의 신호등·판정 출처·기여 분해는 5단계에서 [[#TrafficLightJudge]]가 이미 정해 두었고 이 메서드는 그것을 입력으로 받는다.
 
@@ -812,6 +815,7 @@ classDiagram
 ```mermaid
 classDiagram
   class CitationVerifier {
+    <<stateless>>
     +verify_cause_link(cause_link, candidates) bool
     +verify_claim(claim, evidence) bool
     +out_of_scope_ids(cited, allowed) list
@@ -821,7 +825,7 @@ classDiagram
   CitationVerifier --> DegradeHandler
 ```
 
-**속성.** 없다. 상태를 갖지 않는다.
+**속성.** 없다. 상태를 갖지 않으므로 다이어그램에 주석으로 표시한다.
 
 **메서드.** `verify_cause_link`는 인용한 후보 식별자가 전부 그 변동의 후보 안에 있는지 본다. `verify_claim`은 각주 번호가 전부 근거 목록 안에 있는지 본다. `out_of_scope_ids`는 벗어난 식별자를 돌려주고 강등 사유에 담긴다.
 
@@ -836,6 +840,7 @@ classDiagram
 ```mermaid
 classDiagram
   class DegradeHandler {
+    <<stateless>>
     +degrade(role, reason, target) None
     +degraded_roles(batch_run_id) list
     -is_degraded(report) bool
@@ -847,7 +852,7 @@ classDiagram
   DegradeHandler --> ReportPublisher
 ```
 
-**속성.** 없다.
+**속성.** 없다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** `degrade`는 역할(`naming` `causeLink` `narration`)과 사유를 받아 기록한다. 사유는 LLM 오류, 내용 필터, 형식 위반, 인용 검증 실패, 백필 모드 다섯이다([[TBL-API-001]] 4.7절). `degraded_roles`는 그 배치에서 강등된 역할 목록을 돌려준다. `is_degraded`는 사설이고 `degraded_roles`가 비었는지 보는 내부 판정이다.
 
@@ -864,6 +869,7 @@ classDiagram
 ```mermaid
 classDiagram
   class ReportPublisher {
+    <<stateless>>
     +number_evidence(anomalies, candidates) list
     +publish(batch_run, base_date) CReport
     +publish_a_report(domain, document) str
@@ -879,7 +885,7 @@ classDiagram
   ReportPublisher ..> ClaimWriter : 번호를 먼저 넘긴다
 ```
 
-**속성.** 없다.
+**속성.** 없다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** `number_evidence`는 8단계 맨 앞에서 돌아 [[TBL-DOM-001#Evidence]] 번호를 먼저 매긴다. `publish`는 [[TBL-DOM-001#CReport]] 한 버전을 만든다. 도메인 상태 3카드를 채우는 것도 이 메서드이며, 값은 [[#TrafficLightJudge]]의 `build_domain_status` 산출물을 그대로 옮기고 문장만 [[#ClaimWriter]]에게서 받는다. `publish_a_report`는 브리핑 갈래가 게시한 A 리포트를 문장·각주 근거·버전까지 받아 게시 스키마 사본으로 올리고 그 사본의 식별자를 돌려준다. `diff_watchlist`는 직전 게시본과 국가별 신호등을 비교해 [[TBL-DOM-001#AlertEvent]]를 만들고 변화 배지를 붙인다. `copy_display_values`는 표시용 값을 근거 행에 복사한다. `next_version`은 같은 기준일의 다음 버전 번호를 돌려준다.
 
@@ -900,6 +906,7 @@ classDiagram
 ```mermaid
 classDiagram
   class CReportService {
+    <<stateless>>
     +get_latest() CReport
     +get_by_id(report_id, viewer) CReport
     -assert_published_or_admin(report, viewer) None
@@ -907,7 +914,7 @@ classDiagram
   ReportPublisher --> CReportService
 ```
 
-**속성.** 없다. 게시 스키마 읽기 전용 세션만 쓴다.
+**속성.** 없다. 게시 스키마 읽기 전용 세션만 쓴다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** 둘 다 [[TBL-API-001#GET/api/intel/creport/latest]]와 [[TBL-API-001#GET/api/intel/creport/version/{reportId}]]에 1:1로 걸린다. `assert_published_or_admin`은 현업 토큰으로 미게시본을 부르면 404를 낸다. 존재 여부를 알려 주지 않기 위해 403이 아니다.
 
@@ -922,6 +929,7 @@ A1 생산·A2 재고·A3 판매 중 한 도메인의 최신 게시 리포트를 
 ```mermaid
 classDiagram
   class DomainReportService {
+    <<stateless>>
     +get_latest_by_domain(domain) DomainReport
     +get_by_id(domain_report_id) DomainReport
     +build_domain_extra(domain, report) dict
@@ -931,7 +939,7 @@ classDiagram
   DomainReportService ..> DomainReport
 ```
 
-**속성.** 없다.
+**속성.** 없다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** 앞의 둘이 [[TBL-API-001#GET/api/intel/areport/domain/{domain}]]과 [[TBL-API-001#GET/api/intel/areport/version/{domainReportId}]]에 걸린다. `build_domain_extra`는 도메인마다 다른 덩어리를 만든다. `list_missing_metrics`는 데이터 구조상 못 만드는 지표를 이유와 함께 돌려준다([[TBL-API-001]] 4.13절).
 
@@ -948,6 +956,7 @@ classDiagram
 ```mermaid
 classDiagram
   class MarketService {
+    <<stateless>>
     +get_series(indicator_id, days) list
     +as_of(indicator_id, date) MarketPoint
     +is_carried_over(point, date) bool
@@ -956,7 +965,7 @@ classDiagram
   FactJoiner ..> MarketService : as-of 조회
 ```
 
-**속성.** 없다.
+**속성.** 없다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** `get_series`는 [[TBL-API-001#GET/api/intel/market/series/{indicatorId}]]에 걸린다. `as_of`는 특정 날짜 기준 값을 돌려주고 [[#FactJoiner]]도 쓴다. `is_carried_over`는 값이 이월된 것인지 본다.
 
@@ -971,6 +980,7 @@ classDiagram
 ```mermaid
 classDiagram
   class BatchService {
+    <<stateless>>
     +get_status() dict
     +list_runs(filters, cursor) list
     +get_run(batch_run_id) BatchRun
@@ -982,7 +992,7 @@ classDiagram
   BatchService --> ReportPublisher
 ```
 
-**속성.** 없다.
+**속성.** 없다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** 다섯이 [[TBL-API-001]]의 배치 엔드포인트 다섯과 1:1이다. `get_status`는 자동 실행이 막혀 있는지와 무엇이 막고 있는지를 함께 돌려준다. `request_rerun`은 기준일과 시작 단계를 받아 [[#PipelineRunner]]를 부른다. `publish_version`은 게시 전환 후 워치리스트 변화를 다시 계산한다([[TBL-UC-001#UC-S5]]). `assert_not_running`은 같은 기준일 배치가 돌고 있으면 409를 낸다.
 
@@ -999,6 +1009,7 @@ classDiagram
 ```mermaid
 classDiagram
   class MasterService {
+    <<stateless>>
     +get_summary() dict
     +list_unmapped(filters) list
     +upload_crosswalk(upload) dict
@@ -1008,7 +1019,7 @@ classDiagram
   RecordStandardizer ..> MasterService : 미매핑 넘김
 ```
 
-**속성.** 없다.
+**속성.** 없다. 상태를 들지 않는 클래스라 다이어그램에 주석으로 표시한다.
 
 **메서드.** 넷이 [[TBL-API-001]]의 마스터 엔드포인트 넷과 1:1이다. `get_summary`는 매칭률 셋(판매→국가, 생산→국가, 뉴스→국가)과 버전 이력을 돌려준다. `diff_against_current`는 확정하면 무엇이 지워지는지 미리 보여 준다. `confirm_crosswalk`는 지워지는 매핑이 있으면 확인 없이는 409를 낸다.
 
