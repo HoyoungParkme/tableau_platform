@@ -10,7 +10,7 @@ upstream: [TBL-DOM-002, TBL-DOM-001, TBL-API-001, TBL-INFRA-001, TBL-UI-001, TBL
 
 ## 0. 이 문서가 다루는 것
 
-[[TBL-DOM-001]]이 정한 개념 24개와 [[TBL-DOM-002]]가 정한 처리 클래스 28개가 실제로 어느 테이블에 앉는지를 정한다. 스키마 여섯, 테이블 마흔둘, 그 컬럼과 타입과 널 허용, 그리고 조회 패턴별 인덱스를 적는다.
+[[TBL-DOM-001]]이 정한 개념 24개와 [[TBL-DOM-002]]가 정한 처리 클래스 28개가 실제로 어느 테이블에 앉는지를 정한다. 스키마 여섯, 테이블 마흔다섯, 그 컬럼과 타입과 널 허용, 그리고 조회 패턴별 인덱스를 적는다.
 
 여기서 정하지 않는 것이 셋이다. 첫째, 개념의 뜻은 [[TBL-DOM-001]]이 정했고 이 문서는 그것을 컬럼으로 펼치기만 한다. 둘째, 어느 클래스가 어느 테이블에 쓰는지는 [[TBL-DOM-002]] 1.1절의 엔티티 대응표가 정본이다. 셋째, 파티셔닝과 보관 기간은 실데이터 행수가 확정되기 전까지 미결이다(5장).
 
@@ -19,7 +19,7 @@ upstream: [TBL-DOM-002, TBL-DOM-001, TBL-API-001, TBL-INFRA-001, TBL-UI-001, TBL
 1. **시간 축은 칸 두 개다.** 단일 기준일 컬럼을 두지 않는다. 기간 구분(`period_type`)과 파일 기준일(`file_base_date`)을 함께 둔다([[TBL-INFRA-001#C15]] [[TBL-API-001]] 1.4절).
 2. **등급·점수 컬럼을 두지 않는다.** `score` `grade` `rank` `relevance` `confidence`와 그 변형을 어느 테이블에도 두지 않는다([[TBL-PRD-001#R26]] [[TBL-API-001]] 1.3절). 허용하는 순서 컬럼은 `sort_order` 하나이고 정렬 규칙이 낳은 자리 번호다.
 3. **모든 산출 행이 기준일과 배치 실행 ID를 가진다.** 여기에 설정 버전과 A 판정 스냅샷 ID가 더해져 재현이 성립한다([[TBL-INFRA-001#C11]]).
-4. **열람은 게시 스키마만 읽는다.** `pub` 밖의 테이블은 열람 계정이 보지 못한다([[TBL-INFRA-001#C10]]). 그래서 게시 시점에 표시값을 복사하고, 인덱스 설계도 `pub`에 집중한다.
+4. **열람은 게시 스키마만 읽는다.** `pub` 밖의 테이블은 열람 계정이 보지 못한다([[TBL-INFRA-001#C10]]). 그래서 게시 시점에 표시값을 복사하고, 인덱스 설계도 `pub`에 집중한다. A 리포트 지면도 예외가 아니다. 브리핑 갈래가 게시한 A 리포트를 문장까지 통째로 받아 [[#a_report_snapshot]]에 사본으로 두고 화면은 그 사본만 읽는다.
 
 ## 1. 스키마와 표기 규약
 
@@ -33,7 +33,7 @@ PostgreSQL 16 한 대에 스키마로 나눈다([[TBL-INFRA-001]] 6절).
 | `std` | 표준화한 완성차 긴 형태, 기사, 시장지표, OEM 판매 | 5 | worker·web | worker |
 | `master` | 크로스워크 이관본과 버전 | 8 | worker·web | worker |
 | `mart` | 결합·변동·후보·근접도·신호등·연관 설명 | 12 | worker | worker |
-| `pub` | 게시된 C 리포트와 근거 | 7 | worker | web |
+| `pub` | 게시된 C 리포트와 근거, A 리포트 게시 사본, 지표 시계열 사본 | 10 | worker | web |
 | `ops` | 적재·배치 이력, LLM 호출, 설정, 미매핑 | 7 | worker·web | web |
 
 계정 분리는 [[TBL-INFRA-001]] 5절을 따른다. `web`은 `pub` 읽기와 `raw`·`std`·`ops` 쓰기(수동 적재)만 가지고, `worker`가 전 스키마에 쓴다.
@@ -110,12 +110,16 @@ erDiagram
   watch_item ||--o| report_watch_item : "복사"
   anomaly ||--o| report_anomaly : "복사"
   batch_run ||--o{ c_report : "실행"
+  batch_run ||--o{ a_report_snapshot : "A 리포트 복사"
+  market_point ||--o{ market_series : "지표 시계열 사본"
   threshold_setting ||--o{ anomaly : "설정 버전"
 ```
 
 `mart`에서 `pub`으로 가는 선 둘이 게시다. 값을 참조로 남기지 않고 복사한다. 열람이 `pub` 밖을 보지 못하기 때문이다([[TBL-INFRA-001#C10]]).
 
-`domain_judgment`에서 `anomaly`로 가는 선이 A 리포트와 C 리포트를 잇는 유일한 통로다. 문장은 건너오지 않는다.
+`domain_judgment`에서 `anomaly`로 가는 선이 A 판정이 C 생성에 닿는 유일한 통로다. A가 쓴 문장은 이 선을 건너오지 않는다.
+
+A 리포트 문장은 따로 [[#a_report_snapshot]]에 게시 사본으로 들어온다. 그 사본은 열람 경로 전용이고 C 서술은 여전히 판정만 읽는다.
 
 ### 2.2 raw 스키마
 
@@ -268,13 +272,16 @@ erDiagram
     text country_code
     text period_type
     date file_base_date
+    numeric plan_value
+    text plan_source
+    text compare_basis
     text inventory_source
   }
   sales_stage_flow {
     bigint stage_flow_id PK
     text country_code
-    numeric entity_stage_gap
-    numeric dealer_stage_gap
+    numeric entity_stage_stay
+    numeric distribution_stay
     text wholesale_basis
     text derivation_type
   }
@@ -347,6 +354,7 @@ erDiagram
     integer version_no
     boolean published
     date data_latest_date
+    jsonb notices
   }
   report_anomaly {
     bigint report_anomaly_id PK
@@ -383,6 +391,25 @@ erDiagram
     text report_id FK
     text change_kind
   }
+  a_report_snapshot {
+    text a_report_snapshot_id PK
+    text domain
+    date report_base_date
+    integer version_no
+    timestamptz published_at
+  }
+  a_report_evidence {
+    text a_report_snapshot_id PK
+    integer footnote PK
+    text kind
+    text display_value
+  }
+  market_series {
+    text indicator_id PK
+    text period_key PK
+    numeric value
+    boolean carried_over
+  }
   c_report ||--o{ report_anomaly : "국가 카드"
   c_report ||--o{ report_watch_item : "워치리스트"
   c_report ||--o{ report_claim : "문장"
@@ -390,9 +417,12 @@ erDiagram
   c_report ||--o{ report_alert_event : "변화"
   report_claim ||--o{ report_claim_evidence : "각주"
   report_evidence ||--o{ report_claim_evidence : "각주"
+  a_report_snapshot ||--o{ a_report_evidence : "각주 근거"
 ```
 
 `report_anomaly`가 후보 목록을 `jsonb`로 안고 있는 것이 이 스키마의 절충이다. 이유는 4.1절에 적었다.
+
+[[#a_report_snapshot]]과 [[#a_report_evidence]]는 C 리포트에 매달리지 않는다. A 리포트는 도메인과 기준일과 버전으로 서고 C와 다른 주기로 게시되기 때문이다. [[#market_series]]도 지표별 시계열 한 벌이라 리포트에 매달리지 않는다.
 
 ### 2.7 ops 스키마
 
@@ -420,7 +450,7 @@ erDiagram
   batch_stage_result {
     text batch_run_id PK
     integer stage_no PK
-    text name
+    text stage_name
     text executor
   }
   llm_call {
@@ -743,6 +773,8 @@ erDiagram
 
 스키마 `mart`. 브리핑 갈래 저장소에서 읽어 복사한 것이다. C는 쓰지 않는다.
 
+**판정 사본이고 문장 컬럼을 두지 않는다.** A가 쓴 요약·해설·고정 문구는 이 테이블에 들어오지 않는다. C 생성이 읽는 것은 [[#domain_judgment]]와 [[#contribution]]뿐이다. A 리포트 문장은 열람 전용 사본인 [[#a_report_snapshot]]이 따로 받는다.
+
 | 컬럼 | 타입 | 널 | 설명 |
 |:--|:--|:--|:--|
 | `domain_report_id` | text | N | |
@@ -824,11 +856,16 @@ erDiagram
 | `actual_wholesale` | numeric(18,3) | Y | 실 도매 |
 | `official_wholesale` | numeric(18,3) | Y | 도매(공식) |
 | `retail` | numeric(18,3) | Y | 소매 |
+| `plan_value` | numeric(18,3) | Y | 설정이 고른 계획 정본의 값. 계획이 없으면 NULL |
+| `plan_source` | text | Y | `operationPlan` `businessPlan`. 어느 계획을 정본으로 썼는가 |
+| `plan_alternative_diff` | numeric(18,3) | Y | 고르지 않은 쪽 계획과의 차이 |
+| `compare_value` | numeric(18,3) | Y | 비교 값 |
+| `compare_basis` | text | Y | `plan` `yoy` `mom`. 계획이 있으면 `plan`이 먼저다 |
 | `inventory_afloat` | numeric(18,3) | Y | 항해중. 원천이 없어 현재 전부 NULL |
 | `inventory_awaiting_shipment` | numeric(18,3) | Y | 선적대기. 현재 전부 NULL |
 | `inventory_entity` | numeric(18,3) | Y | 법인재고. 현재 전부 NULL |
 | `inventory_dealer` | numeric(18,3) | Y | 딜러재고. 현재 전부 NULL |
-| `inventory_source` | text | Y | `measured` `derived`. 재고 칸이 어디서 왔는지 |
+| `inventory_source` | text | Y | `measured` `derived`. 원천이 없는 동안 `derived` 고정 |
 | `cbu_share` | numeric(10,6) | Y | 완성차 비중 |
 | `event_count` | integer | N | 그 국가·기간에 걸린 사건 수 |
 | `max_impact` | numeric(10,6) | Y | 기사 영향도의 최대값 |
@@ -843,7 +880,9 @@ erDiagram
 
 **생산 수치 컬럼이 없다.** 국가 축이 없어 국가로 모을 수 없다. 생산은 [[#domain_judgment]]를 공장 축으로 받아 도메인 상태 한 줄에만 쓴다([[TBL-INFRA-001#C16]]).
 
-**재고 네 칸은 자리만 있고 현재 전부 NULL이다.** 인입 샘플 어디에도 항해중·선적대기·법인재고·딜러재고가 없다. 그 자리를 [[#sales_stage_flow]]가 대신하고, `inventory_source`가 실측인지 유도인지를 남긴다. 원천이 들어오면 같은 칸을 실측값이 채우고 `inventory_source`가 `measured`로 바뀐다([[TBL-INFRA-001#C17]]).
+**재고 네 칸은 자리만 있고 현재 전부 NULL이다.** 인입 샘플 어디에도 항해중·선적대기·법인재고·딜러재고가 없다. 그 자리를 [[#sales_stage_flow]]가 대신하고, 원천이 없는 동안 `inventory_source`는 `derived`로 고정한다. 원천이 들어오면 네 칸을 실측값이 채우고 `inventory_source`가 `measured`로 바뀐다([[TBL-INFRA-001#C17]]).
+
+**계획 값을 결합에서 함께 채우는 이유.** 계획이 있으면 계획 대비를 먼저 본다([[TBL-PRD-001#R8]]). A 판정이 국가 단위가 아니어서 보완 집계로 만든 변동도 같은 기준을 써야 하는데, 계획 값이 이 행에 없으면 그 경로만 전년 대비로 떨어진다. [[TBL-DOM-002#FactJoiner]]가 [[#threshold_setting]]의 `plan_source`로 고른 계획 값을 행에 함께 넣고 고르지 않은 쪽과의 차이를 `plan_alternative_diff`에 남긴다. 계획이 없는 국가·기간은 `compare_basis`가 `yoy` 또는 `mom`이 된다.
 
 #### sales_stage_flow 판매 단계 흐름
 
@@ -859,10 +898,10 @@ erDiagram
 | `actual_wholesale` | numeric(18,3) | Y | 실 도매 |
 | `official_wholesale` | numeric(18,3) | N | 도매(공식) |
 | `retail` | numeric(18,3) | N | 소매 |
-| `entity_stage_gap` | numeric(18,3) | N | 선적 빼기 도매정본. 음수 허용 |
-| `entity_stage_gap_rate` | numeric(10,6) | Y | 도매정본으로 나눈 값 |
-| `dealer_stage_gap` | numeric(18,3) | N | 도매정본 빼기 소매. 음수 허용 |
-| `dealer_stage_gap_rate` | numeric(10,6) | N | 도매정본으로 나눈 값 |
+| `entity_stage_stay` | numeric(18,3) | N | 법인 구간. 선적 빼기 도매정본. 음수 허용 |
+| `entity_stage_stay_rate` | numeric(10,6) | Y | 도매정본으로 나눈 값 |
+| `distribution_stay` | numeric(18,3) | N | 딜러 구간. 도매정본 빼기 소매. 음수 허용 |
+| `distribution_stay_rate` | numeric(10,6) | N | 도매정본으로 나눈 값 |
 | `wholesale_basis` | text | N | `officialWholesale` `actualWholesale`. 어느 기준으로 계산했는가 |
 | `wholesale_alternative_diff` | numeric(18,3) | Y | 다른 도매 기준과의 차이 |
 | `derivation_type` | text | N | `derived` `measured` |
@@ -872,7 +911,9 @@ erDiagram
 
 기본키 `stage_flow_id`. 유일 제약 `(batch_run_id, country_code, period_type, file_base_date)`.
 
-**부호는 앞 단계에서 뒤 단계를 뺀 값이다.** 미주 누계 실측으로 `entity_stage_gap`은 679,551 빼기 677,201로 2,350이고 `dealer_stage_gap`은 677,201 빼기 643,097로 34,104이며 비율이 0.050이다([[TBL-API-001]] 1.4절).
+**부호는 앞 단계에서 뒤 단계를 뺀 값이다.** 미주 누계 실측으로 법인 구간 `entity_stage_stay`는 679,551 빼기 677,201로 2,350이고, 딜러 구간 `distribution_stay`는 677,201 빼기 643,097로 34,104이며 비율이 0.050이다([[TBL-API-001]] 1.4절).
+
+**구간 이름이 둘뿐이다.** `entity_stage_stay`가 법인 구간이고 화면 표기는 법인 단계 체류, `distribution_stay`가 딜러 구간이고 화면 표기는 유통 체류다([[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]]). 도매와 소매 사이를 가리키는 다른 이름을 쓰지 않는다. 같은 값이 두 이름으로 불리면 API 지표 목록과 화면 문구가 어긋난다.
 
 **음수에 `CHECK`를 걸지 않는다.** 소매가 도매를 넘는 국가는 이전에 쌓인 물량을 덜어내는 중이고 그 자체가 읽을 값이다. 실측에서 푸에르토리코 -0.137, 콜롬비아 -0.105다([[TBL-PRD-001#R30]]).
 
@@ -892,7 +933,7 @@ erDiagram
 | `exposure_kind` | text | N | `CBU` `CKD` |
 | `acquisition_path` | text | N | `columnDirect` `productionDerived` |
 | `derivation_ratio` | numeric(10,6) | Y | 유도했을 때만 |
-| `confidence_note` | text | Y | 유도 근거를 사람 말로. 수치 점수를 두지 않는다 |
+| `derivation_note` | text | Y | 유도 근거를 사람 말로. 수치 점수를 두지 않는다 |
 | `period_type` | text | N | |
 | `file_base_date` | date | N | |
 | `base_date` | date | N | |
@@ -902,7 +943,7 @@ erDiagram
 
 **`acquisition_path`가 필수인 이유.** 형태 B는 판매 파일에 `CBU/CKD` 컬럼이 그대로 있어 읽기만 하면 되고, 형태 A는 생산 모델코드로 유도해야 한다. 유도가 실패하면 노출 미확인이고 그 국가는 [[#watch_item]]에서 RED까지 올라가지 못한다([[TBL-DOM-001#ModelExposure]]).
 
-`confidence_note`가 수치가 아니라 글인 것에 주의한다. `confidence`라는 이름의 수치 컬럼은 판정의 세기를 모델이 정하는 것으로 읽히므로 두지 않는다([[TBL-API-001]] 1.3절).
+`derivation_note`가 수치가 아니라 글인 것에 주의한다. `confidence`라는 이름의 수치 컬럼은 판정의 세기를 모델이 정하는 것으로 읽히므로 두지 않는다([[TBL-API-001]] 1.3절). 이름에도 `confidence`를 넣지 않는다. 금지 이름 회귀 검사에 예외를 하나 두면 그 예외가 다음 컬럼의 근거가 된다.
 
 #### anomaly 변동
 
@@ -1082,11 +1123,15 @@ erDiagram
 | `base_date` | date | N | 리포트가 서 있는 날 |
 | `version_no` | integer | N | 같은 기준일의 몇 번째 본인가 |
 | `published` | boolean | N | 게시본은 기준일마다 하나 |
-| `data_latest_date` | date | N | 소스별 파일 기준일 중 가장 늦은 것 |
+| `vehicle_latest_date` | date | Y | 완성차 파일 기준일 중 가장 늦은 것 |
+| `news_latest_date` | date | Y | 뉴스 파일 기준일 중 가장 늦은 것 |
+| `market_latest_date` | date | Y | 시장지표 관측일 중 가장 늦은 것 |
+| `data_latest_date` | date | N | 위 셋 중 가장 늦은 것 |
 | `degraded` | boolean | N | |
 | `degrade_reasons` | text[] | Y | 어느 역할이 왜 강등됐는가 |
-| `domain_status` | jsonb | N | 생산·재고·판매 세 장 |
-| `market_bar` | jsonb | Y | 상단 지표 바 |
+| `notices` | jsonb | N | 화면에 띄울 안내 배열. 없으면 빈 배열 |
+| `domain_status` | jsonb | N | 생산·재고·판매 세 장. 카드마다 신호등과 판정 출처와 기여 상위가 들어간다 |
+| `market_bar` | jsonb | N | 상단 지표 바. 지표가 이월이어도 네 칸이 값과 이월 표시를 들고 내려간다 |
 | `candidate_sort_rule` | text | N | 정렬 규칙 문장. 화면이 글자로 적는다 |
 | `setting_version` | text | N | |
 | `a_judgment_snapshot_id` | text | Y | |
@@ -1099,6 +1144,14 @@ erDiagram
 **부분 유일 제약이 "게시본은 기준일마다 하나"를 강제한다.** 재생성은 새 버전으로 만들고 기존 게시본을 덮지 않는다([[TBL-UC-001#UC-A4]]).
 
 `data_latest_date`를 `base_date`와 따로 둔 이유는 둘이 다를 수 있기 때문이다. 화면이 "데이터 기준 며칠"을 따로 적는다.
+
+**소스별 최신일을 칸 셋으로 나눈 이유.** 화면 머리가 완성차·뉴스·시장 각각의 최신일을 적는다([[TBL-UI-001#UI-10]] 2번 요소). 가장 늦은 날 하나만 들고 있으면 뉴스만 사흘 밀린 날과 완성차가 밀린 날이 같은 화면으로 보인다. `data_latest_date`는 셋 중 가장 늦은 것이고 파생 값이다.
+
+**`notices` 배열의 원소는 `code`와 `domain`과 `message`와 `lastSuccessDate` 넷이다.** `code`는 `noAnomaly` `generationDegraded` `aJudgmentNotReceived` `batchFailed` `marketCarriedOver` 다섯이고 [[TBL-UI-001#UI-10]]의 예외 상태 E1·E3·E4·E5·E6와 하나씩 짝을 이룬다. 어느 상태인지를 화면이 값으로 알아야 문구를 짜 맞추지 않는다. E2(첫 배치 전)는 게시본이 0건인 상태라 이 배열에 자리가 없다. `domain`은 도메인에 걸린 안내일 때만, `lastSuccessDate`는 `batchFailed`와 `marketCarriedOver`에만 채운다.
+
+**`domain_status`의 세 장은 규칙 산출물이다.** 카드마다 `trafficLight`와 `judgmentSource`와 `topContributions`가 들어간다. 값은 [[TBL-DOM-002#TrafficLightJudge]]가 5단계에서 만들고 [[TBL-DOM-002#ReportPublisher]]가 이 칸에 넣는다. 8단계 LLM은 같은 카드의 문장만 쓰고 이 값을 만들지 않는다. `judgmentSource`는 `aJudgment` `supplementaryAggregate` `notReceived` 셋이고, `topContributions`는 [[#contribution]] 사본이다. 생산 카드는 국가 축이 없어 신호등 대상이 아니므로 `trafficLight`가 판정 대상 아님으로 내려간다([[TBL-INFRA-001#C16]]).
+
+**`market_bar`가 NOT NULL인 이유.** 지표가 이월이어도 네 칸은 값과 이월 표시를 들고 내려간다([[TBL-UI-001#UI-10]] E6). 빈 값으로 두면 화면이 바를 그릴지 말지를 스스로 정해야 한다.
 
 #### report_anomaly 게시된 변동 카드
 
@@ -1136,6 +1189,8 @@ erDiagram
 | `stage_flow` | jsonb | Y | [[#sales_stage_flow]] 사본 |
 | `contributions` | jsonb | Y | [[#contribution]] 사본 |
 | `contribution_available` | boolean | N | |
+| `contribution_origin` | text | Y | 분해가 어느 경로에서 왔는가. `aJudgment` `supplementaryAggregate` `derived` |
+| `contribution_note` | text | Y | 분해를 싣지 못했을 때 그 사유를 사람 말로 |
 | `candidates` | jsonb | N | 정렬된 후보 목록 사본. 근접도 값 넷을 포함한다 |
 | `candidate_truncated_count` | integer | N | 상한에 걸려 잘린 건수 |
 | `cause_link` | jsonb | Y | [[#cause_link]] 사본 |
@@ -1146,6 +1201,10 @@ erDiagram
 **후보를 `jsonb`로 안고 있는 이유.** 열람은 카드 한 장을 한 행으로 읽고 끝나야 2초를 지킨다([[TBL-INFRA-001#C9]]). 후보를 별도 테이블로 두면 카드마다 조인이 하나 더 붙고, 게시본에서는 후보를 조건으로 검색할 일이 없다. **근접도 값의 정본은 [[#cause_candidate]]다.** 여기 있는 것은 그 시점의 사본이며, 판정을 다시 보려면 `mart`를 본다.
 
 `anomaly_id`를 남기되 조인하지 않는 것에 주의한다. 이 컬럼은 운영자가 `mart`로 되짚을 때 쓰는 열쇠이고 열람 경로는 쓰지 않는다.
+
+**분해가 빈 이유를 칸으로 남긴다.** `contribution_available`이 거짓일 때 화면은 왜 비었는지를 적어야 한다([[TBL-UI-001#UI-10]] 15번 요소). `contribution_origin`이 어느 경로에서 온 분해인지 말하고, `contribution_note`가 싣지 못한 사유를 사람 말로 남긴다. 보완 집계로 만든 변동이 여기 걸린다.
+
+`candidate_sort_rule`을 카드마다 두지 않는다. 정렬 규칙 문장은 리포트 안에서 하나뿐이라 [[#c_report]]의 `candidate_sort_rule` 한 칸에 둔다.
 
 #### report_watch_item 게시된 워치리스트
 
@@ -1235,6 +1294,75 @@ erDiagram
 | `created_at` | timestamptz | N | |
 
 기본키 `alert_id`. 유일 제약 `(report_id, country_code)`.
+
+#### a_report_snapshot A 리포트 게시 사본
+
+스키마 `pub`. 브리핑 갈래가 게시한 A 리포트를 문장과 근거와 버전까지 통째로 받아 둔 사본이다. [[TBL-UI-001#UI-7]] [[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]] 세 지면이 읽는 유일한 자리다.
+
+| 컬럼 | 타입 | 널 | 설명 |
+|:--|:--|:--|:--|
+| `a_report_snapshot_id` | text | N | |
+| `domain` | text | N | `production` `inventory` `sales` |
+| `report_base_date` | date | N | A 리포트가 서 있는 날 |
+| `version_no` | integer | N | 브리핑 갈래가 매긴 버전. 사이드의 버전 목록이 이 값이다 |
+| `published_at` | timestamptz | N | 브리핑 갈래가 게시한 시각 |
+| `title` | text | N | 지면 제목 |
+| `scope_label` | text | Y | 범위 문구. 예 미주 29개국 · 누계 기준 |
+| `source_label` | text | Y | 출처 대시보드 이름 |
+| `source_snapshot_at` | timestamptz | Y | 그 리포트가 읽은 스냅샷 일시 |
+| `summary_text` | text | Y | 요약 문단 |
+| `narrative_text` | text | Y | 해설 문단 |
+| `fixed_note` | text | Y | 고정 문구 |
+| `tracking_metrics` | jsonb | Y | 트래킹 지표 셋. 이름·현재값·선택 여부 |
+| `breakdowns` | jsonb | Y | 분해 블록 사본. 표와 막대의 값 |
+| `unavailable_metrics` | jsonb | Y | 못 만드는 지표 목록. 이름과 사유 |
+| `degraded` | boolean | N | 브리핑 갈래가 강등 상태로 게시했는가 |
+| `base_date` | date | N | 복사한 배치의 기준일 |
+| `batch_run_id` | text | N | 복사한 실행 |
+| `copied_at` | timestamptz | N | 복사 시각 |
+
+기본키 `a_report_snapshot_id`. 유일 제약 `(domain, report_base_date, version_no)`.
+
+**문장까지 복사하는 것이 [[#domain_report_snapshot]]과 갈리는 지점이다.** 경로가 둘이기 때문이다. C 생성 경로는 A의 판정만 읽고 A가 쓴 문장을 C의 서술에 쓰지 않는다. A 리포트 열람 경로는 화면이 A 리포트를 그대로 보여 주는 것이므로 문장이 있어야 한다. 열람 계정은 `pub` 밖을 보지 못하니([[TBL-INFRA-001#C10]]) 문장이 이 스키마에 사본으로 있어야 한다. 읽어 오는 쪽은 [[TBL-DOM-002#BriefingStoreReader]]이고 화면에 내주는 쪽은 [[TBL-DOM-002#DomainReportService]]다.
+
+**못 만드는 지표를 칸으로 들고 있는 이유.** A2 재고 지면은 없는 것 넷을, A3 판매 지면은 하나를 목록으로 보여 준다([[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]]). 화면이 그 목록을 코드에 박으면 원천이 들어온 날 화면을 고쳐야 한다. 사본에 두면 브리핑 갈래가 목록을 줄이는 것으로 끝난다.
+
+#### a_report_evidence A 리포트 각주 근거
+
+스키마 `pub`. A 리포트 문장에 달린 각주 하나와 그 근거다.
+
+| 컬럼 | 타입 | 널 | 설명 |
+|:--|:--|:--|:--|
+| `a_report_snapshot_id` | text | N | [[#a_report_snapshot]] |
+| `footnote` | integer | N | 그 리포트 안에서 1부터 |
+| `kind` | text | N | `aJudgment` `contribution` `metric` |
+| `source_id` | text | N | 브리핑 갈래가 준 원본 식별자 |
+| `display_value` | text | N | 표시용 값 사본. 열람할 때 조인이 없다 |
+
+기본키 `(a_report_snapshot_id, footnote)`.
+
+`kind`에 기사와 시장지표가 없다. A 리포트 셋은 자기 도메인 데이터만 쓰고 뉴스와 시장지표를 인용하지 않는다([[TBL-PRD-001#R29]]). 외부 원인이 붙는 자리는 C 리포트의 [[#report_evidence]]뿐이다.
+
+#### market_series 지표 시계열 게시 사본
+
+스키마 `pub`. 지표 하나의 기간별 값이다. 상단 지표 바의 이월 표시와 근거 패널의 30일 스파크라인이 이 표를 읽는다([[TBL-UI-001#UI-10]] 3번과 23번 요소).
+
+| 컬럼 | 타입 | 널 | 설명 |
+|:--|:--|:--|:--|
+| `indicator_id` | text | N | [[#market_point]]의 지표 ID. `GPR` `BRENT` `BDI` `SCFI` |
+| `period_key` | text | N | 기간 키. 일 단위는 `2026-08-18`, 월 단위는 `2026-08` |
+| `value` | numeric(18,6) | N | 그 기간의 값 사본 |
+| `change_rate` | numeric(10,6) | Y | 직전 기간 대비 |
+| `carried_over` | boolean | N | 관측이 없어 직전 값을 이월했는가 |
+| `source_obs_date` | date | Y | 이월이면 값이 실제로 관측된 날 |
+| `base_date` | date | N | 게시한 배치의 기준일 |
+| `batch_run_id` | text | N | 게시한 실행 |
+
+기본키 `(indicator_id, period_key)`.
+
+**이월 여부를 행이 들고 있는 이유.** 이월된 값을 그냥 두면 화면이 그날 관측된 값으로 읽는다. `carried_over`가 참이면 화면이 기준일 자리에 이월 표시를 붙이고, 이월 한도를 넘긴 값은 애초에 이 표에 들어오지 않는다([[TBL-UI-001#UI-10]] E6).
+
+**리포트에 매달지 않는 이유.** 시계열은 지표마다 한 벌이고 리포트가 바뀔 때마다 같은 값을 다시 복사할 이유가 없다. 게시 때 새 기간만 덧붙는다. 어느 리포트가 어느 값을 인용했는지는 [[#report_evidence]]의 `display_value`가 그 시점 값으로 들고 있다.
 
 ### 3.6 ops 스키마
 
@@ -1415,7 +1543,7 @@ erDiagram
 
 ### 4.1 열람 경로
 
-열람은 `pub`만 읽고 집계·조인·LLM을 하지 않는다([[TBL-INFRA-001#C9]] [[TBL-INFRA-001#C10]]). 화면 한 장이 아래 여덟 조회로 끝난다.
+C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트 지면이 뒤 세 조회를 쓴다. 열람은 `pub`만 읽고 집계·조인·LLM을 하지 않는다([[TBL-INFRA-001#C9]] [[TBL-INFRA-001#C10]]).
 
 | 패턴 | 인덱스 |
 |:--|:--|
@@ -1427,10 +1555,15 @@ erDiagram
 | 각주를 눌러 근거 한 줄 | `pub.report_evidence` 기본키 `(report_id, footnote)` |
 | 근거에서 그것을 인용한 문장들 | `pub.report_claim_evidence (report_id, footnote)` |
 | 어제와 달라진 것 | `pub.report_alert_event (report_id)` |
+| 도메인의 최신 A 리포트 한 본 | `pub.a_report_snapshot (domain, report_base_date DESC, version_no DESC)` |
+| 그 지면의 각주 근거 | `pub.a_report_evidence` 기본키 `(a_report_snapshot_id, footnote)` |
+| 지표 하나의 최근 구간 | `pub.market_series` 기본키 `(indicator_id, period_key)` |
 
 **부분 인덱스가 최신 게시본 조회의 전부다.** 기준일마다 버전이 여럿이고 게시본은 하나이므로, `WHERE published`를 인덱스에 넣으면 한 번의 인덱스 탐색으로 끝난다. 같은 조건이 부분 유일 제약으로도 걸려 있어 인덱스가 두 번 서지 않게 제약 쪽을 그대로 쓴다.
 
 `report_anomaly`의 `candidates`가 `jsonb`라서 후보에 인덱스를 걸지 않는다. 게시본에서 후보를 조건으로 검색하는 화면이 없다.
+
+A 리포트 지면도 조회 셋으로 끝난다. 사이드의 버전 목록과 현재 본이 같은 인덱스를 앞자리부터 쓰고, 각주와 시계열은 기본키로 읽는다.
 
 ### 4.2 판정 경로
 
@@ -1481,7 +1614,7 @@ erDiagram
 
 ## 5. 경계
 
-**컬럼으로 두지 않은 것 하나.** 관련도 등급과 점수다. `score` `relevance_score` `weight` `grade` `relevance` `relevance_level` `rank` `ranking` `priority` `confidence` `strength` `certainty`를 어느 테이블에도 두지 않는다. 회귀 검사에서 이름으로 찾는다([[TBL-API-001]] 1.3절). 허용하는 순서 컬럼은 `sort_order` 하나이고 정렬 규칙이 낳은 자리 번호다. [[#model_exposure]]의 `confidence_note`가 수치가 아니라 글인 것도 같은 이유다.
+**컬럼으로 두지 않은 것 하나.** 관련도 등급과 점수다. `score` `relevance_score` `weight` `grade` `relevance` `relevance_level` `rank` `ranking` `priority` `confidence` `strength` `certainty`를 어느 테이블에도 두지 않는다. 회귀 검사에서 이름으로 찾는다([[TBL-API-001]] 1.3절). 허용하는 순서 컬럼은 `sort_order` 하나이고 정렬 규칙이 낳은 자리 번호다. [[#model_exposure]]의 `derivation_note`가 수치가 아니라 글인 것도 같은 이유다. 이름에 `confidence`가 들어가지 않으므로 회귀 검사에 예외가 없다.
 
 **컬럼으로 두지 않은 것 둘.** 단일 기준일이다. `as_of_date` 하나로 시간을 표현하는 컬럼을 두지 않고 언제나 `period_type`과 `file_base_date` 두 칸이다([[TBL-INFRA-001#C15]]).
 
@@ -1489,7 +1622,7 @@ erDiagram
 
 **의도적으로 합치지 않은 것.** [[#country_period_fact]]와 [[#sales_stage_flow]]다. 키가 같아 한 테이블로 둘 수 있지만 단계 흐름은 유도값이고 재고 원천이 들어오면 실측값에 자리를 내주는 개념이라 교체 범위를 따로 잡아 둔다.
 
-**의도적으로 복사한 것.** `mart`에서 `pub`으로 가는 값 전부다. 참조로 두면 열람이 `mart`를 읽어야 하고 그것이 [[TBL-INFRA-001#C10]] 위반이다. 복사본과 정본이 갈리는 것은 알고 있고, 정본은 언제나 `mart`다.
+**의도적으로 복사한 것.** `mart`에서 `pub`으로 가는 값 전부다. 참조로 두면 열람이 `mart`를 읽어야 하고 그것이 [[TBL-INFRA-001#C10]] 위반이다. 복사본과 정본이 갈리는 것은 알고 있고, 정본은 언제나 `mart`다. 브리핑 갈래가 게시한 A 리포트도 같은 이유로 [[#a_report_snapshot]]에 복사한다. 그 사본은 열람 전용이고 C 서술이 읽는 것은 여전히 [[#domain_judgment]]와 [[#contribution]]뿐이다.
 
 **이 문서가 만들지 않는 것.** 파티션, 뷰, 트리거, 저장 프로시저다. 파티션은 실데이터 행수를 모르는 상태에서 나누면 기준을 다시 잡아야 한다(6장). 뷰와 트리거를 두지 않는 이유는 계층 때문이다. 조회 조립은 서비스 클래스가 하고 쓰기 순서는 파이프라인이 정한다([[TBL-DOM-002]] 3장). DB 안에 로직이 생기면 "서술이 죽어도 판정은 산다"를 import 목록으로 확인할 수 없게 된다.
 
@@ -1504,9 +1637,11 @@ erDiagram
 - [ ] 국가 코드 자리수. 실측 샘플은 세 자리(`B07` `B28`)인데 ISO 코드와 섞이는 파일이 있는지 확인이 필요하다 ([[#country]])
 - [ ] [[#report_anomaly]]의 `jsonb` 범위. 후보·기여·단계 흐름을 전부 `jsonb`로 둔 것이 카드 한 행을 너무 크게 만드는지 실측으로 본다. 한 행이 TOAST 임계를 넘으면 열람 2초가 흔들린다
 - [ ] A 판정 스냅샷의 실제 구조. 브리핑 갈래가 무엇을 어떤 키로 내주는지 확인해야 [[#domain_judgment]]와 [[#contribution]]의 컬럼이 확정된다
+- [ ] A 리포트 게시 사본의 실제 구조. 브리핑 갈래가 문장과 각주와 버전을 어떤 키로 내주는지 확인해야 [[#a_report_snapshot]]과 [[#a_report_evidence]]의 컬럼이 확정된다
 - [ ] `raw` 보관 2년, 나머지 무기한이라는 방침의 실제 용량. 폐쇄망 디스크가 확정되면 [[#raw_pivot_cell]]부터 다시 본다
 - [ ] [[#ingest_file]]의 `load_seq`를 몇 회차까지 남길지. 원본 파일 보존과 별개로 파생 행의 회차 보관 범위다
 - [ ] [[#llm_call]]에 프롬프트를 남길지. 남기려면 마스킹 규칙부터 정한다 ([[TBL-INFRA-001#C3]])
 - [ ] 신호등 기준값의 초기 행. [[#threshold_setting]]의 `min_article_count` `min_source_count` `event_window_days` `cbu_share_threshold`는 현업 검토 전까지 값이 없다
 - [ ] [[#country_period_fact]]를 매핑된 국가 전부에 만들지, 데이터 있는 국가만 만들지. 지금은 데이터 있는 국가만으로 둔다
 - [ ] [[#event]]의 `status` 값 목록. 사건이 진행 중인지 끝났는지를 무엇으로 판정할지 정해지지 않았다
+- [ ] [[#market_series]]의 보관 구간. 스파크라인이 30일이면 그 밖 구간을 언제까지 게시본에 남길지 실측으로 본다
