@@ -14,7 +14,7 @@ upstream: [TBL-UC-001, TBL-INFRA-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001]
 
 시퀀스는 열넷이다. 열람 둘, 배치 전체 하나, 판정 구간 다섯, 서술 구간 셋, 운영 셋이다.
 
-**이 문서의 뼈대는 한 줄이다. 판정은 배치 1~5단계에서 코드가 끝내고, 6~8단계는 그 결과를 사람이 읽을 수 있게 만드는 일이다**([[TBL-INFRA-001#C19]]). 그래서 [[#SEQ-13]]에 그 경계를 눈에 보이게 그렸고, 서술 셋이 전부 실패해도 변동·후보·근접도·신호등이 그대로 게시되는 경로를 같은 그림 안에 alt로 두었다. [[#SEQ-18]]에 LLM 생명선이 아예 없는 것이 그 경계의 다른 표현이다.
+**이 문서의 뼈대는 한 줄이다. 판정은 배치 1~5단계에서 코드가 끝내고, 6~8단계는 그 결과를 사람이 읽을 수 있게 만드는 일이다**([[TBL-INFRA-001#C19]]). 그래서 [[#SEQ-13]]에 그 경계를 눈에 보이게 그렸고, 서술 셋이 전부 실패해도 변동·후보·근접도·신호등·도메인 상태가 그대로 게시되는 경로를 같은 그림 안에 alt로 두었다. [[#SEQ-18]]에 LLM 생명선이 아예 없는 것이 그 경계의 다른 표현이다.
 
 관련도 등급과 점수는 어느 시퀀스에도 나오지 않는다([[TBL-PRD-001#R26]]). 후보에 붙는 값은 근접도 넷(날짜 차이·기사 수·출처 수·국가 일치 방식)과 정렬 규칙이 낳은 자리 번호뿐이다.
 
@@ -35,7 +35,7 @@ upstream: [TBL-UC-001, TBL-INFRA-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001]
 | mart 스키마 | DB_MART | 판정이 사는 자리. 1~5단계가 여기까지 채운다 | 저장소 | [[TBL-DOM-003#anomaly]] |
 | pub 스키마 | DB_PUB | 게시본. 열람 계정이 읽는 유일한 스키마 | 저장소 | [[TBL-DOM-003#c_report]] |
 | ops 스키마 | DB_OPS | 적재·배치 이력, LLM 호출, 설정 버전, 미매핑 | 저장소 | [[TBL-DOM-003#batch_run]] |
-| 브리핑 갈래 저장소 | BRIEF | A 판정 원본. 읽기 전용 계정으로만 붙는다 | 외부 | [[TBL-INFRA-001#C5]] |
+| 브리핑 갈래 저장소 | BRIEF | A 판정과 A 리포트 원본. 읽기 전용 계정으로만 붙는다 | 외부 | [[TBL-INFRA-001#C5]] |
 | H-chat 게이트웨이 | HCHAT | 사내 LLM. 배치 6~8단계만 부른다 | 외부 | [[TBL-INFRA-001#C2]] |
 | PipelineRunner | RUN | 여덟 단계를 순서대로 돌리고 어느 실패에서 멈출지 정한다 | 클래스 | [[TBL-DOM-002#PipelineRunner]] |
 | IngestService | ING | 적재 진입점. 관리 API와 배치 1단계가 같이 부른다 | 클래스 | [[TBL-DOM-002#IngestService]] |
@@ -51,24 +51,24 @@ upstream: [TBL-UC-001, TBL-INFRA-001, TBL-DOM-002, TBL-DOM-003, TBL-API-001]
 | AnomalyDetector | AD | 변동을 확정한다. 원인은 여기서 보지 않는다 | 클래스 | [[TBL-DOM-002#AnomalyDetector]] |
 | CandidateSearcher | CS | 변동 하나에 원인 후보를 붙인다 | 클래스 | [[TBL-DOM-002#CandidateSearcher]] |
 | ProximityCalculator | PX | 후보마다 셀 수 있는 값 넷을 세고 정렬한다. 상태가 없다 | 클래스 | [[TBL-DOM-002#ProximityCalculator]] |
-| TrafficLightJudge | TLJ | 신호등을 규칙으로 정하고 워치리스트 줄을 만든다 | 클래스 | [[TBL-DOM-002#TrafficLightJudge]] |
+| TrafficLightJudge | TLJ | 신호등을 규칙으로 정하고 워치리스트 줄과 도메인 상태 3건을 만든다 | 클래스 | [[TBL-DOM-002#TrafficLightJudge]] |
 | EventNamer | EN | 이미 묶인 사건에 이름만 붙인다 | 클래스 | [[TBL-DOM-002#EventNamer]] |
 | CauseLinkWriter | CLW | 변동과 후보가 어떻게 이어지는지 문단 하나를 쓴다 | 클래스 | [[TBL-DOM-002#CauseLinkWriter]] |
 | ClaimWriter | CW | 헤드라인, 도메인 상태 3, 국가 카드 문장을 쓴다 | 클래스 | [[TBL-DOM-002#ClaimWriter]] |
 | CitationVerifier | CV | 모델이 쓴 인용이 후보·근거 밖으로 나갔는지 대조한다. 코드다 | 클래스 | [[TBL-DOM-002#CitationVerifier]] |
 | DegradeHandler | DH | 실패한 역할을 기록하고 배치를 계속 진행시킨다 | 클래스 | [[TBL-DOM-002#DegradeHandler]] |
-| ReportPublisher | RP | 근거에 번호를 매기고 리포트 한 본을 게시한다 | 클래스 | [[TBL-DOM-002#ReportPublisher]] |
+| ReportPublisher | RP | 근거에 번호를 매기고 리포트 한 본을 게시한다. A 리포트 사본도 게시 스키마에 올린다 | 클래스 | [[TBL-DOM-002#ReportPublisher]] |
 | CReportService | CRS | 게시된 C 리포트를 읽어 준다. 다시 계산하지 않는다 | 클래스 | [[TBL-DOM-002#CReportService]] |
-| DomainReportService | DRS | A1·A2·A3 중 한 도메인의 리포트를 읽어 준다 | 클래스 | [[TBL-DOM-002#DomainReportService]] |
+| DomainReportService | DRS | A1·A2·A3 중 한 도메인의 게시 사본을 읽어 준다 | 클래스 | [[TBL-DOM-002#DomainReportService]] |
 | MarketService | MKT | 지표 하나의 시계열과 as-of 값을 읽어 준다 | 클래스 | [[TBL-DOM-002#MarketService]] |
 | BatchService | BAT | 배치 상태와 이력, 재실행, 게시 전환 | 클래스 | [[TBL-DOM-002#BatchService]] |
 | MasterService | MST | 매칭률, 미매핑, 크로스워크 업로드와 확정 | 클래스 | [[TBL-DOM-002#MasterService]] |
 | HChatClient | HCC | 사내 게이트웨이 호출. 서술 계층만 쓴다 | 클래스 | [[TBL-DOM-002#HChatClient]] |
-| BriefingStoreReader | BSR | A 판정을 읽는다. 쓰기 메서드가 없다 | 클래스 | [[TBL-DOM-002#BriefingStoreReader]] |
+| BriefingStoreReader | BSR | A 판정과 A 리포트 문서를 읽는다. 쓰기 메서드가 없다 | 클래스 | [[TBL-DOM-002#BriefingStoreReader]] |
 
 ### 0.2 이 문서가 그리지 않는 것
 
-A 리포트를 만드는 브리핑 갈래의 내부 순서는 그리지 않는다. 이 시스템에서 보이는 것은 [[#SEQ-15]]의 읽기 한 번뿐이다. 태블로 대시보드의 렌더링, 뉴스 API가 기사에 분류와 영향도를 붙이는 과정도 밖에 있다.
+A 리포트를 만드는 브리핑 갈래의 내부 순서는 그리지 않는다. 이 시스템에서 보이는 것은 [[#SEQ-15]]의 읽기 둘뿐이다. 판정 읽기와 리포트 문서 읽기다. 태블로 대시보드의 렌더링, 뉴스 API가 기사에 분류와 영향도를 붙이는 과정도 밖에 있다.
 
 A 리포트에서 C 리포트로 가는 화면 흐름은 없다. 그래서 [[#SEQ-11]]과 [[#SEQ-12]]는 서로를 부르지 않고 각각 독립된 그림이다([[TBL-UC-001#UC-H4]]).
 
@@ -89,7 +89,7 @@ sequenceDiagram
   H->>API: GET /api/intel/creport/latest (VODA 서명 토큰)
   API->>CRS: get_latest()
   CRS->>DB_PUB: c_report 부분 인덱스로 최신 게시본 1건
-  DB_PUB-->>CRS: reportId, baseDate, dataLatestDate, settingVersion, degraded
+  DB_PUB-->>CRS: reportId, baseDate, 소스별 최신일 셋과 dataLatestDate, settingVersion, degraded
   CRS->>DB_PUB: report_anomaly, report_watch_item, report_claim, report_evidence, report_claim_evidence, report_alert_event
   DB_PUB-->>CRS: 표시값이 복사된 행. 조인 없음
   CRS-->>API: CReport 한 덩어리 (marketBar 4, headline, domainStatus 3, anomalies, evidence, notices)
@@ -106,21 +106,23 @@ sequenceDiagram
   opt 지표 하나의 시계열을 연다
     H->>API: GET /api/intel/market/series/{indicatorId}
     API->>MKT: get_series(indicatorId, days)
+    MKT->>DB_PUB: market_series 게시 사본. indicator_id와 period_key로
+    DB_PUB-->>MKT: 값, 변화율, 이월 여부, 원천 관측일
     MKT-->>API: MarketMetric 목록
     API-->>H: 시계열
   end
   opt 과거 버전을 연다
     H->>API: GET /api/intel/creport/version/{reportId}
     API->>CRS: get_by_id(reportId, viewer)
-    CRS->>CRS: assert_published_or_admin. 현업 토큰으로 미게시본을 부르면 404
+    CRS->>CRS: assert_published_or_admin (get_by_id 처리문). 현업 토큰으로 미게시본을 부르면 404
   end
 ```
 
-**읽을 때 볼 것.** 화살표가 [[TBL-DOM-002#CReportService]]에서 `pub` 스키마로만 간다. `mart`로 가는 화살표가 하나도 없는 것이 [[TBL-INFRA-001#C10]]이고, 조회 결과에 조인이 없는 것이 [[TBL-PRD-001#N5]]의 2초다. 후보 목록과 기사가 첫 응답에 이미 들어 있어 근거 펼치기가 서버를 다시 부르지 않는다. 게시본 없음만 404이고 나머지 예외(변동 없음·강등·판정 미수신·지표 이월)는 200으로 내려가 `notices`에 담긴다. 다만 시장지표 시계열 호출은 `pub` 밖인 [[TBL-DOM-003#market_point]]를 읽어야 하며, 이 어긋남은 7장 되먹일 것 F1에 적었다.
+**읽을 때 볼 것.** 화살표가 [[TBL-DOM-002#CReportService]]에서 `pub` 스키마로만 간다. `mart`로 가는 화살표가 하나도 없는 것이 [[TBL-INFRA-001#C10]]이고, 조회 결과에 조인이 없는 것이 [[TBL-PRD-001#N5]]의 2초다. 후보 목록과 기사가 첫 응답에 이미 들어 있어 근거 펼치기가 서버를 다시 부르지 않는다. 게시본 없음만 404이고 나머지 예외(변동 없음·강등·판정 미수신·지표 이월)는 200으로 내려가 `notices`에 담긴다. 시장지표 시계열도 [[TBL-DOM-003#market_series]]라는 게시 사본을 읽으므로 이 경로가 `pub` 밖으로 나가는 자리가 없다. 데이터 최신일은 완성차·뉴스·시장 셋을 각각 내려보내고, 한 줄로 줄일 때만 셋 중 가장 늦은 `dataLatestDate`를 쓴다.
 
 #### SEQ-12 A 리포트 열람
 
-근거는 [[TBL-UC-001#UC-H4]]다. C 리포트와 같은 열람 규칙을 따르되 응답 어디에도 외부요인 인용이 없다.
+근거는 [[TBL-UC-001#UC-H4]]다. 브리핑 갈래가 쓴 문장을 게시 사본 그대로 내주고, 응답 어디에도 외부요인 인용이 없다.
 
 ```mermaid
 sequenceDiagram
@@ -128,29 +130,30 @@ sequenceDiagram
   actor H as 현업 사용자
   participant API as 열람 API
   participant DRS as DomainReportService
-  participant DB_MART as mart 스키마
+  participant DB_PUB as pub 스키마
   H->>API: GET /api/intel/areport/domain/{domain}
   API->>DRS: get_latest_by_domain(domain)
-  DRS->>DB_MART: domain_report_snapshot 최신 1건
-  DB_MART-->>DRS: domainReportId, dashboardId, reportBaseDate, dataForm, aJudgmentSnapshotId
-  DRS->>DB_MART: domain_judgment, contribution
-  DB_MART-->>DRS: 트래킹 지표와 변동 판정, 기여 상위 항목
+  DRS->>DB_PUB: a_report_snapshot 최신 1건 (domain, report_base_date, version_no)
+  DB_PUB-->>DRS: 요약, 해설, 고정 문구, 트래킹 지표, 분해, 못 만드는 지표, published_at
+  DRS->>DB_PUB: a_report_evidence
+  DB_PUB-->>DRS: 문장 각주와 근거. footnote, kind, source_id, display_value
   DRS->>DRS: build_domain_extra(domain, report)
-  DRS->>DRS: list_missing_metrics(domain)
-  DRS-->>API: DomainReport (trackingMetrics 3, breakdownDimensions, missingMetrics, domainExtra)
+  DRS->>DRS: list_missing_metrics(domain). 사본의 못 만드는 지표를 그대로 내보낸다
+  DRS-->>API: DomainReport (summary, commentary, evidence, versions, trackingMetrics 3, breakdownDimensions, missingMetrics, domainExtra)
   API-->>H: A1 생산 또는 A2 재고 또는 A3 판매 한 장
-  Note over DRS,DB_MART: 응답에 뉴스와 시장지표 인용이 없다. C 리포트로 가는 링크 필드도 없다
-  Note over DRS,DB_MART: A1은 목적지 국가 없음, A2는 재고 원천 없음, A3는 미주 한정이 missingMetrics에 이유와 함께 들어간다
-  opt 그 도메인 게시본이 아직 없다
+  Note over DRS,DB_PUB: 문장을 새로 쓰지 않는다. 브리핑 갈래가 쓴 문장을 사본 그대로 내보낸다
+  Note over DRS,DB_PUB: 응답에 뉴스와 시장지표 인용이 없다. C 리포트로 가는 링크 필드도 없다
+  Note over DRS,DB_PUB: 못 만드는 지표는 A2 넷(afloat, awaitingShipment, entityVsDealer, countryDailySeries)과 A3 하나(globalCountryByModel)다
+  opt 그 도메인 사본이 아직 없다
     DRS-->>API: 404
   end
   opt 과거 버전을 연다
     H->>API: GET /api/intel/areport/version/{domainReportId}
-    API->>DRS: get_by_id(domainReportId)
+    API->>DRS: get_by_id(domainReportId). 사본의 version_no로 고른다
   end
 ```
 
-**읽을 때 볼 것.** 이 그림에 [[TBL-DOM-002#CReportService]]도 [[TBL-DOM-002#CandidateSearcher]]도 없다. A 리포트는 자기 대시보드 데이터 안에서만 말하고, 외부 원인은 C 리포트의 일이다([[TBL-PRD-001#R29]]). 빈 자리를 추정값으로 채우지 않고 `missingMetrics`에 이유를 적는 것이 이 화면의 인수 기준이다. 문제는 화살표가 `mart`로 간다는 것이다. A 리포트에는 `pub` 사본 테이블이 없고([[TBL-DOM-003]] 3.5절) 열람 인덱스 여덟에도 A 리포트 조회가 없다. 되먹일 것 F1이다.
+**읽을 때 볼 것.** 이 그림에 [[TBL-DOM-002#CReportService]]도 [[TBL-DOM-002#CandidateSearcher]]도 없다. A 리포트는 자기 대시보드 데이터 안에서만 말하고, 외부 원인은 C 리포트의 일이다([[TBL-PRD-001#R29]]). 화살표가 [[TBL-DOM-003#a_report_snapshot]]과 [[TBL-DOM-003#a_report_evidence]]로만 가는 것이 [[TBL-INFRA-001#C10]]이다. 열람 경로는 게시 스키마 밖으로 나가지 않고, 이 시스템은 A 리포트 문장을 새로 쓰지 않는다. 버전 알약과 사이드 버전 목록의 번호는 사본의 `version_no`, 곧 브리핑 갈래가 매긴 번호 그대로다. 빈 자리를 추정값으로 채우지 않고 `missingMetrics`에 이유를 적는 것이 이 화면의 인수 기준이다.
 
 ## 2. 배치 전체
 
@@ -179,63 +182,76 @@ sequenceDiagram
   participant DB_PUB as pub 스키마
 
   SCHED->>RUN: run(baseDate, trigger=schedule, startStage=1)
-  RUN->>DB_OPS: batch_run 생성 (baseDate, settingVersion, llmEnabled)
+  RUN->>DB_OPS: batch_run 생성 (baseDate, settingVersion, llmEnabled, backfillMode)
 
   rect rgb(222, 235, 255)
     Note over RUN,TLJ: 판정 구간 1~5단계. 코드만 쓴다. 여기서 화면에 나갈 값이 전부 확정된다
-    RUN->>ING: 1단계 적재
-    ING-->>RUN: ingestFileId 목록, 회귀 급변 여부
-    opt 회귀 급변
+    RUN->>ING: 1단계 적재. commit(preflightId, options)
+    ING-->>RUN: ingestFileId 목록, 회귀 급변 여부, options.backfillMode
+    RUN->>DB_OPS: batch_run.backfill_mode에 그 값을 남긴다
+    opt 1단계 실패 또는 회귀 급변
       RUN->>DB_OPS: batch_stage_result(1, blocked)
       RUN-->>SCHED: 중단. 이전 게시본 유지. 관리자가 사유를 적고 푼다
     end
     RUN->>AJR: 2단계 A 판정 읽기
     alt 스냅샷 정상
       AJR-->>RUN: domain_judgment, contribution 복사. aJudgmentSnapshotId
+      AJR->>RP: publish_a_report(domain, document). A 리포트 문장과 각주 근거와 버전을 게시 사본으로
+      RP->>DB_PUB: a_report_snapshot, a_report_evidence
     else 스냅샷 없음 또는 모양 어긋남
-      AJR-->>RUN: 보완 집계로 대체. notices 대시보드 판정 미수신
+      AJR-->>RUN: 보완 집계로 대체. notices 판정 미수신
       Note over AJR: 읽기 실패가 배치를 멈추지 않는 유일한 코드 단계다
     end
     RUN->>EVC: 3단계 사건 묶음
     EVC-->>RUN: event, event_article. 기사 수와 출처 수
+    opt 3단계 실패
+      RUN->>DB_OPS: batch_stage_result(3, failed)
+      RUN-->>SCHED: 중단. 기사 수와 출처 수가 신호등의 입력이다
+    end
     RUN->>FJ: 4단계 결합
     FJ->>AD: country_period_fact, sales_stage_flow
     AD-->>RUN: anomaly 목록 확정
     RUN->>CS: 5단계 원인 후보
     CS->>TLJ: cause_candidate와 근접도 값 넷
     TLJ-->>RUN: traffic_light, watch_item
-    TLJ->>RP: 워치리스트를 바로 넘긴다
+    TLJ->>TLJ: build_domain_status(domain, anomalies). 도메인 상태 3카드의 신호등과 판정 출처
+    TLJ->>RP: 워치리스트와 도메인 상태를 바로 넘긴다
     opt 4단계 또는 5단계 실패
       RUN->>DB_OPS: batch_stage_result(stage, failed)
       RUN-->>SCHED: 중단. 판정이 없으면 리포트가 성립하지 않는다
     end
   end
 
-  rect rgb(255, 238, 222)
-    Note over RUN,DH: 서술 구간 6~8단계. LLM 셋. 확정된 판정을 읽을 수 있게 만드는 일이다
-    RUN->>EN: 6단계 사건 명명 (LLM 역할 1)
-    opt 실패, 콘텐츠 필터, JSON 위반, 토큰 상한
-      EN->>DH: degrade(naming, reason)
-    end
-    RUN->>CLW: 7단계 연관 설명 (LLM 역할 2)
-    opt 실패 또는 인용 검증 2회 실패
-      CLW->>DH: degrade(causeLink, reason)
-    end
-    RUN->>CW: 8단계 문장 생성 (LLM 역할 3)
-    opt 실패 또는 검증 2회 실패
-      CW->>DH: degrade(narration, reason)
+  alt backfillMode가 참
+    RUN->>DB_OPS: batch_stage_result(6, 7, 8을 skipped로)
+    Note over RUN,DH: 백필은 서술을 만들지 않는다. 판정은 5단계에서 이미 끝났다
+  else 평시
+    rect rgb(255, 238, 222)
+      Note over RUN,DH: 서술 구간 6~8단계. LLM 셋. 확정된 판정을 읽을 수 있게 만드는 일이다
+      RUN->>EN: 6단계 사건 명명 (LLM 역할 1)
+      opt 실패, 콘텐츠 필터, JSON 위반, 토큰 상한
+        EN->>DH: degrade(naming, reason)
+      end
+      RUN->>CLW: 7단계 연관 설명 (LLM 역할 2)
+      opt 실패 또는 인용 검증 2회 실패
+        CLW->>DH: degrade(causeLink, reason)
+      end
+      RUN->>CW: 8단계 문장 생성 (LLM 역할 3)
+      opt 실패 또는 검증 2회 실패
+        CW->>DH: degrade(narration, reason)
+      end
     end
   end
 
   RUN->>RP: 8단계 게시
-  alt 서술 셋이 전부 강등됐다
+  alt 서술 셋이 전부 강등됐거나 백필로 건너뛰었다
     DH-->>RP: degradedRoles 셋 전부
     RP->>RP: 템플릿에 변동, 후보 제목, 근접도 값을 채우고 각주를 후보 순서대로 기계 부여
-    RP->>DB_PUB: c_report (degraded 표시)
-    Note over RP,DB_PUB: 변동, 후보, 근접도, 신호등은 5단계 산출물 그대로 게시된다
+    RP->>DB_PUB: c_report (degraded 표시, notices)
+    Note over RP,DB_PUB: 변동, 후보, 근접도, 신호등, 도메인 상태는 5단계 산출물 그대로 게시된다
   else 서술이 정상이다
     CW-->>RP: 검증을 통과한 문장과 각주
-    RP->>DB_PUB: c_report (published)
+    RP->>DB_PUB: c_report (published, notices)
   end
   RP-->>RUN: reportId, version
   RUN->>DB_OPS: 단계별 소요, 처리 건수, LLM 호출 수와 토큰
@@ -245,7 +261,11 @@ sequenceDiagram
   RUN-->>SCHED: 종료
 ```
 
-**읽을 때 볼 것.** 색이 다른 두 상자가 이 문서의 전부다. 파란 상자 안에 [[TBL-DOM-002#HChatClient]] 생명선이 없고, 주황 상자 안에 `mart`로 값을 되쓰는 화살표가 없다. 한 방향으로만 흐른다. 마지막 alt가 그 경계의 증명이다. 서술 셋이 전부 강등돼도 [[TBL-DOM-002#ReportPublisher]]로 들어오는 입력 중 판정 산출물은 바뀌지 않아 같은 신호등과 같은 후보 순서가 게시된다([[TBL-INFRA-001#C13]]). 실패 처리가 단계마다 다른 것도 같이 본다. 1·3·4·5단계는 멈춤, 2단계는 보완 집계로 내려가고 계속, 6~8단계는 강등하고 계속이다. 1·3단계를 멈춤으로 둔 것은 [[TBL-DOM-002]] 6장이 남긴 미결이며 인프라 문서에 확정 문장이 없다(되먹일 것 F7).
+**읽을 때 볼 것.** 색이 다른 두 상자가 이 문서의 전부다. 파란 상자 안에 [[TBL-DOM-002#HChatClient]] 생명선이 없고, 주황 상자 안에 `mart`로 값을 되쓰는 화살표가 없다. 한 방향으로만 흐른다. 마지막 alt가 그 경계의 증명이다. 서술 셋이 전부 강등돼도 [[TBL-DOM-002#ReportPublisher]]로 들어오는 입력 중 판정 산출물은 바뀌지 않아 같은 신호등, 같은 후보 순서, 같은 도메인 상태가 게시된다([[TBL-INFRA-001#C13]]).
+
+실패 처리가 단계마다 다른 것도 같이 본다. 1·3·4·5단계는 멈춤, 2단계는 보완 집계로 내려가고 계속, 6~8단계는 강등하고 계속이다. 이 갈림은 [[TBL-INFRA-001#C20]] 그대로이며, 멈춘 배치는 이전 게시본을 유지하고 실패한 단계부터 다시 돈다.
+
+주황 상자를 감싼 alt가 백필이다. 관리 API가 받은 `backfillMode`는 [[TBL-DOM-002#IngestService]]의 `commit`을 거쳐 `batch_run.backfill_mode`로 남고, 참이면 6~8단계를 건너뛴 판정만의 게시본이 나간다. 2단계 안의 `publish_a_report` 화살표는 A 리포트 열람 경로의 입구다. C 생성은 A의 판정만 쓰고, 문장 사본은 [[#SEQ-12]]만 읽는다.
 
 ## 3. 판정 구간 (배치 1~5단계)
 
@@ -271,13 +291,13 @@ sequenceDiagram
 
   ADM->>API: POST /api/admin/ingest/preflight (sourceType, file, fileBaseDate)
   API->>ING: preflight(sourceType, upload, fileBaseDate)
-  ING->>VOL: store_original(upload). 판별 전에 먼저 보존한다
+  ING->>VOL: store_original (preflight 안). 판별 전에 먼저 보존한다
   ING->>FD: detect(filePath, sourceType)
   alt 형태 A. IF 원장
     FD-->>ING: form=A. 첫 행이 헤더이고 행마다 기준일자가 있다
     ING->>PA: parse, check_columns, base_date_range
     PA-->>ING: 컬럼 어긋남 목록, 기준일자 처음과 끝, 미래 골격 행 수
-    ING->>ING: resolve_idempotency_unit. 기준일자 단위 멱등 재적재
+    ING->>ING: resolve_idempotency_unit (preflight 안). 기준일자 단위 멱등 재적재
   else 형태 B. 피벗 리포트
     FD-->>ING: form=B. 병합 헤더 2~3줄이고 행에 날짜가 없다
     ING->>PB: expand_merged_header, split_period_and_measure, drop_total_rows
@@ -287,7 +307,7 @@ sequenceDiagram
       PB-->>ING: 없음
       ING-->>ADM: 관리자 입력 요구. fileBaseDateSource=manual
     end
-    ING->>ING: resolve_idempotency_unit. 파일 기준일 단위 덮어쓰기
+    ING->>ING: resolve_idempotency_unit (preflight 안). 파일 기준일 단위 덮어쓰기
   else 어느 쪽도 아니다
     FD->>FD: explain_mismatch(filePath)
     FD-->>ING: form=unknown
@@ -297,12 +317,12 @@ sequenceDiagram
   API-->>ADM: 미리보기. 무엇이 지워지는지 보고 누른다
 
   ADM->>API: POST /api/admin/ingest/commit (preflightId, options)
-  API->>ING: commit(preflightId, options)
+  API->>ING: commit(preflightId, options). options.backfillMode는 batch_run.backfill_mode로 간다
   ING->>DB_RAW: raw_ledger_row 또는 raw_pivot_cell
   ING->>STZ: standardize(rows, ingestFile)
   STZ->>STZ: build_period_key(form, baseDate, periodType). 시간은 언제나 두 칸이다
   STZ->>STZ: map_country(dealerCode). 앞 세 자리가 국가 코드다
-  STZ->>STZ: null_when_missing(value). 결측을 0으로 바꾸지 않는다
+  STZ->>STZ: null_when_missing (standardize 안). 결측을 0으로 바꾸지 않는다
   STZ->>DB_STD: vehicle_measure 긴 형태 행. 생산 행의 country_code는 비운다
   STZ->>DB_OPS: collect_unmapped 결과를 unmapped_value로
   ING->>RC: check(ingestFile, previous)
@@ -321,7 +341,7 @@ sequenceDiagram
   end
 ```
 
-**읽을 때 볼 것.** 첫 화살표가 판별이 아니라 원본 보존이다. 판별이 실패해도 원본은 볼륨에 남는다([[TBL-PRD-001#N7]]). alt 세 갈래가 [[TBL-INFRA-001#C6]]의 두 형태와 판별 불가이고, 셋째 형태를 자동 추론하는 갈래는 일부러 없다. 두 갈래가 서로 다른 것은 위쪽뿐이고 [[TBL-DOM-002#RecordStandardizer]] 아래로는 같은 화살표다. 같은 파일이 어느 경로로 들어와도 같은 표준 행이 나와야 하기 때문이다. `preflight`과 `commit`을 둘로 나눈 이유는 형태 B가 파일 기준일 단위 통째 덮어쓰기라서 사람이 무엇이 지워지는지 보고 눌러야 해서다. 급변일 때 적재는 끝나고 배치 자동 실행만 막히는 갈림이 오른쪽 아래에 있다.
+**읽을 때 볼 것.** 첫 화살표가 판별이 아니라 원본 보존이다. 판별이 실패해도 원본은 볼륨에 남는다([[TBL-PRD-001#N7]]). alt 세 갈래가 [[TBL-INFRA-001#C6]]의 두 형태와 판별 불가이고, 셋째 형태를 자동 추론하는 갈래는 일부러 없다. 두 갈래가 서로 다른 것은 위쪽뿐이고 [[TBL-DOM-002#RecordStandardizer]] 아래로는 같은 화살표다. 같은 파일이 어느 경로로 들어와도 같은 표준 행이 나와야 하기 때문이다. `preflight`과 `commit`을 둘로 나눈 이유는 형태 B가 파일 기준일 단위 통째 덮어쓰기라서 사람이 무엇이 지워지는지 보고 눌러야 해서다. 급변일 때 적재는 끝나고 배치 자동 실행만 막히는 갈림이 오른쪽 아래에 있다. `store_original` `resolve_idempotency_unit` `null_when_missing`은 계약으로 실린 함수가 아니라 소속 함수 안의 사설 헬퍼이며, 그래서 라벨 옆에 소속을 적었다.
 
 #### SEQ-15 A 판정 읽기
 
@@ -334,8 +354,10 @@ sequenceDiagram
   participant AJR as AJudgmentReader
   participant BSR as BriefingStoreReader
   participant BRIEF as 브리핑 갈래 저장소
+  participant RP as ReportPublisher
   participant DB_STD as std 스키마
   participant DB_MART as mart 스키마
+  participant DB_PUB as pub 스키마
   RUN->>AJR: 2단계 read(baseDate)
   AJR->>BSR: ping()
   alt 접속 정상
@@ -349,10 +371,16 @@ sequenceDiagram
       alt 기대한 키와 필드가 있다
         AJR->>BSR: read_contributions(judgmentId)
         BSR-->>AJR: 기여 상위 항목. A 리포트가 쓴 문장은 읽지 않는다
+        AJR->>BSR: read_report_document(baseDate, domain)
+        BSR->>BRIEF: 읽기 전용 조회
+        BRIEF-->>BSR: A 리포트 문서
+        BSR-->>AJR: 요약, 해설, 고정 문구, 트래킹 지표, 분해, 못 만드는 지표, 각주 근거, version_no, published_at
+        AJR->>RP: publish_a_report(domain, document)
+        RP->>DB_PUB: a_report_snapshot, a_report_evidence 사본
       else 어긋난 목록이 나온다
         AJR->>AJR: fallback_to_supplementary(domain, baseDate)
         AJR->>DB_STD: vehicle_measure 직접 집계
-        Note over AJR: 보완 집계로 만든 변동은 기여 분해가 빈다
+        Note over AJR: 보완 집계로 만든 변동은 기여 분해가 빈다. A 리포트 사본도 없다
       end
     end
     AJR->>BSR: snapshot_id(baseDate)
@@ -364,11 +392,12 @@ sequenceDiagram
     AJR->>DB_STD: vehicle_measure 직접 집계
   end
   AJR-->>RUN: 도메인 3의 판정과 미수신 목록. notices에 담긴다
+  Note over AJR,DB_PUB: mart 사본은 판정만 담는다. 문장은 pub 사본에만 있고 C 리포트의 서술에 쓰지 않는다
   Note over AJR,DB_MART: 기간 키는 데이터 형태를 따른다. 형태 A면 periodType=day, 형태 B면 헤더 기간 구분과 파일 기준일
   Note over AJR,DB_MART: A1은 목적지 국가가 없어 axis_type이 plant로 남는다. 국가 보완이 되지 않는다
 ```
 
-**읽을 때 볼 것.** [[TBL-DOM-002#BriefingStoreReader]] 쪽으로 가는 화살표에 쓰기가 하나도 없다. 클래스에 쓰기 메서드를 두지 않았고 계정도 읽기 전용이다. `copy_snapshot` 화살표가 `mart`로 가는 것이 재현의 열쇠다. 원본이 나중에 바뀌어도 그날 리포트는 `aJudgmentSnapshotId`로 같은 입력을 다시 쓴다([[TBL-INFRA-001#C11]]). 실패 갈래가 둘 다 `fallback_to_supplementary`로 내려가고 배치는 계속된다. 이 단계가 배치를 멈추지 않는 유일한 코드 단계다. 마지막 Note가 [[TBL-INFRA-001#C16]]이 여기서 처음 나타나는 자리이며, A1의 판정이 `plant` 축으로 남는 순간 이후 [[#SEQ-18]]에서 신호등 대상에서 빠진다.
+**읽을 때 볼 것.** [[TBL-DOM-002#BriefingStoreReader]] 쪽으로 가는 화살표에 쓰기가 하나도 없다. 클래스에 쓰기 메서드를 두지 않았고 계정도 읽기 전용이다. 읽어 오는 것이 둘로 갈리는 것이 이 그림의 핵심이다. `read_judgments`와 `read_contributions`가 가져온 판정은 `copy_snapshot`으로 `mart`에 앉고 C 리포트가 그것을 쓴다. `read_report_document`가 가져온 문장·각주 근거·버전은 `publish_a_report`를 타고 `pub` 사본으로 앉고 [[#SEQ-12]]만 그것을 읽는다. 원본이 나중에 바뀌어도 그날 리포트는 `aJudgmentSnapshotId`로 같은 입력을 다시 쓴다([[TBL-INFRA-001#C11]]). 실패 갈래가 둘 다 `fallback_to_supplementary`로 내려가고 배치는 계속된다. 이 단계가 배치를 멈추지 않는 유일한 코드 단계다. 마지막 Note가 [[TBL-INFRA-001#C16]]이 여기서 처음 나타나는 자리이며, A1의 판정이 `plant` 축으로 남는 순간 이후 [[#SEQ-18]]에서 신호등 대상에서 빠진다.
 
 #### SEQ-16 사건 묶음
 
@@ -398,7 +427,7 @@ sequenceDiagram
   EVC->>EVC: count_sources(articles). 서로 다른 매체 이름의 개수
   EVC->>EVC: pick_representative(articles)
   EVC->>EVC: max_impact(articles). 붙어 온 영향도의 최대값. 새로 매기지 않는다
-  EVC->>DB_MART: article_count, source_count, title은 대표 기사 제목, named_by=rule
+  EVC->>DB_MART: article_count, source_count, title은 대표 기사 제목, named_by=representativeArticle
   opt 시간창을 넘긴 사건
     EVC->>DB_MART: 상태를 종료로 바꾼다
   end
@@ -409,7 +438,7 @@ sequenceDiagram
   Note over EVC,DB_MART: 기사 수와 출처 수가 신호등의 입력이다. 그래서 실패가 강등이 아니라 멈춤이다
 ```
 
-**읽을 때 볼 것.** [[TBL-DOM-002#HChatClient]] 생명선이 이 그림에 없다. 묶음은 규칙이고 이름만 LLM이며 이름은 [[#SEQ-19]]에서 따로 붙는다. 이 분리가 [[TBL-DOM-002]]가 지시받은 계층 배치에서 바꾼 한 가지다. 기사 수로만 세면 많이 보도된 나라가 자동으로 커지므로 묶어서 세고, 한 사건이 몇 개 매체에서 나왔는지를 따로 센다. `title`이 이 단계에서 이미 채워지는 것도 눈여겨본다. 명명이 실패해도 사건 제목이 비지 않는다. 해협에서 인접국을 펴는 화살표가 [[TBL-DOM-003#strait_country]]로 가는데, 이 값이 없으면 중동 변동의 후보가 통째로 빈다.
+**읽을 때 볼 것.** [[TBL-DOM-002#HChatClient]] 생명선이 이 그림에 없다. 묶음은 규칙이고 이름만 LLM이며 이름은 [[#SEQ-19]]에서 따로 붙는다. 이 분리가 [[TBL-DOM-002]]가 지시받은 계층 배치에서 바꾼 한 가지다. 기사 수로만 세면 많이 보도된 나라가 자동으로 커지므로 묶어서 세고, 한 사건이 몇 개 매체에서 나왔는지를 따로 센다. `title`이 이 단계에서 이미 채워지는 것도 눈여겨본다. 명명이 실패해도 사건 제목이 비지 않고, 그때 `named_by`는 `representativeArticle`이다. 이 칸이 가질 수 있는 값은 `llm`과 `representativeArticle` 둘뿐이다. 해협에서 인접국을 펴는 화살표가 [[TBL-DOM-003#strait_country]]로 가는데, 이 값이 없으면 중동 변동의 후보가 통째로 빈다.
 
 #### SEQ-17 결합과 단계별 흐름 계산
 
@@ -428,7 +457,7 @@ sequenceDiagram
   RUN->>FJ: 4단계 join(periodKey)
   FJ->>DB_STD: vehicle_measure. is_total_row 제외
   DB_STD-->>FJ: 국가, 기간, 지표 종류별 값
-  FJ->>FJ: skip_when_country_null(rows). 생산 행이 여기서 빠진다
+  FJ->>FJ: skip_when_country_null (join 안). 생산 행이 여기서 빠진다
   FJ->>FJ: resolve_exposure(country, periodKey). 형태 B는 CBU 컬럼, 형태 A는 모델코드 유도
   FJ->>MKT: as_of(indicatorId, 기간의 마지막 날)
   MKT-->>FJ: MarketPoint 또는 이월 한도 초과
@@ -462,7 +491,7 @@ sequenceDiagram
   end
 ```
 
-**읽을 때 볼 것.** `skip_when_country_null` 한 줄이 생산을 국가 축에서 떨어뜨린다. 목적지 국가가 데이터에 없어 유추하지 않는다는 결정이 코드 한 줄로 지켜지는 자리다([[TBL-INFRA-001#C16]]). [[TBL-DOM-002#StageFlowCalculator]]로 가는 화살표가 재고 신호가 나오는 유일한 경로다. 재고 원천이 없어 판매 네 계열의 단계 차이로 만들고, 행에 `derivation_type`을 남겨 원천이 들어왔을 때 어느 기간이 유도값이었는지 되짚을 수 있게 한다([[TBL-INFRA-001#C17]]). 실측으로는 미주 누계에서 선적 679,551, 도매 677,201, 소매 643,097이고 뒤 구간이 34,104대(5.0%)로 벌어진다. `progress_rate`를 직접 계산하는 화살표도 실측 때문이다. 인입 샘플에서 진도율 컬럼은 총계 행에만 값이 있고 개별 행은 전부 0이었다.
+**읽을 때 볼 것.** `skip_when_country_null` 한 줄이 생산을 국가 축에서 떨어뜨린다. 목적지 국가가 데이터에 없어 유추하지 않는다는 결정이 코드 한 줄로 지켜지는 자리다([[TBL-INFRA-001#C16]]). [[TBL-DOM-002#StageFlowCalculator]]로 가는 화살표가 재고 신호가 나오는 유일한 경로다. 재고 원천이 없어 판매 네 계열의 단계 차이로 만들고, 행에 `derivation_type`을 남겨 원천이 들어왔을 때 어느 기간이 유도값이었는지 되짚을 수 있게 한다([[TBL-INFRA-001#C17]]). 실측으로는 미주 누계에서 선적 679,551, 도매 677,201, 소매 643,097이고 법인 구간이 2,350대, 딜러 구간이 34,104대(5.0%)다. `progress_rate`를 직접 계산하는 화살표도 실측 때문이다. 인입 샘플에서 진도율 컬럼은 총계 행에만 값이 있고 개별 행은 전부 0이었다.
 
 #### SEQ-18 후보 검색, 근접도, 신호등
 
@@ -493,7 +522,7 @@ sequenceDiagram
   CS->>CS: apply_limit(candidates). 상한을 적용하고 잘린 건수를 함께 돌려준다
   CS->>DB_MART: cause_candidate. sort_order, 근접도 값 넷, 잘린 건수
   PX->>TLJ: 후보와 근접도
-  TLJ->>TLJ: meets_threshold. 기사 수 최소 이상, 출처 수 최소 이상, 날짜 차이 시간창 이하
+  TLJ->>TLJ: meets_threshold (judge 안의 조건). 기사 수 최소 이상, 출처 수 최소 이상, 날짜 차이 시간창 이하
   alt 셋을 채우고 완성차 노출이 확인됐다
     TLJ->>DB_MART: traffic_light=red. basis에 값과 기준값을 쌍으로
   else 셋을 채웠으나 노출 미확인
@@ -503,13 +532,19 @@ sequenceDiagram
   end
   TLJ->>TLJ: build_watch_items(anomalies). 신호등 순 정렬
   TLJ->>DB_MART: watch_item
-  TLJ->>RP: 워치리스트를 바로 넘긴다. 서술 계층을 거치지 않는다
+  TLJ->>TLJ: build_domain_status(domain, anomalies). 도메인 안 변동 신호등의 최댓값
+  Note over TLJ: judgmentSource는 aJudgment, supplementaryAggregate, notReceived 셋 중 하나다. 생산은 notApplicable 판정 대상 아님이다
+  TLJ->>RP: 워치리스트와 도메인 상태 3건을 바로 넘긴다. 서술 계층을 거치지 않는다
   TLJ-->>RUN: 5단계 완료. 화면에 나갈 판정이 전부 확정됐다
   Note over CS,TLJ: 이 그림에 LLM 생명선이 없다. 등급, 점수, 순위를 만드는 호출도 없다
   Note over PX,DB_MART: sortOrder는 관련도 순위가 아니라 정렬 규칙이 낳은 자리 번호다
 ```
 
-**읽을 때 볼 것.** 생명선 목록에 [[TBL-DOM-002#HChatClient]]가 없는 것이 이 시퀀스의 요지다. LLM을 끄고 같은 기준일을 돌려도 같은 신호등과 같은 후보 순서가 나와야 하며, 그 대조를 회귀 검사에 둔다([[TBL-INFRA-001#C19]]). 첫 화살표가 `plant` 축을 걸러내고, 마지막에서 두 번째 화살표가 [[TBL-DOM-002#TrafficLightJudge]]에서 [[TBL-DOM-002#ReportPublisher]]로 바로 간다. 워치리스트를 게시기가 만들면 8단계 산출물이 되고 8단계에는 LLM이 섞여 있어 "LLM을 꺼도 워치리스트가 같다"를 보장할 수 없다. alt 세 갈래가 신호등 규칙 전부이며 모델이 끼어드는 자리가 없다. 잘린 건수를 따로 돌려주는 것은 화면에 적기 위해서다. 후보가 상한에 걸려 사라진 것을 모르면 "후보가 이것뿐"이라고 읽힌다.
+**읽을 때 볼 것.** 생명선 목록에 [[TBL-DOM-002#HChatClient]]가 없는 것이 이 시퀀스의 요지다. LLM을 끄고 같은 기준일을 돌려도 같은 신호등과 같은 후보 순서가 나와야 하며, 그 대조를 회귀 검사에 둔다([[TBL-INFRA-001#C19]]). 첫 화살표가 `plant` 축을 걸러내고, 마지막에서 두 번째 화살표가 [[TBL-DOM-002#TrafficLightJudge]]에서 [[TBL-DOM-002#ReportPublisher]]로 바로 간다.
+
+워치리스트와 함께 도메인 상태 3건도 여기서 만들어진다. 도메인 상태 카드의 신호등은 그 도메인 안 변동 신호등의 최댓값이고, 판정 출처는 A 판정을 받았는지 보완 집계로 내려갔는지 아예 못 받았는지를 적는다. 기여 상위는 2단계에서 복사한 분해의 사본이다. 8단계 LLM은 이 셋 위에 문장만 얹는다([[#SEQ-21]]). 그래서 서술이 전부 실패해도 3카드의 신호등이 그대로 게시된다. 생산 카드는 국가 축이 없어 신호등 대상이 아니며 `notApplicable` "판정 대상 아님"으로 적는다. 후보가 없어 `none` "원인 미확인"이 된 국가와 뜻이 다르므로 같은 말로 적지 않는다.
+
+워치리스트를 게시기가 만들면 8단계 산출물이 되고 8단계에는 LLM이 섞여 있어 "LLM을 꺼도 워치리스트가 같다"를 보장할 수 없다. alt 세 갈래가 신호등 규칙 전부이며 모델이 끼어드는 자리가 없다. 잘린 건수를 따로 돌려주는 것은 화면에 적기 위해서다. 후보가 상한에 걸려 사라진 것을 모르면 "후보가 이것뿐"이라고 읽힌다.
 
 ## 4. 서술 구간 (배치 6~8단계)
 
@@ -531,28 +566,28 @@ sequenceDiagram
   EN->>DB_MART: 후보로 뽑힌 사건 중 아직 명명되지 않은 것만
   DB_MART-->>EN: 사건 목록
   loop 사건마다
-    EN->>EN: build_prompt(event). 상위 5건의 제목과 출처만 담는다
+    EN->>EN: build_prompt (name_events 안). 상위 5건의 제목과 출처만 담는다
     EN->>HCC: complete(prompt, jsonSchema, purpose=naming)
     HCC->>HCC: remaining_tokens()
     alt 남은 토큰이 있고 응답이 스키마에 맞다
       HCC->>HCHAT: 요청. 심각도 필드는 스키마에 없다
       HCHAT-->>HCC: title, type
-      HCC->>DB_OPS: log_call(naming, model, tokens, latency, ok)
+      HCC->>DB_OPS: log_call (complete 안). naming, model, tokens, latency, ok
       HCC-->>EN: 제목과 유형
       EN->>DB_MART: event.title, event.type, named_by=llm
     else 실패, 콘텐츠 필터, JSON 위반, 토큰 상한, 백필 모드
-      HCC->>DB_OPS: log_call(naming, tokens, latency, filtered 또는 jsonViolation 또는 error)
+      HCC->>DB_OPS: log_call (complete 안). naming, tokens, latency, filtered 또는 jsonViolation 또는 error
       EN->>EN: fallback_to_representative(event)
       EN->>DH: degrade(naming, reason, eventId)
       DH->>DB_OPS: 강등 역할과 사유 기록
-      EN->>DB_MART: event.title은 대표 기사 제목, named_by=rule
+      EN->>DB_MART: event.title은 대표 기사 제목, named_by=representativeArticle
     end
   end
   EN-->>RUN: 명명 건수
   Note over EN,DB_MART: 기사 수, 출처 수, 영향도는 3단계 값 그대로다. 명명은 신호등과 후보 순서를 바꾸지 않는다
 ```
 
-**읽을 때 볼 것.** [[TBL-DOM-002#EventClusterer]]가 이 그림에 없다. 묶음은 3단계에 끝났고 이 단계는 이미 만들어진 사건의 이름 칸만 채운다. `article_count`나 `source_count`로 가는 화살표가 없는 것이 그 증거이며, 그래서 이 단계가 통째로 실패해도 [[#SEQ-18]]의 신호등이 흔들리지 않는다. 후보로 뽑힌 사건만 고르는 첫 화살표는 호출 수를 줄이려는 것이다. 묶인 사건 전부에 이름을 붙이면 화면에 나오지 않을 것까지 부른다.
+**읽을 때 볼 것.** [[TBL-DOM-002#EventClusterer]]가 이 그림에 없다. 묶음은 3단계에 끝났고 이 단계는 이미 만들어진 사건의 이름 칸만 채운다. `article_count`나 `source_count`로 가는 화살표가 없는 것이 그 증거이며, 그래서 이 단계가 통째로 실패해도 [[#SEQ-18]]의 신호등이 흔들리지 않는다. `named_by`가 갈리는 두 자리를 나란히 본다. 모델이 붙이면 `llm`, 실패해 대표 기사 제목으로 돌아가면 `representativeArticle`이다. 후보로 뽑힌 사건만 고르는 첫 화살표는 호출 수를 줄이려는 것이다. 묶인 사건 전부에 이름을 붙이면 화면에 나오지 않을 것까지 부른다.
 
 #### SEQ-20 연관 설명 (LLM 역할 2)
 
@@ -568,8 +603,8 @@ sequenceDiagram
   participant CV as CitationVerifier
   participant DH as DegradeHandler
   participant DB_MART as mart 스키마
-  RUN->>CLW: 7단계 write(anomaly, candidates). 변동마다
-  CLW->>CLW: build_prompt(anomaly, candidates). 후보 밖의 사실은 넣지 않는다
+  RUN->>CLW: 7단계 write(anomaly, candidates, llm). 변동마다
+  CLW->>CLW: build_prompt (write 안). 후보 밖의 사실은 넣지 않는다
   CLW->>HCC: complete(prompt, jsonSchema, purpose=causeLink)
   HCC->>HCHAT: 요청. 스키마에 등급, 점수, 순위를 뜻하는 필드가 없다
   HCHAT-->>HCC: explanationText, citedCandidateIds
@@ -597,7 +632,7 @@ sequenceDiagram
   Note over CV,DH: 쓴 쪽과 검사하는 쪽을 나눴다. 모델이 쓴 것을 모델에게 검사시키지 않는다
 ```
 
-**읽을 때 볼 것.** [[TBL-DOM-002#TrafficLightJudge]]로 가는 화살표가 없다. 설명은 신호등을 읽지도 바꾸지도 않는다. [[TBL-DOM-002#CitationVerifier]]가 별도 생명선으로 서 있는 것이 계층 규칙이며, 검사를 코드가 해야 검사가 성립한다. 프롬프트에 후보 목록만 넣는 것도 같은 이유다. 후보 밖의 값을 넣으면 검증기가 잡을 수 없는 문장이 나온다. 강등으로 끝난 변동은 설명 자리만 비고 후보 목록과 근접도 값 넷은 화면에 그대로 남는다. `cause_link`의 기본키가 `anomaly_id`라는 것이 후보마다 등급을 매기던 구조가 사라진 자리다.
+**읽을 때 볼 것.** [[TBL-DOM-002#TrafficLightJudge]]로 가는 화살표가 없다. 설명은 신호등을 읽지도 바꾸지도 않는다. [[TBL-DOM-002#CitationVerifier]]가 별도 생명선으로 서 있는 것이 계층 규칙이며, 검사를 코드가 해야 검사가 성립한다. 첫 화살표가 LLM 포트를 인자로 받는 것도 같은 규칙이다. 쓰는 쪽이 어댑터를 속성으로 들고 있지 않아야 LLM을 끈 실행이 성립한다. 프롬프트에 후보 목록만 넣는 것도 같은 이유다. 후보 밖의 값을 넣으면 검증기가 잡을 수 없는 문장이 나온다. 강등으로 끝난 변동은 설명 자리만 비고 후보 목록과 근접도 값 넷은 화면에 그대로 남는다. `cause_link`의 기본키가 `anomaly_id`라는 것이 후보마다 등급을 매기던 구조가 사라진 자리다.
 
 #### SEQ-21 문장 생성, 검증, 강등 (LLM 역할 3)
 
@@ -615,16 +650,17 @@ sequenceDiagram
   participant DB_MART as mart 스키마
   participant DB_PUB as pub 스키마
   RUN->>RP: 8단계 시작
-  RP->>DB_MART: anomaly, cause_candidate, cause_link, watch_item
+  RP->>DB_MART: anomaly, cause_candidate, cause_link, watch_item, 도메인 상태 3건
   RP->>RP: number_evidence(anomalies, candidates). 각주 번호를 코드가 먼저 매긴다
   RP->>DB_PUB: report_evidence. footnote, kind, source_id, display_value, url
   RP->>CW: 번호가 매겨진 근거 목록을 넘긴다
-  CW->>CW: build_prompt(headline, context). 신호등이 붙은 국가 상위와 그 첫 후보
+  CW->>CW: build_prompt (write_headline 안). 신호등이 붙은 국가 상위와 그 첫 후보
   CW->>HCC: complete 헤드라인
-  CW->>CW: build_prompt(domainStatus, context)
+  CW->>CW: build_prompt (write_domain_status 안)
   Note over CW: 생산 구역 프롬프트에는 외부 후보를 아예 넣지 않는다
+  Note over CW: 도메인 상태의 신호등, 판정 출처, 기여 상위는 5단계 산출물이다. 여기서는 문장만 쓴다
   CW->>HCC: complete 도메인 상태 3장
-  CW->>CW: build_prompt(card, context). 변동과 설명
+  CW->>CW: build_prompt (write_card 안). 변동과 설명
   CW->>HCC: complete 국가 카드
   HCC-->>CW: text, footnotes, highlights
   CW->>CV: verify_claim(claim, evidence)
@@ -641,19 +677,27 @@ sequenceDiagram
     end
   end
   DH-->>RP: degraded_roles(batchRunId)
-  opt 서술이 강등됐다
+  opt 서술이 강등됐거나 백필로 건너뛰었다
     RP->>RP: 템플릿에 변동, 후보 제목, 근접도 값을 채우고 각주를 후보 순서대로 기계 부여
     RP->>DB_PUB: report_claim에 강등 표시
   end
   RP->>RP: copy_display_values(evidence)
   RP->>DB_PUB: report_anomaly, report_watch_item. mart에서 참조가 아니라 복사
-  RP->>RP: next_version(baseDate)
-  RP->>DB_PUB: c_report
+  RP->>DB_PUB: c_report.domain_status. 5단계가 만든 신호등과 판정 출처에 8단계 문장만 얹는다
+  RP->>DB_PUB: c_report.notices. noAnomaly, generationDegraded, aJudgmentNotReceived, batchFailed, marketCarriedOver
+  RP->>DB_PUB: c_report.market_bar 네 칸. 지표가 이월이어도 빈 값으로 내려간다
+  RP->>DB_PUB: c_report의 소스별 최신일 셋. vehicle_latest_date, news_latest_date, market_latest_date
+  RP->>RP: next_version (publish 1단계)
+  RP->>DB_PUB: c_report 한 행. data_latest_date는 소스별 최신일 셋 중 가장 늦은 날이다
   RP-->>RUN: reportId, version
-  Note over RP,DB_PUB: 서술이 비어 있어도 게시한다. 변동, 후보, 근접도, 신호등은 5단계 산출물 그대로다
+  Note over RP,DB_PUB: 서술이 비어 있어도 게시한다. 변동, 후보, 근접도, 신호등, 도메인 상태는 5단계 산출물 그대로다
 ```
 
-**읽을 때 볼 것.** `number_evidence`가 첫 화살표이고 `complete`가 그 뒤다. 순서가 뒤집히면 모델이 번호를 만들게 되고 없는 각주가 생긴다([[TBL-PRD-001#N4]]). 생산 구역의 Note가 [[TBL-INFRA-001#C16]]을 코드로 지키는 방법이다. 프롬프트에 외부 후보를 넣지 않는 것으로 지키지 검증기로 뒤에서 거르지 않는다. `mart`에서 `pub`으로 가는 화살표에 "복사"라고 적힌 것이 [[TBL-INFRA-001#C10]]이다. 참조로 두면 열람이 `mart`를 읽어야 한다. 마지막 두 화살표가 강등 여부와 무관하게 언제나 그려지는 것이 이 그림의 결론이다.
+**읽을 때 볼 것.** `number_evidence`가 첫 화살표이고 `complete`가 그 뒤다. 순서가 뒤집히면 모델이 번호를 만들게 되고 없는 각주가 생긴다([[TBL-PRD-001#N4]]). 생산 구역의 Note가 [[TBL-INFRA-001#C16]]을 코드로 지키는 방법이다. 프롬프트에 외부 후보를 넣지 않는 것으로 지키지 검증기로 뒤에서 거르지 않는다.
+
+도메인 상태를 쓰는 화살표가 둘로 갈리는 것도 같이 본다. [[TBL-DOM-002#ClaimWriter]]는 문장만 만들고, 신호등·판정 출처·기여 상위는 5단계가 넘긴 값을 [[TBL-DOM-002#ReportPublisher]]가 그대로 적는다. `notices`도 게시기가 채운다. 다섯 코드가 화면의 예외 상태와 1대1이라 E1 변동 없음, E3 생성 실패 강등, E4 판정 미수신, E5 배치 실패, E6 지표 바 지연이 코드 하나씩을 가져간다. `domain`은 E4에서 어느 카드에 붙일지에, `lastSuccessDate`는 E5의 마지막 성공일에 쓰인다.
+
+`mart`에서 `pub`으로 가는 화살표에 "복사"라고 적힌 것이 [[TBL-INFRA-001#C10]]이다. 참조로 두면 열람이 `mart`를 읽어야 한다. 마지막 두 화살표가 강등 여부와 무관하게 언제나 그려지는 것이 이 그림의 결론이다.
 
 ## 5. 운영 시퀀스
 
@@ -681,20 +725,21 @@ sequenceDiagram
   BAT-->>ADM: 단계 이름 여덟과 상태. 이름은 stage_names()가 준다
   ADM->>API: POST /api/admin/batch/rerun (baseDate, startStage, backfillMode, compareWith)
   API->>BAT: request_rerun(baseDate, startStage, options)
-  BAT->>BAT: assert_not_running(baseDate)
+  BAT->>BAT: assert_not_running (request_rerun 1단계)
   alt 같은 기준일 배치가 돌고 있다
     BAT-->>ADM: 409 problems/batch-in-progress
   else 실행 가능
     BAT->>RUN: run(baseDate, trigger=rerun, startStage)
     Note over RUN: 그 기준일의 데이터 스냅샷, 당시 A 판정 스냅샷, 당시 설정 버전으로 돈다
     opt backfillMode가 참
-      RUN->>RUN: 5단계까지만 채우고 LLM 세 역할을 생략한다
+      RUN->>RUN: 5단계까지만 채우고 6~8단계를 건너뛴다
+      Note over RUN: backfillMode는 API가 받는 값이고 llmEnabled는 재현성 시험용 내부 스위치다. 둘 다 남는다
     end
     RUN->>DB_PUB: 새 버전 생성. published는 false
     RUN-->>BAT: batchRunId, 새 reportId
     BAT-->>ADM: 202 queued 또는 running
   end
-  ADM->>ADM: 변동, 후보, 근접도, 신호등을 당시와 대조한다. 같은 입력이면 같아야 한다
+  ADM->>ADM: 변동, 후보, 근접도, 신호등, 도메인 상태를 당시와 대조한다. 같은 입력이면 같아야 한다
   Note over ADM: 설명과 문장은 새로 생성되므로 달라질 수 있다. 화면이 그것을 적는다
   ADM->>API: POST /api/admin/batch/publish/{reportId}
   API->>BAT: publish_version(reportId)
@@ -707,7 +752,9 @@ sequenceDiagram
   end
 ```
 
-**읽을 때 볼 것.** 지정 단계부터 다시 돌리는 것과 특정 일자를 재생성하는 것이 같은 화살표다. 시작 단계가 1이면 재생성이고 6이면 서술만 다시 도는 것이다. 실행과 게시 전환이 두 호출로 나뉜 것이 핵심이다. 자동 전환이면 재생성이 게시본을 덮는다. 가운데 자기 호출 둘이 재현성의 검사 지점이다. 판정 넷은 같아야 하고 설명과 문장은 달라도 된다([[TBL-PRD-001#N3]]). `diff_watchlist`가 [[#SEQ-24]]와 같은 함수인데 여기서 다시 돌아 같은 기준일의 알림이 두 번 계산될 수 있다. 되먹일 것 F5다.
+**읽을 때 볼 것.** 지정 단계부터 다시 돌리는 것과 특정 일자를 재생성하는 것이 같은 화살표다. 시작 단계가 1이면 재생성이고 6이면 서술만 다시 도는 것이다. 실행과 게시 전환이 두 호출로 나뉜 것이 핵심이다. 자동 전환이면 재생성이 게시본을 덮는다. 가운데 자기 호출 둘이 재현성의 검사 지점이다. 판정 넷과 도메인 상태는 같아야 하고 설명과 문장은 달라도 된다([[TBL-PRD-001#N3]]).
+
+스위치 둘의 쓰임이 갈린다. `backfillMode`는 관리 API가 요청 본문으로 받아 배치 실행에 남는 값이고 6~8단계를 건너뛰게 한다. `llmEnabled`는 요청 본문에 없는 내부 스위치이며, LLM을 끈 실행과 켠 실행의 신호등·후보 순서·도메인 상태가 같은지 대조하는 회귀 시험에만 쓴다([[TBL-INFRA-001#C19]]). 둘을 하나로 합치지 않는다. `diff_watchlist`가 [[#SEQ-24]]와 같은 함수인데 여기서 다시 돌아 같은 기준일의 알림이 두 번 계산될 수 있다. 되먹일 것 F5다.
 
 #### SEQ-23 마스터 보강
 
@@ -733,7 +780,7 @@ sequenceDiagram
   ADM->>API: POST /api/admin/master/crosswalk (엑셀)
   API->>MST: upload_crosswalk(upload)
   MST->>DB_MASTER: crosswalk_upload 저장
-  MST->>MST: diff_against_current(upload). 추가, 변경, 삭제
+  MST->>MST: diff_against_current (upload_crosswalk 안). 추가, 변경, 삭제
   MST-->>ADM: 차이와 영향 받는 국가와 공장, 삭제로 미매핑이 될 건수
   ADM->>API: POST /api/admin/master/confirm/{crosswalkUploadId} (confirmRemoval)
   API->>MST: confirm_crosswalk(uploadId, confirmRemoval)
@@ -796,7 +843,7 @@ sequenceDiagram
 | [[#SEQ-12]] | 없음 | [[TBL-UC-001#UC-H4]] | [[TBL-API-001#GET/api/intel/areport/domain/{domain}]] [[TBL-API-001#GET/api/intel/areport/version/{domainReportId}]] | [[TBL-DOM-002#DomainReportService]] |
 | [[#SEQ-13]] | 1~8 전부 | [[TBL-UC-001#UC-S1]] | [[TBL-API-001#GET/api/admin/batch/status]] | [[TBL-DOM-002#PipelineRunner]] |
 | [[#SEQ-14]] | 1 | [[TBL-UC-001#UC-A1]] [[TBL-UC-001#UC-S6]] | [[TBL-API-001#POST/api/admin/ingest/preflight]] [[TBL-API-001#POST/api/admin/ingest/commit]] [[TBL-API-001#POST/api/admin/ingest/unblock/{ingestFileId}]] | [[TBL-DOM-002#IngestService]] [[TBL-DOM-002#FormDetector]] [[TBL-DOM-002#FormALedgerParser]] [[TBL-DOM-002#FormBPivotParser]] [[TBL-DOM-002#RecordStandardizer]] [[TBL-DOM-002#RegressionChecker]] |
-| [[#SEQ-15]] | 2 | [[TBL-UC-001#UC-S10]] | 없음 | [[TBL-DOM-002#AJudgmentReader]] [[TBL-DOM-002#BriefingStoreReader]] |
+| [[#SEQ-15]] | 2 | [[TBL-UC-001#UC-S10]] | 없음 | [[TBL-DOM-002#AJudgmentReader]] [[TBL-DOM-002#BriefingStoreReader]] [[TBL-DOM-002#ReportPublisher]] |
 | [[#SEQ-16]] | 3 | [[TBL-UC-001#UC-S2]] | 없음 | [[TBL-DOM-002#EventClusterer]] |
 | [[#SEQ-17]] | 4 | [[TBL-UC-001#UC-S3]] | 없음 | [[TBL-DOM-002#FactJoiner]] [[TBL-DOM-002#StageFlowCalculator]] [[TBL-DOM-002#AnomalyDetector]] |
 | [[#SEQ-18]] | 5 | [[TBL-UC-001#UC-S8]] | 없음 | [[TBL-DOM-002#CandidateSearcher]] [[TBL-DOM-002#ProximityCalculator]] [[TBL-DOM-002#TrafficLightJudge]] |
@@ -815,21 +862,17 @@ sequenceDiagram
 
 | # | 어느 문서 | 무엇이 어긋났나 | 이 문서가 임시로 택한 것 |
 |:--|:--|:--|:--|
-| F1 | [[TBL-DOM-003]] · [[TBL-INFRA-001#C10]] | 열람 엔드포인트 셋이 `pub` 밖을 읽어야 한다. A 리포트 둘은 [[TBL-DOM-003#domain_report_snapshot]](mart), 시장지표 시계열은 [[TBL-DOM-003#market_point]](std)를 본다. `pub` 사본 테이블이 없고 열람 인덱스 여덟에도 그 조회가 없다 | [[#SEQ-11]] [[#SEQ-12]]에 mart와 std로 가는 화살표를 그대로 그리고 어긋남을 표시했다 |
 | F2 | [[TBL-UC-001#UC-S4]] | 4단계의 저장 대상이 `briefing`, `briefing_claim`, `evidence`로 적혀 있다. ERD 확정 이름은 [[TBL-DOM-003#c_report]] [[TBL-DOM-003#report_claim]] [[TBL-DOM-003#report_evidence]]다 | [[#SEQ-21]]은 ERD 이름을 썼다 |
 | F3 | [[TBL-UC-001#UC-S1]] · [[TBL-DOM-002#IngestService]] | 회귀 급변의 처리가 갈린다. UC는 1a에서 "배치를 멈추고 A에게 알린다", 클래스 명세는 "적재는 완료하고 배치 자동 실행만 막는다"다. 수동 적재와 배치 1단계 중 어느 쪽 이야기인지 문장으로 갈리지 않는다 | 수동 적재는 완료하고 차단만, 배치 안에서는 멈춤으로 그렸다([[#SEQ-13]] [[#SEQ-14]]) |
-| F4 | [[TBL-DOM-002#PipelineRunner]] · [[TBL-API-001#POST/api/admin/batch/rerun]] | 클래스에는 `llm_enabled`와 `backfill_mode` 둘인데 API 요청 본문에는 `backfillMode` 하나다. [[TBL-INFRA-001]] 8장의 "LLM 없는 실행"을 어느 스위치로 켜는지 정해지지 않았다 | [[#SEQ-22]]에서 `backfillMode`가 LLM 세 역할을 생략하는 것으로 그렸다. 두 스위치를 하나로 합칠지 [확인 필요] |
 | F5 | [[TBL-DOM-002#ReportPublisher]] · [[TBL-API-001#POST/api/admin/batch/publish/{reportId}]] | `diff_watchlist`가 8단계 게시와 게시 전환 양쪽에서 돈다. [[TBL-DOM-003#report_alert_event]]에 같은 기준일 재계산을 막을 멱등 키가 없어 알림이 두 벌 남을 수 있다 | [[#SEQ-22]]와 [[#SEQ-24]]에 둘 다 그리고 중복 가능성을 적었다 |
 | F6 | [[TBL-DOM-002#MarketService]] | `as_of`와 `is_carried_over`는 [[TBL-DOM-002#FactJoiner]]가 쓰는 파이프라인 함수인데 API 바인딩 목록에는 `get_series`만 있다. [[TBL-MS-001]]이 파이프라인 계약으로 실어야 한다 | [[#SEQ-17]]에 `as_of` 호출을 그렸다 |
-| F7 | [[TBL-INFRA-001#C19]] | 배치 1단계와 3단계의 실패 처리가 인프라 문서에 없다. 명시된 것은 4·5단계 멈춤과 6~8단계 강등뿐이다([[TBL-DOM-002]] 6장이 이미 남긴 미결) | [[#SEQ-13]]에서 둘 다 멈춤으로 그렸다 |
 | F8 | [[TBL-DOM-002]] | 생명선으로 세울 수 없는 타입 넷이 있다. `SchemaRegistry`, `CrosswalkTable`, `BriefingStorePort`, `LlmPort`다. 앞의 둘은 클래스 스물여덟 밖의 실체이고 뒤의 둘은 포트다 | 포트 둘은 구현체([[TBL-DOM-002#BriefingStoreReader]] [[TBL-DOM-002#HChatClient]])로 그렸고 앞의 둘은 그리지 않았다 |
 
-F1이 가장 크다. 고치는 길이 둘로 갈린다. `pub`에 A 리포트와 지표 시계열의 게시 사본 테이블을 더하거나, [[TBL-INFRA-001#C10]]을 "C 리포트 열람은 pub만 읽는다"로 좁히거나다. 앞쪽이면 [[TBL-DOM-003]]에 테이블이 늘고 [[TBL-DOM-002#ReportPublisher]]에 A 리포트 게시 경로가 생긴다. 뒤쪽이면 열람 계정 권한 설계가 바뀐다. **이 문서가 정할 것이 아니므로 어느 쪽도 택하지 않았다.**
+F1·F4·F7은 닫혔다. F1은 게시 스키마에 A 리포트 사본([[TBL-DOM-003#a_report_snapshot]] [[TBL-DOM-003#a_report_evidence]])과 지표 시계열 사본([[TBL-DOM-003#market_series]])을 두는 쪽으로 정해져 열람 경로가 [[TBL-INFRA-001#C10]]과 어긋나지 않는다. F4는 `backfillMode`와 `llmEnabled`를 둘 다 남기고 쓰임을 가르는 쪽으로, F7은 1단계와 3단계 실패를 멈춤으로 정해졌다([[TBL-INFRA-001#C20]]). 닫힌 번호는 다시 쓰지 않는다.
 
 ## 8. 미결사항
 
-- [ ] F1의 두 길 중 어느 쪽인가. [[TBL-DOM-003]]에 `pub` 사본을 더할지, [[TBL-INFRA-001#C10]]의 범위를 좁힐지
-- [ ] [[#SEQ-15]]의 `read_judgments` 반환 모양. 브리핑 갈래가 무엇을 어떤 키로 내주는지 정해져야 `validate_shape`의 대조 목록과 loop 안 화살표가 확정된다
+- [ ] [[#SEQ-15]]의 `read_judgments`와 `read_report_document` 반환 모양. 브리핑 갈래가 무엇을 어떤 키로 내주는지 정해져야 `validate_shape`의 대조 목록과 loop 안 화살표, 그리고 사본 컬럼과의 1대1 대응이 확정된다
 - [ ] [[#SEQ-14]]에서 형태 A 파일을 아직 본 적이 없다. 실물이 들어오면 `check_columns` 화살표의 대조 목록이 바뀔 수 있다
 - [ ] [[#SEQ-18]]의 임계값 실제 수치. 최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준이 전부 현업 검토 대기이며 이 값이 정해져야 신호등 alt 세 갈래의 비율을 가늠할 수 있다
 - [ ] [[#SEQ-19]]부터 [[#SEQ-21]]까지의 H-chat JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 것은 가정이다. 지원되지 않으면 세 시퀀스의 검증 화살표가 전부 늘어난다
