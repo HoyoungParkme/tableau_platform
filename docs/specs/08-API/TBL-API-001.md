@@ -72,6 +72,8 @@ upstream: [TBL-UI-001, TBL-DOM-001, TBL-INFRA-001, TBL-UC-001, TBL-PRD-001]
 | `dealerStageGap` | 도매정본 − 소매 | 677,201 − 643,097 = 34,104 |
 | `dealerStageGapRate` | `dealerStageGap` ÷ 도매정본 | 0.050 |
 
+4.3절 `metric`의 두 값이 이 표를 가리킨다. `entityStageStay`가 `entityStageGap`(선적 − 도매정본, 법인 구간, 미주 누계 2,350)이고 `distributionStay`가 `dealerStageGap`(도매정본 − 소매, 딜러 구간, 미주 누계 34,104)이다. 화면 표기는 각각 법인 단계 체류와 유통 체류다. `wholesaleToRetailGap`은 쓰지 않는다.
+
 양수는 그 단계에 물량이 남아 있다는 뜻이다(칠레 0.252, 페루 0.212). 음수는 뒤 단계가 더 크다는 뜻이며 이전에 쌓인 것을 덜어내는 중이다(푸에르토리코 -0.137, 콜롬비아 -0.105). **음수를 예외로 처리하지 않는다**([[TBL-PRD-001#R30]]). [[TBL-UI-001#UI-9]] 단계별 흐름이 `-34,104`로 그리는 것은 감소 방향을 나타낸 렌더링이며 API 값은 양수 34,104다.
 
 ### 1.5 경로 짓는 법
@@ -121,6 +123,8 @@ RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `stat
 
 응답에 담기는 덩어리는 아홉이다. 기준일과 소스별 최신일, 시장지표 바 4종, 헤드라인과 인과 배지, 도메인 상태 3장, 변동 목록, 변동별 후보 목록, 후보별 근거, 연관 설명, 강등과 배치 번호. 근거 패널까지 이 응답에 들어 있어 펼칠 때 추가 호출이 없다([[TBL-UC-001#UC-H2]]).
 
+`dataFreshness`의 `vehicle` `news` `market` 세 칸과 `notices` 배열은 게시 테이블에 그대로 실린다([[TBL-INFRA-001#C10]]). 열람할 때 다시 계산하지 않는다. `baseDate` 옆에 쓰는 대표 최신일은 그 세 칸 중 가장 늦은 날이다. `notices`의 다섯 코드는 [[TBL-UI-001#UI-10]]의 예외 상태 E1·E3·E4·E5·E6와 하나씩 짝을 이룬다.
+
 `anomalies`는 신호등 순(`red` → `yellow` → `none`)으로 이미 정렬돼 온다. 각 변동의 `candidates`도 1.3절의 정렬 규칙으로 이미 정렬돼 온다. 화면은 순서를 다시 계산하지 않는다.
 
 ```yaml
@@ -150,7 +154,8 @@ components:
     CReport:
       type: object
       required: [reportId, baseDate, version, batchRunId, dataFreshness, marketBar,
-                 headline, causalBadge, domainStatus, anomalies, evidence, notices]
+                 headline, causalBadge, domainStatus, anomalies, evidence, notices,
+                 candidateSortRule]
       properties:
         reportId: { type: string }
         baseDate: { type: string, format: date }
@@ -161,7 +166,7 @@ components:
         settingVersion: { type: string, description: 판정에 쓴 설정 버전 }
         dataFreshness:
           type: object
-          description: 소스별 데이터 최신일. 리포트 기준일과 다를 수 있다
+          description: 소스별 데이터 최신일. 세 칸이 게시 테이블에 그대로 실린다
           required: [vehicle, news, market]
           properties:
             vehicle: { type: string, format: date, nullable: true }
@@ -185,6 +190,10 @@ components:
           type: array
           description: 신호등 순 정렬. 축 종류가 plant인 변동은 들어오지 않는다
           items: { $ref: '#/components/schemas/Anomaly' }
+        candidateSortRule:
+          type: string
+          description: 후보 정렬 규칙 문장. 카드마다 같은 문장이라 리포트에 한 칸으로 둔다
+          example: 날짜 차이 오름차순 → 출처 수 내림차순 → 기사 수 내림차순
         evidence:
           type: array
           items: { $ref: '#/components/schemas/Evidence' }
@@ -219,7 +228,9 @@ components:
       properties:
         domain: { type: string, enum: [production, inventory, sales] }
         domainLabel: { type: string, example: 생산 }
-        trafficLight: { $ref: '#/components/schemas/TrafficLight' }
+        trafficLight:
+          $ref: '#/components/schemas/TrafficLight'
+          description: 필수다. 생산 카드는 level이 notApplicable로 온다
         statusText: { type: string, description: 신호등 옆에 병기하는 텍스트 }
         claim: { $ref: '#/components/schemas/Claim' }
         judgmentSource:
@@ -294,6 +305,8 @@ components:
 
 화면 [[TBL-UI-001#UI-10]] · 유스케이스 [[TBL-UC-001#UC-H2]] · 서비스 `MarketService.get_series`
 
+이 응답도 게시 스키마의 사본(`pub.market_series`)을 읽는다. 열람 경로가 수집 테이블을 직접 읽지 않는다([[TBL-INFRA-001#C10]]).
+
 시계열 자체는 [[#GET/api/intel/creport/latest]]의 후보 상세에도 들어 있다. 이 엔드포인트는 기간을 늘려 볼 때와 지표 바에서 바로 열 때만 쓴다. 지표는 국가·차종과 이어지지 않아 조인 축이 날짜뿐이다([[TBL-DOM-001#MarketPoint]]).
 
 ```yaml
@@ -347,6 +360,8 @@ A1 생산·A2 재고·A3 판매 중 한 도메인의 최신 게시 리포트를 
 
 화면 [[TBL-UI-001#UI-7]] [[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]] · 유스케이스 [[TBL-UC-001#UC-H4]] · 서비스 `DomainReportService.get_latest_by_domain`
 
+**이 응답은 게시 스키마에 둔 A 리포트 사본을 읽는다.** 브리핑 갈래가 게시한 문장·근거·버전을 통째로 받아 `pub.a_report_snapshot`과 `pub.a_report_evidence`에 사본으로 두고, 열람은 그 사본만 읽는다([[TBL-INFRA-001#C10]]). 열람 시점에 브리핑 저장소를 부르지 않는다. C 리포트를 만드는 경로는 이와 달라서 A 판정만 읽고 A가 쓴 문장을 C 서술에 쓰지 않는다. 두 경로가 읽는 것이 다르다.
+
 공통 덩어리는 여덟이다. 출처(대시보드명·스냅샷 일시), 트래킹 지표 3, 분해 차원 목록과 값 개수, 제약 경고, 버전 목록, 요약과 해설, 고정 문구, 내려받기. 도메인마다 다른 것은 `domainExtra`에 담고 셋의 모양이 다르다.
 
 **응답 어디에도 뉴스·시장지표 인용이 없다.** 이것이 인수 기준이다([[TBL-PRD-001#R29]]). C 리포트로 가는 링크 필드도 두지 않는다([[TBL-UI-001#UI-10]] 0.3절 넷째).
@@ -387,7 +402,7 @@ components:
       type: object
       required: [domainReportId, domain, domainLabel, version, source,
                  trackingMetrics, breakdownDimensions, missingMetrics, versions,
-                 summary, commentary, fixedNote, judgments, domainExtra]
+                 summary, commentary, evidence, fixedNote, judgments, domainExtra]
       properties:
         domainReportId: { type: string }
         domain: { type: string, enum: [production, inventory, sales] }
@@ -588,6 +603,8 @@ components:
 
 화면 [[TBL-UI-001#UI-7]] [[TBL-UI-001#UI-8]] [[TBL-UI-001#UI-9]] · 유스케이스 [[TBL-UC-001#UC-H4]] · 서비스 `DomainReportService.get_by_id`
 
+이 엔드포인트도 게시 스키마의 A 리포트 사본을 읽는다. `pub.a_report_snapshot`에 쌓인 과거 버전을 열 뿐이고 브리핑 저장소를 다시 부르지 않는다.
+
 ```yaml
 /api/intel/areport/version/{domainReportId}:
   get:
@@ -770,6 +787,8 @@ components:
 
 멱등 단위는 형태가 정한다. 형태 A는 기준일자 단위, 형태 B는 파일 기준일 단위로 통째 덮어쓴다([[TBL-INFRA-001#C6]] [[TBL-DOM-001#IngestFile]]). 겹치는데 `confirmOverwrite`가 없으면 409다.
 
+**정본 선택은 이 요청에서 하지 않는다.** 계획 정본과 도매 정본은 설정 테이블의 새 버전으로만 바뀐다([[TBL-DOM-001#ThresholdSetting]]). 적재는 두 종류를 모두 저장하고, 한 파일에 둘이 함께 들어온 사실만 응답의 `dualValues`에 남긴다.
+
 `backfillMode`가 참이면 이 파일로 도는 배치가 후보·근접도·신호등까지만 채우고 LLM 세 역할을 생략한다([[TBL-UC-001#UC-A1]] 6a).
 
 회귀 검사가 급변으로 판정하면 **적재는 완료하되** `autoBatchBlocked`가 참으로 돌아온다. 배치 자동 실행만 막힌다([[TBL-UC-001#UC-S6]]).
@@ -790,8 +809,6 @@ components:
             properties:
               preflightId: { type: string }
               fileBaseDate: { type: string, format: date }
-              planSource: { type: string, enum: [businessPlan, operationPlan], default: businessPlan }
-              wholesaleSource: { type: string, enum: [officialWholesale, actualWholesale], default: officialWholesale }
               backfillMode: { type: boolean, default: false }
               confirmOverwrite: { type: boolean, default: false }
     responses:
@@ -816,6 +833,14 @@ components:
                 missingRate: { type: number }
                 matchRate: { type: number }
                 duplicateRate: { type: number }
+                dualValues:
+                  type: array
+                  description: 이 파일에 계획 두 종류 또는 도매 두 기준이 함께 들어온 사실. 정본은 설정 버전이 고른다
+                  items:
+                    type: object
+                    properties:
+                      kind: { type: string, enum: [plan, wholesale] }
+                      options: { type: array, items: { type: string } }
                 unmappedCollected: { type: integer }
                 regressionAbrupt: { type: boolean }
                 autoBatchBlocked: { type: boolean }
@@ -926,6 +951,10 @@ components:
                       dataForm: { type: string, enum: [A, B] }
                       idempotencyUnit: { type: string, enum: [baseDate, fileBaseDate] }
                       fileBaseDate: { type: string, format: date, nullable: true }
+                      periodTypes:
+                        type: array
+                        description: 이 파일이 담은 기간 구분
+                        items: { type: string, enum: [day, month, cumulative, year] }
                       rowCount: { type: integer }
                       missingRate: { type: number }
                       matchRate: { type: number }
@@ -1613,13 +1642,15 @@ PeriodKey:
 
 C 리포트가 다루는 변동 한 건. [[TBL-DOM-001#Anomaly]]의 속성을 그대로 옮긴다.
 
+정렬 규칙 문장은 카드마다 같으므로 이 스키마에 두지 않고 `CReport.candidateSortRule` 한 칸에 둔다.
+
 `axisType`이 `plant`인 변동은 이 배열에 들어오지 않는다(1.6절). `source`가 `supplementaryAggregate`면 기여 분해가 비고 화면이 "보완 집계"를 적는다. `derived`면 4.8절에서 유도된 재고 신호이며 화면이 유도 표기를 붙인다.
 
 ```yaml
 Anomaly:
   type: object
   required: [anomalyId, domain, axisType, metric, periodKey, value, compareBasis,
-             source, trafficLight, candidates, candidateSortRule, settingVersion]
+             source, trafficLight, candidates, settingVersion]
   properties:
     anomalyId: { type: string }
     domain: { type: string, enum: [production, inventory, sales] }
@@ -1631,9 +1662,10 @@ Anomaly:
     metric:
       type: string
       enum: [planAchievementRate, cbuShare, exportShare,
-             distributionStay, inventoryTurnMos, localInventorySnapshot,
-             wholesaleToRetailGap, planProgressRate, yoyChange]
-    metricLabel: { type: string, example: 도매 대비 소매 격차 }
+             distributionStay, entityStageStay, inventoryTurnMos,
+             localInventorySnapshot, planProgressRate, yoyChange]
+      description: distributionStay는 도매 대비 소매(딜러 구간), entityStageStay는 선적 대비 도매(법인 구간)
+    metricLabel: { type: string, example: 유통 체류 }
     periodKey: { $ref: '#/components/schemas/PeriodKey' }
     comparePeriod: { type: string, nullable: true, example: 2025 누계 }
     value: { type: number }
@@ -1690,9 +1722,6 @@ Anomaly:
       type: integer
       default: 0
       description: 상한에 걸려 잘린 건수. 0보다 크면 화면에 적는다
-    candidateSortRule:
-      type: string
-      example: 날짜 차이 오름차순 → 출처 수 내림차순 → 기사 수 내림차순
     causeLink:
       $ref: '#/components/schemas/CauseLink'
       nullable: true
@@ -1814,17 +1843,21 @@ CauseCandidate:
 
 규칙 산출물이다. LLM을 꺼도 같은 값이 나온다([[TBL-PRD-001#R11]] [[TBL-UC-001#UC-S8]] 7단계).
 
+도메인 상태 3장의 신호등도 같은 규칙 산출물이다. 도메인 안 변동들의 신호등 최댓값을 5단계에서 정하고, 8단계 LLM은 그 옆 문장만 쓴다.
+
 `basis`는 어느 후보의 어떤 값이 기준을 넘었는지를 담는다. 화면이 이 값으로 왜 그 색인지 보여 준다. 기준에 못 미치면 `level`이 `none`이고 `basis`는 `null`이며 목록에는 남는다.
+
+**생산 도메인 카드는 판정 대상이 아니다.** 국가 축이 없어 외부와 이을 자리가 없으므로(1.6절) `level`이 `notApplicable`, `label`이 '판정 대상 아님'으로 오고 `basis`는 `null`이다. 이 자리를 `none`('원인 미확인')으로 적지 않는다. 변동 카드(4.3절)에는 `notApplicable`이 오지 않는다.
 
 ```yaml
 TrafficLight:
   type: object
   required: [level, label]
   properties:
-    level: { type: string, enum: [red, yellow, none] }
+    level: { type: string, enum: [red, yellow, none, notApplicable] }
     label:
       type: string
-      enum: ['확인 필요', '주의', '원인 미확인']
+      enum: ['확인 필요', '주의', '원인 미확인', '판정 대상 아님']
       description: 색만으로 구분하지 않는다. 항상 텍스트를 병기한다
     basis:
       type: object
@@ -1882,11 +1915,14 @@ CauseLink:
 
 부호 규약은 1.4절에 적었다. 음수를 예외로 두지 않는다.
 
+두 구간 차이는 4.3절 `metric`의 두 값과 짝이다. `entityStageGap`이 `entityStageStay`(법인 구간, 화면 표기 법인 단계 체류)이고 `dealerStageGap`이 `distributionStay`(딜러 구간, 화면 표기 유통 체류)다.
+
 ```yaml
 StageFlow:
   type: object
   required: [periodKey, shipment, officialWholesale, retail,
-             dealerStageGap, dealerStageGapRate, wholesaleBasis, derivationType]
+             entityStageGap, dealerStageGap, dealerStageGapRate,
+             wholesaleBasis, derivationType]
   properties:
     countryCode: { type: string, nullable: true, example: B07 }
     countryName: { type: string, nullable: true, example: 칠레 }
@@ -1897,12 +1933,12 @@ StageFlow:
     retail: { type: number, example: 643097 }
     entityStageGap:
       type: number
-      description: 선적 − 도매정본. 법인 단계에 남은 물량
+      description: 선적 − 도매정본. 법인 구간 체류. metric entityStageStay와 같은 값
       example: 2350
     entityStageGapRate: { type: number, nullable: true }
     dealerStageGap:
       type: number
-      description: 도매정본 − 소매. 딜러 단계에 남은 물량. 음수는 덜어내는 중
+      description: 도매정본 − 소매. 딜러 구간 체류. metric distributionStay와 같은 값. 음수는 덜어내는 중
       example: 34104
     dealerStageGapRate: { type: number, example: 0.050 }
     wholesaleBasis:
@@ -1950,7 +1986,7 @@ MarketMetric:
 ```yaml
 Evidence:
   type: object
-  required: [footnote, kind, sourceId]
+  required: [footnote, kind, sourceId, displayValue]
   properties:
     footnote: { type: integer }
     kind:
@@ -2030,6 +2066,8 @@ MissingMetric:
 ```
 
 ## 5. 미결사항
+
+먼저 참조 규약 하나를 적는다. **4장 공용 스키마 열셋은 항목이 될 수 없다.** 이 문서의 항목 ID 패턴이 메서드와 경로여서 스키마 이름은 항목 ID가 되지 못한다. 하류 문서는 `[[TBL-API-001#...]]`가 아니라 절 번호로 가리킨다(예: 4.3절 Anomaly, 4.8절 StageFlow).
 
 - [ ] 현업 서명 토큰의 발급 주체, 만료 시간, 갱신 방식. VODA 포털 팀과 맞춰야 한다(1.1절)
 - [ ] A 리포트 내려받기 파일 형식. `download.format` 값이 정해지지 않았다([[TBL-UI-001#UI-7]])
