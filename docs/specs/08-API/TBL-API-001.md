@@ -123,7 +123,7 @@ RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `stat
 
 응답에 담기는 덩어리는 아홉이다. 기준일과 소스별 최신일, 시장지표 바 4종, 헤드라인과 인과 배지, 도메인 상태 3장, 변동 목록, 변동별 후보 목록, 후보별 근거, 연관 설명, 강등과 배치 번호. 근거 패널까지 이 응답에 들어 있어 펼칠 때 추가 호출이 없다([[TBL-UC-001#UC-H2]]).
 
-`dataFreshness`의 `vehicle` `news` `market` 세 칸과 `notices` 배열은 게시 테이블에 그대로 실린다([[TBL-INFRA-001#C10]]). 열람할 때 다시 계산하지 않는다. `baseDate` 옆에 쓰는 대표 최신일은 그 세 칸 중 가장 늦은 날이다. `notices`의 다섯 코드는 [[TBL-UI-001#UI-10]]의 예외 상태 E1·E3·E4·E5·E6와 하나씩 짝을 이룬다.
+`dataFreshness`의 `vehicle` `news` `market` `latest` 네 칸과 `notices` 배열은 게시 테이블에 그대로 실린다([[TBL-INFRA-001#C10]]). 열람할 때 다시 계산하지 않는다. `baseDate` 옆에 쓰는 대표 최신일은 세 소스 중 가장 늦은 날이며, 게시 시점에 정해져 `latest`로 내려온다. 화면이 세 날짜의 최댓값을 다시 계산하지 않는다. `notices`의 다섯 코드는 [[TBL-UI-001#UI-10]]의 예외 상태 E1·E3·E4·E5·E6와 하나씩 짝을 이룬다.
 
 `anomalies`는 신호등 순(`red` → `yellow` → `none`)으로 이미 정렬돼 온다. 각 변동의 `candidates`도 1.3절의 정렬 규칙으로 이미 정렬돼 온다. 화면은 순서를 다시 계산하지 않는다.
 
@@ -166,12 +166,16 @@ components:
         settingVersion: { type: string, description: 판정에 쓴 설정 버전 }
         dataFreshness:
           type: object
-          description: 소스별 데이터 최신일. 세 칸이 게시 테이블에 그대로 실린다
-          required: [vehicle, news, market]
+          description: 소스별 데이터 최신일과 대표 최신일. 네 칸이 게시 테이블에 그대로 실린다
+          required: [vehicle, news, market, latest]
           properties:
             vehicle: { type: string, format: date, nullable: true }
             news: { type: string, format: date, nullable: true }
             market: { type: string, format: date, nullable: true }
+            latest:
+              type: string
+              format: date
+              description: 세 소스 중 가장 늦은 날. 게시 시점에 정해져 저장되며 열람이 다시 계산하지 않는다
         marketBar:
           type: array
           minItems: 4
@@ -366,6 +370,8 @@ A1 생산·A2 재고·A3 판매 중 한 도메인의 최신 게시 리포트를 
 
 **응답 어디에도 뉴스·시장지표 인용이 없다.** 이것이 인수 기준이다([[TBL-PRD-001#R29]]). C 리포트로 가는 링크 필드도 두지 않는다([[TBL-UI-001#UI-10]] 0.3절 넷째).
 
+**`missingMetrics`가 못 만드는 지표 목록의 정본이고 `constraintWarnings`는 그 목록을 화면 문구로 보여 주는 표시용이다.** 두 배열의 `code`는 4.13절 `MissingMetric.code`의 같은 값을 쓴다. A1의 목적지 국가 부재는 `destinationCountry`, 파워트레인 분해 부재는 `powertrainBreakdown` 하나로 적는다.
+
 `domainExtra`가 도메인별로 담는 것은 아래와 같다.
 
 | domain | domainExtra |
@@ -442,13 +448,19 @@ components:
               valueCount: { type: integer, nullable: true, example: 28 }
         constraintWarnings:
           type: array
+          description: missingMetrics를 화면 문구로 보여 주는 표시용. 목록을 새로 만들지 않는다
           items:
             type: object
+            required: [code, message]
             properties:
-              code: { type: string, example: noDestinationCountry }
-              message: { type: string }
+              code:
+                type: string
+                description: 4.13절 MissingMetric.code와 같은 값을 쓴다
+                example: destinationCountry
+              message: { type: string, example: 목적지 국가 컬럼이 없어 국가별 생산을 만들 수 없습니다 }
         missingMetrics:
           type: array
+          description: 못 만드는 지표 목록의 정본
           items: { $ref: '#/components/schemas/MissingMetric' }
         versions:
           type: array
@@ -1686,7 +1698,12 @@ Anomaly:
     supplementary: { type: boolean, description: source가 supplementaryAggregate면 참 }
     contributionAvailable: { type: boolean }
     contributionNote: { type: string, nullable: true, example: 분해 불가 }
-    contributionOrigin: { type: string, nullable: true, example: A3 판매 리포트가 낸 값 }
+    contributionOrigin:
+      type: string
+      nullable: true
+      enum: [aJudgment, supplementaryAggregate, derived]
+      description: 기여 분해의 출처 구분. 화면에 적는 문장은 contributionNote가 맡는다
+      example: aJudgment
     contributions:
       type: array
       items: { $ref: '#/components/schemas/Contribution' }
@@ -1915,6 +1932,8 @@ CauseLink:
 
 부호 규약은 1.4절에 적었다. 음수를 예외로 두지 않는다.
 
+`actualWholesale`(실 도매)과 `officialWholesale`(도매 공식)은 기준이 다른 두 값이다. 전사 누계로는 실 도매 2,356,496 대 도매(공식) 2,383,631로 27,135가 벌어지며, 이 27,135는 전사 누계 차이이고 미주 구간 값이 아니다. 미주 구간의 실 도매 누계 실측값은 [확인 필요]라 예시 값을 두지 않는다.
+
 두 구간 차이는 4.3절 `metric`의 두 값과 짝이다. `entityStageGap`이 `entityStageStay`(법인 구간, 화면 표기 법인 단계 체류)이고 `dealerStageGap`이 `distributionStay`(딜러 구간, 화면 표기 유통 체류)다.
 
 ```yaml
@@ -1928,7 +1947,10 @@ StageFlow:
     countryName: { type: string, nullable: true, example: 칠레 }
     periodKey: { $ref: '#/components/schemas/PeriodKey' }
     shipment: { type: number, example: 679551 }
-    actualWholesale: { type: number, nullable: true, example: 677201 }
+    actualWholesale:
+      type: number
+      nullable: true
+      description: 실 도매. 정본이 도매(공식)일 때는 비어 온다. 미주 구간 누계 실측값은 [확인 필요]
     officialWholesale: { type: number, example: 677201 }
     retail: { type: number, example: 643097 }
     entityStageGap:
@@ -1948,7 +1970,7 @@ StageFlow:
     wholesaleAlternativeDiff:
       type: number
       nullable: true
-      description: 다른 도매 기준과의 차이. 미주 누계 실측 27,135
+      description: 다른 도매 기준과의 차이. 전사 누계로는 27,135이며 미주 구간 값이 아니다
     derivationType:
       type: string
       enum: [derived, measured]
