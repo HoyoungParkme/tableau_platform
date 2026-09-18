@@ -292,6 +292,42 @@
     },
     {
       "assignee": "HoyoungParkme",
+      "cause": null,
+      "cause_version": "TBL-MS-001@756978adbf4c25196e01dddb3a4290c9fab2108a",
+      "kind": "upstream_impact",
+      "raised_at": "2026-09-17T07:28:59.875068+00:00",
+      "resolved_at": null,
+      "resolved_by": null,
+      "resolved_with_edit": null,
+      "target": "TBL-RFQ-001#Q65",
+      "target_version": "TBL-RFQ-001@f01f37cd0163af2168d7e39950baacaf991ef7d0"
+    },
+    {
+      "assignee": "HoyoungParkme",
+      "cause": null,
+      "cause_version": "TBL-INFRA-001@dece3e602fe2ccaa2f8b0ac83c7faf75731c7f58",
+      "kind": "upstream_impact",
+      "raised_at": "2026-09-17T07:29:46.457652+00:00",
+      "resolved_at": null,
+      "resolved_by": null,
+      "resolved_with_edit": null,
+      "target": "TBL-RFQ-001#Q65",
+      "target_version": "TBL-RFQ-001@f01f37cd0163af2168d7e39950baacaf991ef7d0"
+    },
+    {
+      "assignee": "HoyoungParkme",
+      "cause": null,
+      "cause_version": "TBL-PRD-001@02dd2c5739c10aca298461e52e22186a306decae",
+      "kind": "upstream_impact",
+      "raised_at": "2026-09-17T07:31:41.693638+00:00",
+      "resolved_at": null,
+      "resolved_by": null,
+      "resolved_with_edit": null,
+      "target": "TBL-RFQ-001#Q65",
+      "target_version": "TBL-RFQ-001@f01f37cd0163af2168d7e39950baacaf991ef7d0"
+    },
+    {
+      "assignee": "HoyoungParkme",
       "cause": "TBL-UC-001#UC-H3",
       "cause_version": null,
       "kind": "broken_ref",
@@ -547,6 +583,63 @@
     },
     {
       "affected": [
+        "TBL-DOM-001#Anomaly",
+        "TBL-DOM-001#CountryDayFact",
+        "TBL-DOM-001#DomainJudgment",
+        "TBL-DOM-002#CandidateSearcher",
+        "TBL-DOM-002#FactJoiner",
+        "TBL-DOM-002#RecordStandardizer",
+        "TBL-DOM-002#StageFlowCalculator",
+        "TBL-DOM-002#TrafficLightJudge",
+        "TBL-DOM-003#country",
+        "TBL-DOM-003#model_exposure",
+        "TBL-UI-001#UI-10",
+        "TBL-UI-001#UI-8",
+        "TBL-UI-001#UI-9"
+      ],
+      "changed": [
+        "TBL-DOM-001#CauseCandidate",
+        "TBL-DOM-001#ModelExposure",
+        "TBL-DOM-001#SalesStageFlow",
+        "TBL-DOM-001#WatchItem"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-001@3af12da7739fed7c6053648357358be9cde435e7"
+    },
+    {
+      "affected": [
+        "TBL-API-001#POST/api/admin/ingest/commit",
+        "TBL-API-001#POST/api/admin/ingest/preflight",
+        "TBL-DOM-001#Anomaly",
+        "TBL-DOM-001#CountryDayFact",
+        "TBL-DOM-001#WatchItem",
+        "TBL-DOM-002#FactJoiner",
+        "TBL-DOM-002#IngestService",
+        "TBL-DOM-002#PipelineRunner",
+        "TBL-DOM-002#RecordStandardizer",
+        "TBL-DOM-002#RegressionChecker",
+        "TBL-DOM-002#StageFlowCalculator",
+        "TBL-DOM-003#country",
+        "TBL-UI-001#UI-10",
+        "TBL-UI-001#UI-11",
+        "TBL-UI-001#UI-7",
+        "TBL-UI-001#UI-8",
+        "TBL-UI-001#UI-9"
+      ],
+      "changed": [
+        "TBL-DOM-001#IngestFile",
+        "TBL-DOM-001#SalesStageFlow",
+        "TBL-DOM-001#ThresholdSetting"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-001@43ba2d1966a9f3dc46e62bdcd420709189c37377"
+    },
+    {
+      "affected": [
         "TBL-DOM-002#FactJoiner",
         "TBL-DOM-002#RecordStandardizer",
         "TBL-DOM-002#ReportPublisher",
@@ -565,6 +658,21 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-DOM-001@8976eb27f7dc19e2ffc0ae2d51fe2404374c855e"
+    },
+    {
+      "affected": [
+        "TBL-DOM-002#AnomalyDetector",
+        "TBL-DOM-002#CandidateSearcher",
+        "TBL-DOM-003#anomaly",
+        "TBL-DOM-003#country"
+      ],
+      "changed": [
+        "TBL-DOM-001#Anomaly"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-001@aeef55bb0a8f20ec7ed0d6241423eeedca43ceb4"
     },
     {
       "affected": [
@@ -615,6 +723,90 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-DOM-001@f7c1a4868f08e3ccbba936debf5ac70518321c2b"
+    },
+    {
+      "affected": [
+        "TBL-DOM-002#AJudgmentReader",
+        "TBL-DOM-002#FactJoiner",
+        "TBL-DOM-002#PipelineRunner",
+        "TBL-DOM-002#StageFlowCalculator",
+        "TBL-DOM-003#raw_pivot_cell",
+        "TBL-DOM-003#vehicle_measure",
+        "TBL-SEQ-001#SEQ-16",
+        "TBL-SEQ-001#SEQ-17"
+      ],
+      "changed": [
+        "TBL-DOM-002#AnomalyDetector",
+        "TBL-DOM-002#FormBPivotParser"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-002@0c5a89ee233b8632169533908db2d14181e31c5e"
+    },
+    {
+      "affected": [
+        "TBL-DOM-002#AJudgmentReader",
+        "TBL-DOM-002#FactJoiner",
+        "TBL-DOM-002#FormBPivotParser",
+        "TBL-DOM-002#PipelineRunner",
+        "TBL-DOM-003#vehicle_measure",
+        "TBL-SEQ-001#SEQ-16",
+        "TBL-SEQ-001#SEQ-17"
+      ],
+      "changed": [
+        "TBL-DOM-002#AnomalyDetector",
+        "TBL-DOM-002#StageFlowCalculator"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-002@343f5ef83bd5f7bdf278d063c2b9d7e705269e71"
+    },
+    {
+      "affected": [
+        "TBL-DOM-002#BriefingStoreReader",
+        "TBL-DOM-002#FactJoiner",
+        "TBL-DOM-002#IngestService",
+        "TBL-DOM-002#RecordStandardizer",
+        "TBL-DOM-002#RegressionChecker",
+        "TBL-DOM-002#TrafficLightJudge",
+        "TBL-DOM-003#a_report_snapshot",
+        "TBL-DOM-003#c_report",
+        "TBL-DOM-003#cause_link",
+        "TBL-DOM-003#report_claim",
+        "TBL-MS-001#CauseLinkWriter.extract_citations",
+        "TBL-MS-001#CitationVerifier.out_of_scope_ids",
+        "TBL-MS-001#ReportPublisher.number_evidence",
+        "TBL-MS-001#TrafficLightJudge.build_watch_items",
+        "TBL-SEQ-001#SEQ-11",
+        "TBL-SEQ-001#SEQ-12",
+        "TBL-SEQ-001#SEQ-13",
+        "TBL-SEQ-001#SEQ-16",
+        "TBL-SEQ-001#SEQ-17",
+        "TBL-SEQ-001#SEQ-18",
+        "TBL-SEQ-001#SEQ-20",
+        "TBL-SEQ-001#SEQ-21"
+      ],
+      "changed": [
+        "TBL-DOM-002#BatchService",
+        "TBL-DOM-002#CReportService",
+        "TBL-DOM-002#CauseLinkWriter",
+        "TBL-DOM-002#CitationVerifier",
+        "TBL-DOM-002#ClaimWriter",
+        "TBL-DOM-002#DegradeHandler",
+        "TBL-DOM-002#DomainReportService",
+        "TBL-DOM-002#MarketService",
+        "TBL-DOM-002#MasterService",
+        "TBL-DOM-002#PipelineRunner",
+        "TBL-DOM-002#ProximityCalculator",
+        "TBL-DOM-002#ReportPublisher",
+        "TBL-DOM-002#StageFlowCalculator"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-002@4c7015f870638c308b9555edf23194f0fc50cfa6"
     },
     {
       "affected": [
@@ -718,6 +910,23 @@
     },
     {
       "affected": [
+        "TBL-DOM-002#FactJoiner",
+        "TBL-DOM-002#PipelineRunner",
+        "TBL-DOM-003#raw_pivot_cell",
+        "TBL-SEQ-001#SEQ-16",
+        "TBL-SEQ-001#SEQ-17"
+      ],
+      "changed": [
+        "TBL-DOM-002#FormBPivotParser",
+        "TBL-DOM-002#StageFlowCalculator"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-002@fce32f377b2ba7ebff2f0d4b808e0dd9f579d858"
+    },
+    {
+      "affected": [
         "TBL-DOM-003#anomaly",
         "TBL-DOM-003#country_period_fact",
         "TBL-DOM-003#report_anomaly",
@@ -806,6 +1015,53 @@
     },
     {
       "affected": [
+        "TBL-DOM-003#anomaly",
+        "TBL-DOM-003#country_period_fact",
+        "TBL-DOM-003#report_anomaly",
+        "TBL-MS-001#IngestService.commit",
+        "TBL-MS-001#StageFlowCalculator.alternative_diff",
+        "TBL-MS-001#StageFlowCalculator.calculate"
+      ],
+      "changed": [
+        "TBL-DOM-003#raw_pivot_cell",
+        "TBL-DOM-003#sales_stage_flow"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-003@69cf410c4ed945927d8d9e92b710ee078cf08582"
+    },
+    {
+      "affected": [
+        "TBL-DOM-003#a_report_evidence",
+        "TBL-DOM-003#anomaly",
+        "TBL-DOM-003#article_country",
+        "TBL-DOM-003#country_period_fact",
+        "TBL-DOM-003#domain_report_snapshot",
+        "TBL-DOM-003#report_anomaly",
+        "TBL-MS-001#BriefingStoreReader.read_report_document",
+        "TBL-MS-001#CandidateSearcher.search",
+        "TBL-MS-001#DomainReportService.build_domain_extra",
+        "TBL-MS-001#DomainReportService.get_latest_by_domain",
+        "TBL-MS-001#PipelineRunner.run",
+        "TBL-MS-001#ProximityCalculator.sort",
+        "TBL-MS-001#ReportPublisher.publish_a_report",
+        "TBL-MS-001#StageFlowCalculator.alternative_diff",
+        "TBL-MS-001#StageFlowCalculator.calculate",
+        "TBL-SEQ-001#SEQ-12"
+      ],
+      "changed": [
+        "TBL-DOM-003#a_report_snapshot",
+        "TBL-DOM-003#cause_candidate",
+        "TBL-DOM-003#sales_stage_flow"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-DOM-003@9943fc95c8b5594c483bb1916306ecec0b2c9a32"
+    },
+    {
+      "affected": [
         "TBL-DOM-002#BatchService",
         "TBL-DOM-002#BriefingStoreReader",
         "TBL-DOM-002#CReportService",
@@ -835,6 +1091,31 @@
         "TBL-DOM-002#BriefingStoreReader",
         "TBL-DOM-002#HChatClient",
         "TBL-DOM-002#RecordStandardizer",
+        "TBL-DOM-002#StageFlowCalculator",
+        "TBL-DOM-003#country_period_fact",
+        "TBL-DOM-003#vehicle_measure",
+        "TBL-MS-001#AJudgmentReader.validate_shape",
+        "TBL-MS-001#AnomalyDetector.from_stage_flow",
+        "TBL-MS-001#HChatClient.remaining_tokens",
+        "TBL-MS-001#RecordStandardizer.standardize",
+        "TBL-MS-001#StageFlowCalculator.calculate",
+        "TBL-SEQ-001#SEQ-17",
+        "TBL-UI-001#UI-8"
+      ],
+      "changed": [
+        "TBL-INFRA-001#C17"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-INFRA-001@6ffcb35ec8b2f4ca79295ef7006b8633394e5f5b"
+    },
+    {
+      "affected": [
+        "TBL-DOM-002#BatchService",
+        "TBL-DOM-002#BriefingStoreReader",
+        "TBL-DOM-002#HChatClient",
+        "TBL-DOM-002#RecordStandardizer",
         "TBL-DOM-003#vehicle_measure",
         "TBL-MS-001#AJudgmentReader.validate_shape",
         "TBL-MS-001#HChatClient.remaining_tokens",
@@ -847,6 +1128,69 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-INFRA-001@c9b05b64c6f5e19998c08ae9c05e8e89ed207891"
+    },
+    {
+      "affected": [
+        "TBL-API-001#POST/api/admin/ingest/commit",
+        "TBL-DOM-002#BatchService",
+        "TBL-DOM-002#BriefingStoreReader",
+        "TBL-DOM-002#FormBPivotParser",
+        "TBL-DOM-002#FormDetector",
+        "TBL-DOM-002#HChatClient",
+        "TBL-DOM-002#RecordStandardizer",
+        "TBL-DOM-002#RegressionChecker",
+        "TBL-DOM-003#ingest_file",
+        "TBL-DOM-003#vehicle_measure",
+        "TBL-MS-001#AJudgmentReader.validate_shape",
+        "TBL-MS-001#FormALedgerParser.parse",
+        "TBL-MS-001#FormBPivotParser.expand_merged_header",
+        "TBL-MS-001#FormBPivotParser.parse",
+        "TBL-MS-001#FormDetector.detect",
+        "TBL-MS-001#HChatClient.remaining_tokens",
+        "TBL-MS-001#IngestService.preflight_upload",
+        "TBL-MS-001#RecordStandardizer.standardize",
+        "TBL-MS-001#RegressionChecker.is_abrupt",
+        "TBL-SEQ-001#SEQ-14",
+        "TBL-UI-001#UI-11"
+      ],
+      "changed": [
+        "TBL-INFRA-001#C6"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-INFRA-001@dece3e602fe2ccaa2f8b0ac83c7faf75731c7f58"
+    },
+    {
+      "affected": [
+        "TBL-DOM-002#ProximityCalculator",
+        "TBL-SEQ-001#SEQ-18"
+      ],
+      "changed": [
+        "TBL-MS-001#AnomalyDetector.detect"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-MS-001@0796cba74476e202423d7188519862ab69a81137"
+    },
+    {
+      "affected": [
+        "TBL-DOM-002#ProximityCalculator",
+        "TBL-MS-001#FormBPivotParser.parse",
+        "TBL-MS-001#IngestService.preflight_upload",
+        "TBL-MS-001#StageFlowCalculator.calculate",
+        "TBL-SEQ-001#SEQ-18"
+      ],
+      "changed": [
+        "TBL-MS-001#FormBPivotParser.drop_total_rows",
+        "TBL-MS-001#FormBPivotParser.split_period_and_measure",
+        "TBL-MS-001#StageFlowCalculator.alternative_diff"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-MS-001@756978adbf4c25196e01dddb3a4290c9fab2108a"
     },
     {
       "affected": [
@@ -888,6 +1232,23 @@
     },
     {
       "affected": [
+        "TBL-DOM-002#ProximityCalculator",
+        "TBL-MS-001#StageFlowCalculator.calculate",
+        "TBL-SEQ-001#SEQ-18"
+      ],
+      "changed": [
+        "TBL-MS-001#FormALedgerParser.parse",
+        "TBL-MS-001#FormBPivotParser.split_period_and_measure",
+        "TBL-MS-001#StageFlowCalculator.alternative_diff",
+        "TBL-MS-001#StageFlowCalculator.dealer_stage_gap"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-MS-001@d5ec4a09333db65fae1e33357d8a102daae5215c"
+    },
+    {
+      "affected": [
         "TBL-MS-001#DomainReportService.get_latest_by_domain",
         "TBL-MS-001#ReportPublisher.publish"
       ],
@@ -900,6 +1261,64 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-MS-001@d708a371d81de88d9e2d83ad4523f545b745384a"
+    },
+    {
+      "affected": [
+        "TBL-DOM-001#DomainReport",
+        "TBL-DOM-001#IngestFile",
+        "TBL-DOM-001#ThresholdSetting",
+        "TBL-INFRA-001#C18",
+        "TBL-INFRA-001#C6",
+        "TBL-MS-001#AnomalyDetector.detect",
+        "TBL-MS-001#AnomalyDetector.from_supplementary",
+        "TBL-MS-001#AnomalyDetector.pick_compare_basis",
+        "TBL-MS-001#FactJoiner.join",
+        "TBL-MS-001#FormBPivotParser.parse",
+        "TBL-MS-001#IngestService.commit",
+        "TBL-MS-001#ProximityCalculator.calculate",
+        "TBL-PRD-001#R25",
+        "TBL-SCN-001#P2",
+        "TBL-SCN-001#S5",
+        "TBL-UC-001#UC-A1",
+        "TBL-UC-001#UC-S6",
+        "TBL-UI-001#UI-11"
+      ],
+      "changed": [
+        "TBL-PRD-001#R1"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-PRD-001@02dd2c5739c10aca298461e52e22186a306decae"
+    },
+    {
+      "affected": [
+        "TBL-DOM-001#Anomaly",
+        "TBL-DOM-001#Contribution",
+        "TBL-DOM-001#DomainJudgment",
+        "TBL-DOM-002#AnomalyDetector",
+        "TBL-DOM-003#country_period_fact",
+        "TBL-INFRA-001#C15",
+        "TBL-MS-001#AnomalyDetector.detect",
+        "TBL-MS-001#AnomalyDetector.from_supplementary",
+        "TBL-MS-001#AnomalyDetector.pick_compare_basis",
+        "TBL-MS-001#AnomalyDetector.progress_rate",
+        "TBL-MS-001#FactJoiner.join",
+        "TBL-MS-001#ProximityCalculator.calculate",
+        "TBL-SCN-001#S1",
+        "TBL-SCN-001#S4",
+        "TBL-UC-001#UC-H1",
+        "TBL-UC-001#UC-S3",
+        "TBL-UI-001#UI-10",
+        "TBL-UI-001#UI-9"
+      ],
+      "changed": [
+        "TBL-PRD-001#R8"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-PRD-001@45ea73000f657b48ffcdcd6e45566700c785f3c4"
     },
     {
       "affected": [
@@ -1123,6 +1542,35 @@
     },
     {
       "affected": [
+        "TBL-DOM-001#DomainJudgment",
+        "TBL-DOM-001#IngestFile",
+        "TBL-DOM-001#SalesStageFlow",
+        "TBL-DOM-001#ThresholdSetting",
+        "TBL-DOM-002#AnomalyDetector",
+        "TBL-DOM-002#FormBPivotParser",
+        "TBL-DOM-002#StageFlowCalculator",
+        "TBL-INFRA-001#C16",
+        "TBL-INFRA-001#C18",
+        "TBL-PRD-001#G2",
+        "TBL-PRD-001#R1",
+        "TBL-PRD-001#R11",
+        "TBL-PRD-001#R29",
+        "TBL-PRD-001#R8",
+        "TBL-RFQ-001#Q65",
+        "TBL-UC-001#UC-A1",
+        "TBL-UC-001#UC-S8"
+      ],
+      "changed": [
+        "TBL-RFQ-001#Q60",
+        "TBL-RFQ-001#Q63"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-RFQ-001@3ab652758a6e0abdea7878fb39cbfb1e3f400293"
+    },
+    {
+      "affected": [
         "TBL-PRD-001#G1",
         "TBL-PRD-001#R22"
       ],
@@ -1140,6 +1588,21 @@
     },
     {
       "affected": [
+        "TBL-DOM-001#Anomaly",
+        "TBL-DOM-002#AnomalyDetector",
+        "TBL-PRD-001#R8",
+        "TBL-RFQ-001#Q59"
+      ],
+      "changed": [
+        "TBL-RFQ-001#Q64"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-RFQ-001@b8e4f1ce22ca80d7f0691b0481b9b87a869ceaef"
+    },
+    {
+      "affected": [
         "TBL-PRD-001#G1",
         "TBL-PRD-001#R25",
         "TBL-RFQ-001#Q31",
@@ -1154,6 +1617,25 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-RFQ-001@bd5a8a9bbd9172c1680795400bb9affbc7954d92"
+    },
+    {
+      "affected": [
+        "TBL-DOM-001#SalesStageFlow",
+        "TBL-DOM-001#ThresholdSetting",
+        "TBL-DOM-002#StageFlowCalculator",
+        "TBL-INFRA-001#C18",
+        "TBL-PRD-001#R1",
+        "TBL-PRD-001#R8",
+        "TBL-UC-001#UC-A1"
+      ],
+      "changed": [
+        "TBL-RFQ-001#Q63",
+        "TBL-RFQ-001#Q65"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-RFQ-001@f01f37cd0163af2168d7e39950baacaf991ef7d0"
     },
     {
       "affected": [
@@ -1226,6 +1708,18 @@
     },
     {
       "affected": [
+        "TBL-UC-001#UC-H4"
+      ],
+      "changed": [
+        "TBL-SCN-001#S13"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-SCN-001@8d5e9c1a1566efc2c3f4392149145251273cdb3b"
+    },
+    {
+      "affected": [
         "TBL-UC-001#UC-H2"
       ],
       "changed": [
@@ -1262,6 +1756,18 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-SCN-001@cbf34bde671d806b4b5695d0b73d3797151396b6"
+    },
+    {
+      "affected": [
+        "TBL-UC-001#UC-A1"
+      ],
+      "changed": [
+        "TBL-SCN-001#S5"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-SCN-001@db62e11f5f1376acd3e5b6e2beaa1256cdb0ea4e"
     },
     {
       "affected": [
@@ -1373,6 +1879,24 @@
     },
     {
       "affected": [
+        "TBL-MS-001#CandidateSearcher.apply_limit",
+        "TBL-MS-001#CandidateSearcher.search",
+        "TBL-MS-001#MarketService.as_of",
+        "TBL-MS-001#TrafficLightJudge.build_watch_items",
+        "TBL-MS-001#TrafficLightJudge.judge",
+        "TBL-SEQ-001#SEQ-15",
+        "TBL-SEQ-001#SEQ-19"
+      ],
+      "changed": [
+        "TBL-SEQ-001#SEQ-18"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-SEQ-001@bed97f5e2c20359721dc039f90a386355d36d4fc"
+    },
+    {
+      "affected": [
         "TBL-MS-001#BriefingQuery.latest"
       ],
       "changed": [
@@ -1394,6 +1918,23 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-SEQ-001@d6bf370d955982fe537e809e0453087c7b16b914"
+    },
+    {
+      "affected": [
+        "TBL-SEQ-001#SEQ-21",
+        "TBL-UC-001#UC-S1",
+        "TBL-UC-001#UC-S11",
+        "TBL-UC-001#UC-S9",
+        "TBL-UI-001#UI-10"
+      ],
+      "changed": [
+        "TBL-UC-001#UC-S4",
+        "TBL-UC-001#UC-S7"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-UC-001@0b00bfd8b86635902610c45ede22ca1780e87995"
     },
     {
       "affected": [
@@ -1451,6 +1992,35 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-UC-001@61132e0eb584755d81cdbfea0e287fe5fe11ae2c"
+    },
+    {
+      "affected": [
+        "TBL-DOM-001#Anomaly",
+        "TBL-DOM-001#CauseCandidate",
+        "TBL-DOM-001#CountryDayFact",
+        "TBL-DOM-001#ModelExposure",
+        "TBL-DOM-001#SalesStageFlow",
+        "TBL-DOM-001#WatchItem",
+        "TBL-DOM-002#TrafficLightJudge",
+        "TBL-INFRA-001#C16",
+        "TBL-INFRA-001#C17",
+        "TBL-INFRA-001#C19",
+        "TBL-SEQ-001#SEQ-17",
+        "TBL-SEQ-001#SEQ-18",
+        "TBL-UC-001#UC-S1",
+        "TBL-UC-001#UC-S10",
+        "TBL-UC-001#UC-S11",
+        "TBL-UC-001#UC-S9",
+        "TBL-UI-001#UI-10"
+      ],
+      "changed": [
+        "TBL-UC-001#UC-S3",
+        "TBL-UC-001#UC-S8"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-UC-001@cb33e3b87714c4b8f125d0e7b2e6277ead548dd9"
     },
     {
       "affected": [
@@ -1578,6 +2148,44 @@
     {
       "affected": [
         "TBL-API-001#GET/api/intel/areport/domain/{domain}",
+        "TBL-API-001#GET/api/intel/creport/latest",
+        "TBL-API-001#GET/api/intel/creport/version/{reportId}",
+        "TBL-API-001#GET/api/intel/market/series/{indicatorId}",
+        "TBL-DOM-002#MarketService",
+        "TBL-DOM-003#c_report",
+        "TBL-DOM-003#market_series",
+        "TBL-DOM-003#report_anomaly",
+        "TBL-MS-001#ReportPublisher.publish",
+        "TBL-MS-001#TrafficLightJudge.build_domain_status",
+        "TBL-UI-001#UI-13"
+      ],
+      "changed": [
+        "TBL-UI-001#UI-10"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-UI-001@39aabd07baab4c0412e0e150bad456255e4da91a"
+    },
+    {
+      "affected": [
+        "TBL-API-001#GET/api/intel/areport/domain/{domain}",
+        "TBL-API-001#GET/api/intel/areport/version/{domainReportId}",
+        "TBL-DOM-003#a_report_snapshot",
+        "TBL-DOM-003#sales_stage_flow",
+        "TBL-UI-001#UI-8"
+      ],
+      "changed": [
+        "TBL-UI-001#UI-9"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-UI-001@4576c182ea29350872eeef8ebfc04c96782b73ee"
+    },
+    {
+      "affected": [
+        "TBL-API-001#GET/api/intel/areport/domain/{domain}",
         "TBL-API-001#GET/api/intel/areport/version/{domainReportId}",
         "TBL-DOM-003#a_report_snapshot",
         "TBL-DOM-003#sales_stage_flow"
@@ -1590,6 +2198,22 @@
       "decided_at": null,
       "decided_by": null,
       "version": "TBL-UI-001@9ad72956172f592ad30aee80a9a34875b88006bf"
+    },
+    {
+      "affected": [
+        "TBL-API-001#GET/api/intel/areport/domain/{domain}",
+        "TBL-API-001#GET/api/intel/areport/version/{domainReportId}",
+        "TBL-DOM-003#a_report_snapshot",
+        "TBL-DOM-003#sales_stage_flow",
+        "TBL-UI-001#UI-8"
+      ],
+      "changed": [
+        "TBL-UI-001#UI-9"
+      ],
+      "choice": "undecided",
+      "decided_at": null,
+      "decided_by": null,
+      "version": "TBL-UI-001@e67f55b3dbd9d4ee1f6d98eba45e042d7e82d6d7"
     }
   ]
 }
