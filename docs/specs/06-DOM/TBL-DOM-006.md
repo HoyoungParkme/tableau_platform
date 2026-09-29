@@ -51,7 +51,7 @@ PostgreSQL 16 한 대에 스키마로 나눈다([[TBL-INFRA-002]] 6장).
 | 식별자 타입 | API가 문자열로 내보내는 것은 `text`(ULID). 밖으로 나가지 않는 대용량 행은 `bigserial`. 클래스 명세의 `int id`는 이 둘 중 하나로 내려간다 |
 | 수치 | 대수는 `numeric(18,3)`, 비율은 `numeric(10,6)`. `double precision`을 쓰지 않는다 |
 | 날짜 | 날짜만이면 `date`, 시각이 필요하면 `timestamptz` |
-| 열거 | `text` + `CHECK` 제약. PostgreSQL `enum` 타입을 쓰지 않는다 |
+| 열거 | `text` + `CHECK` 제약. PostgreSQL `enum` 타입을 쓰지 않는다. 값은 [[TBL-API-002]]의 열거 값을 그대로 쓴다. 응답으로 나가는 값과 저장하는 값을 다르게 두지 않는다 |
 | 결측 | `NULL`. `-` 같은 표기를 0으로 바꾸지 않는다 |
 | 가변 배열 | `text[]` 또는 `integer[]`. 구조가 있으면 `jsonb`. 클래스 명세의 `json` 속성은 조회 조건이 되면 테이블로 펼치고 통째로 읽기만 하면 `jsonb`로 둔다 |
 
@@ -863,7 +863,7 @@ erDiagram
 | `official_wholesale` | numeric(18,3) | Y | 도매(공식) |
 | `retail` | numeric(18,3) | Y | 소매 |
 | `plan_value` | numeric(18,3) | Y | 설정이 고른 계획 정본의 값. 계획이 없으면 NULL |
-| `plan_source` | text | Y | `operatingPlan` `businessPlan`. 어느 계획을 정본으로 썼는가 |
+| `plan_source` | text | Y | `operationPlan` `businessPlan`. 어느 계획을 정본으로 썼는가 |
 | `plan_alt_diff` | numeric(18,3) | Y | 고르지 않은 쪽 계획과의 차이 |
 | `compare_value` | numeric(18,3) | Y | 비교 값 |
 | `compare_basis` | text | Y | `plan` `yoy` `mom`. 계획이 있으면 `plan`이 먼저다 |
@@ -937,7 +937,7 @@ erDiagram
 | `model_code` | text | N | 차종 코드 |
 | `country_code` | text | Y | |
 | `exposure` | text | N | `CBU` `CKD` `unknown` |
-| `acquired_by` | text | N | `column` `derived` |
+| `acquired_by` | text | N | `columnDirect` `productionDerived` |
 | `derived_ratio` | numeric(10,6) | Y | 유도했을 때만 |
 | `derivation_note` | text | Y | 유도 근거를 사람 말로. 수치 점수를 두지 않는다 |
 | `period_type` | text | N | 클래스 속성 `period_key`의 앞 칸 |
@@ -997,7 +997,7 @@ erDiagram
 |:--|:--|:--|:--|
 | `event_id` | text | N | |
 | `title` | text | N | 명명 실패면 대표 기사 제목이 들어간다 |
-| `named_by` | text | N | `llm` `representative` |
+| `named_by` | text | N | `llm` `representativeArticle` |
 | `event_type` | text | Y | |
 | `category` | text | Y | |
 | `country_code` | text | Y | 클래스 속성 `country_or_strait`의 국가 쪽 |
@@ -1026,13 +1026,13 @@ erDiagram
 |:--|:--|:--|:--|
 | `candidate_id` | text | N | 후보 식별자. 정렬 넷째 열쇠 |
 | `anomaly_id` | text | N | [[#anomaly]] |
-| `candidate_type` | text | N | `event` `article` `market` `crossDomain` |
+| `candidate_type` | text | N | `event` `article` `marketMetric` `crossDomainAnomaly` |
 | `target_id` | text | N | 사건·기사·지표·다른 변동의 식별자. 클래스 속성 `candidate_id`가 가리키던 대상 |
 | `title` | text | N | |
 | `day_diff` | integer | N | 근접도 1. 변동의 `file_base_date`와의 날짜 차이 |
 | `article_count` | integer | N | 근접도 2 |
 | `source_count` | integer | N | 근접도 3. 서로 다른 매체 이름의 개수 |
-| `country_match` | text | N | 근접도 4. `direct` `strait` `crossDomain` `dateOnly` |
+| `country_match` | text | N | 근접도 4. `countryDirect` `straitAttributed` `crossDomainSameCountry` `dateOnly` |
 | `sort_order` | integer | N | 정렬 규칙이 낳은 자리 번호 |
 | `is_truncated` | boolean | N | 상한에 걸려 잘린 축에 속하는가 |
 | `used_in_explanation` | boolean | N | [[#cause_link]]가 인용했는가 |
@@ -1087,7 +1087,7 @@ erDiagram
 | `light_basis` | jsonb | Y | 기준을 넘긴 후보와 그때의 값·기준값 쌍. 기사 수·최소 기사 수, 출처 수·최소 출처 수, 날짜 차이·시간창 |
 | `exposure` | text | N | `confirmed` `unconfirmed`. 미확인이면 `red`로 올라가지 못한다 |
 | `sort_order` | integer | N | 신호등 순으로 매긴 자리 |
-| `change_badge` | text | Y | `new` `up` `down` |
+| `change_badge` | text | Y | `new` `raised`. 변화가 없으면 NULL |
 | `entity_code` | text | Y | [[#glovis_entity]]. 클래스 속성 `entity_tag`. 없으면 법인 미매핑 |
 | `top_candidate_id` | text | Y | 대표 후보 [[#cause_candidate]] |
 | `setting_version` | text | N | |
@@ -1249,7 +1249,7 @@ erDiagram
 |:--|:--|:--|:--|
 | `report_id` | text | N | [[#c_report]]. 클래스 속성 `c_report_id` |
 | `number` | integer | N | 리포트 안에서 1부터 |
-| `kind` | text | N | `candidate` `causeLink` `anomaly` `contribution` `market` `article` `aJudgment` |
+| `kind` | text | N | `candidate` `causeLink` `anomaly` `contribution` `marketMetric` `article` `aJudgment` |
 | `source_id` | text | N | 원본 식별자 |
 | `display_values` | jsonb | N | 표시용 값 사본. 제목·출처·게시일·값·URL. 열람할 때 조인이 없다 |
 
@@ -1282,7 +1282,7 @@ erDiagram
 | `alert_id` | bigserial | N | |
 | `report_id` | text | N | [[#c_report]]. 클래스 속성 `c_report_id` |
 | `country_code` | text | N | |
-| `change_type` | text | N | `new` `up` `down` `exit` |
+| `change_type` | text | N | `new` `raised` `lowered` `dropped` |
 | `prev_light` | text | Y | |
 | `new_light` | text | Y | |
 | `is_sent` | boolean | N | 발송 채널이 정해지지 않아도 기록과 배지는 남긴다 |
@@ -1506,7 +1506,7 @@ erDiagram
 | `min_article_count` | integer | N | 신호등에 필요한 최소 기사 수 |
 | `min_source_count` | integer | N | 신호등에 필요한 최소 출처 수 |
 | `cbu_share_threshold` | numeric(10,6) | N | 완성차 노출 확인 기준 |
-| `plan_source` | text | N | `operatingPlan` `businessPlan`. 기본값 `businessPlan` |
+| `plan_source` | text | N | `operationPlan` `businessPlan`. 기본값 `businessPlan` |
 | `wholesale_basis` | text | N | `officialWholesale` `actualWholesale`. 기본값 `officialWholesale` |
 | `detection_unit` | text | N | `modelGroup` `modelDetail`. 기본값 `modelGroup` |
 | `regression_tolerance` | numeric(10,6) | N | 회귀 허용 폭 |
