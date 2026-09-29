@@ -1055,6 +1055,8 @@ components:
 
 `autoRunBlocked`가 참이면 회귀 급변 때문이며 `blockedBy`가 어느 적재 건인지 가리킨다. 푸는 것은 [[#POST/api/admin/ingest/unblock/{ingestFileId}]]다.
 
+`briefingStore`는 브리핑 갈래 저장소에 지금 붙는지를 `BriefingStoreReader.ping`으로 확인한 결과다. 배치 2단계가 같은 확인을 먼저 하므로, 이 값이 거짓이면 다음 배치가 세 도메인 모두 보완 집계로 내려간다는 뜻이다. 판정을 한 건도 읽지 않는 가벼운 조회이고 실패해도 이 엔드포인트는 200이다.
+
 ```yaml
 /api/admin/batch/status:
   get:
@@ -1068,7 +1070,7 @@ components:
           application/json:
             schema:
               type: object
-              required: [autoRunBlocked]
+              required: [autoRunBlocked, briefingStore]
               properties:
                 running:
                   type: object
@@ -1096,6 +1098,14 @@ components:
                     ingestFileId: { type: string }
                     abruptReasons: { type: array, items: { type: string } }
                 nextScheduledAt: { type: string, format: date-time, nullable: true }
+                briefingStore:
+                  type: object
+                  description: 브리핑 갈래 저장소 접속 확인. BriefingStoreReader.ping 결과
+                  required: [reachable, checkedAt]
+                  properties:
+                    reachable: { type: boolean }
+                    checkedAt: { type: string, format: date-time }
+                    lastSnapshotId: { type: string, nullable: true, description: 마지막으로 읽은 A 판정 스냅샷 식별자 }
                 queued:
                   type: array
                   description: 재생성 때문에 대기 중인 정기 배치
