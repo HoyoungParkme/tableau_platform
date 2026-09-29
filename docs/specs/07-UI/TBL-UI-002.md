@@ -37,7 +37,7 @@ upstream: [TBL-UC-002, TBL-PRD-002, TBL-INFRA-002, TBL-DOM-004]
 | `docs/glovis/intelligence/design/A2Inventory.dc.html` | [[#UI-3]] |
 | `docs/glovis/intelligence/design/A3Sales.dc.html` | [[#UI-4]] |
 
-관리 화면 셋([[#UI-5]] [[#UI-6]] [[#UI-7]])에는 시안이 없다. 유스케이스 흐름에서 유도한 최소 구성을 적었고 그 사실을 각 항목에 표시했다.
+열람 화면 넷([[#UI-1]] [[#UI-2]] [[#UI-3]] [[#UI-4]])의 배치 블록은 위 시안 파일의 내용(스타일과 본문)을 그대로 옮긴 것이다. 시안에는 요소 번호 표시가 없으므로 요소 표의 번호는 시안 요소를 위에서 아래로 센 것이며 배치와 배지로 잇지 않았다. 관리 화면 셋([[#UI-5]] [[#UI-6]] [[#UI-7]])에는 시안이 없다. 유스케이스 흐름에서 유도한 최소 구성을 적었고 그 사실을 각 항목에 표시했다.
 
 ### 0.2 용어
 
@@ -99,122 +99,521 @@ A1 생산 리포트, A2 재고 리포트, A3 판매 리포트를 통칭해 A 리
 ##### 배치
 
 ```html
-<main data-screen="UI-1" class="page" data-el="1" style="width:1280px;padding:28px 32px 40px">
-  <header class="page-head">
-    <h1>완성차 인텔리전스</h1><span class="sub">종합 리포트</span>
-    <div data-el="2" class="asof">기준일 2026-08-20 · 완성차 08-20 · 뉴스 08-20 · 시장 08-19</div>
-  </header>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>.var{margin:32px 0 8px;font-size:11.5px;color:#A6A49C;border-left:3px solid #DAD6CE;padding-left:10px;font-family:system-ui,sans-serif}</style>
 
-  <section data-el="3" class="market-bar">
-    <div class="metric"><span class="lbl">GPR</span><span class="num">118.4</span><span class="cap">+2.1% · 08-19</span></div>
-    <div class="metric"><span class="lbl">Brent</span><span class="num">84.2</span><span class="cap">-0.8% · 08-19</span></div>
-    <div class="metric"><span class="lbl">BDI</span><span class="num">1,742</span><span class="cap">+4.6% · 08-19</span></div>
-    <div class="metric"><span class="lbl">SCFI</span><span class="num">2,088</span><span class="cap">+1.2% · 08-19</span></div>
-  </section>
+<style>
+body { margin: 0; background: #F4F2EE; color: #1A1B19;
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, 'Malgun Gothic', sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; text-decoration: none; }
+    a:hover { color: #0B5847; text-decoration: underline; }
+    .num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .lbl { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: #9A9890; }
+    .hl { font-weight: 600; background: rgba(181,115,12,.14); border-radius: 3px; padding: 0 2px; }
+    .fn { font-size: 10px; vertical-align: super; color: #0E6B57; font-weight: 600; }
+</style>
+<div style="width: 1280px; padding: 28px 32px 40px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px;">
 
-  <section data-el="4" class="card headline">
-    <span class="lbl">오늘의 요약</span>
-    <span data-el="5" class="chip chip-accent">상관관계 확인 · 인과관계 미확정</span>
-    <p class="headline-text">중동 판매 급감이 호르무즈 사건과 같은 시점에 걸렸고, 오만은 완성차 노출 100%라 확인이 필요합니다<sup class="fn">1,2</sup></p>
-  </section>
-
-  <section class="domain-status">
-    <div class="sec-head"><span class="lbl">도메인 상태</span><button data-el="6" class="ghost">접기</button></div>
-    <div class="grid-3">
-      <article data-el="7" class="card domain-card"><span class="state state-na">판정 대상 아님</span><h3>생산</h3><p>누적 달성 86.1%. 미국 신공장이 45.9%로 가장 낮습니다<sup class="fn">3</sup></p><span class="cap">A1 판정 · 공장 축</span></article>
-      <article data-el="7" class="card domain-card"><span class="state state-yellow">주의</span><h3>재고</h3><p>유통 체류 34,104대(유도). 칠레·페루가 딜러 단계에서 멈췄습니다<sup class="fn">4</sup></p><span class="cap">A2 판정 · 유도값</span></article>
-      <article data-el="7" class="card domain-card"><span class="state state-red">확인 필요</span><h3>판매</h3><p>오만·UAE 도매 급감이 해협 사건과 겹칩니다<sup class="fn">1</sup></p><span class="cap">A3 판정 · 국가 축</span></article>
+  <div style="display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid #E2DFD8; padding-bottom: 14px;">
+    <div style="display: flex; align-items: baseline; gap: 10px;">
+      <div style="font-size: 17px; font-weight: 600; letter-spacing: -.01em;">완성차 인텔리전스</div>
+      <div style="font-size: 11.5px; color: #6B6A65;">종합 리포트</div>
     </div>
-  </section>
-
-  <section class="anomaly-list">
-    <div data-el="8" class="sec-head"><span class="lbl">변동 목록 · 국가 4건</span><span class="cap">신호등 순 정렬</span></div>
-
-    <article data-el="9" class="card anomaly-card">
-      <div class="card-head">
-        <h2>오만</h2>
-        <span data-el="10" class="state state-red">확인 필요</span>
-        <span data-el="11" class="chip chip-accent">신규</span>
-        <span data-el="12" class="chip">CBU 100%</span>
-        <span data-el="13" class="chip chip-muted">법인 미매핑</span>
-      </div>
-      <div class="grid-2">
-        <div data-el="14" class="box"><span class="lbl">변동</span><p>도매 대비 소매 <span class="num">-7.2%</span> · 계획 대비 · 누계</p><p class="cap">418대 → 0대</p></div>
-        <div data-el="15" class="box"><span class="lbl">대시보드 안에서의 분해</span><p>차종그룹 투싼 62% · 아반떼 31%</p><p class="cap">A3 판매 리포트가 낸 값</p></div>
-      </div>
-      <div class="cause-top">
-        <h3 data-el="16">호르무즈 해협 봉쇄 위협</h3>
-        <span data-el="17" class="chip">변동 시점과 1일 차이</span>
-        <span data-el="17" class="chip">기사 8건 · 출처 5곳</span>
-        <span data-el="17" class="chip">해협 귀속</span>
-      </div>
-      <p data-el="18" class="cause-text">도매 급감이 해협 봉쇄 보도와 같은 주에 걸렸고 같은 국가의 재고 체류도 늘었습니다<sup class="fn">1,5</sup></p>
-      <div class="card-foot">
-        <button data-el="19" class="ghost">근거 펼치기</button>
-        <span class="cap">후보 4건 · 시점 가까운 순</span>
-      </div>
-      <div data-el="20" class="evidence-panel" style="display:none"></div>
-    </article>
-
-    <div data-el="25" class="no-cause">인도 · 재고 체류 +24% · 원인 미확인 · 시간창 안에서 원인 후보를 찾지 못했습니다</div>
-  </section>
-
-  <footer data-el="26" class="page-foot">각주 번호를 누르면 근거가 강조됩니다 · 기준일 2026-08-20 · 배치 #412</footer>
-</main>
-
-<div class="var">근거 패널(20) 펼친 상태. 같은 카드 안에서 열리며 화면을 떠나지 않는다</div>
-<div class="page" style="width:760px;padding:18px 20px">
-  <div data-el="20" class="evidence-panel">
-    <div class="panel-head">
-      <button data-el="19" class="ghost">근거 접기</button>
-      <span class="cap">후보 4건 · 변동 시점과 가까운 순 · 잘린 후보 0건</span>
+    <div style="display: flex; align-items: baseline; gap: 16px; font-size: 11.5px; color: #6B6A65;">
+      <div>기준일 <span class="num" style="color:#1A1B19;">2026-08-20</span></div>
+      <div>완성차 <span class="num">08-20</span> · 뉴스 <span class="num">08-20</span> · 시장 <span class="num">08-20</span></div>
     </div>
-    <section data-el="21" class="box cand">
-      <div class="cand-head">호르무즈 해협 봉쇄 위협 <span class="cap">사건 · 해상운송 · 시점 1일 차이 · 기사 8건 · 출처 5곳 · 해협 귀속</span><sup class="fn">1</sup></div>
-      <ul class="article-list">
-        <li><a href="#" target="_blank" rel="noopener">이란, 해협 통항 제한 경고</a><span class="cap">Reuters · 08-12</span></li>
-        <li><a href="#" target="_blank" rel="noopener">걸프 해운사 우회 검토</a><span class="cap">Lloyd's List · 08-13</span></li>
-        <li><a href="#" target="_blank" rel="noopener">보험료 급등</a><span class="cap">Bloomberg · 08-13</span></li>
-      </ul>
-      <p class="cap">기사 8건 중 상위 3건. 해협 사건은 인접국 표로 붙었습니다.</p>
-    </section>
-    <section data-el="22" class="box cand">
-      <div class="cand-head">같은 국가 재고 변동 <span class="cap">타 도메인 · A2 재고 · 같은 국가 같은 기간</span><sup class="fn">5</sup></div>
-      <div class="value-row"><span class="num">체류 +24%</span><span class="num">유도값</span><span class="num">누계</span></div>
-    </section>
-    <section data-el="23" class="box cand">
-      <div class="cand-head">건화물운임 BDI <span class="cap">시장 지표 · 날짜만 일치 · 국가 축 없음</span><sup class="fn">3</sup></div>
-      <div class="value-row"><span class="num">1,742</span><span class="num">+4.6%</span><span class="cap">30일 스파크라인</span></div>
-    </section>
-    <div data-el="24" class="cand-unused">설명에 쓰이지 않은 후보 1건</div>
-    <p class="cap">각주 번호를 누르면 해당 근거가 강조됩니다.</p>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #E2DFD8; border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+    <div style="background: #FFFFFF; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 11.5px; color: #6B6A65;">지정학 위험 GPR</div>
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <div class="num" style="font-size: 19px; font-weight: 600;">182.4</div>
+        <div class="num" style="font-size: 12px; font-weight: 600; color: #B3261E;">+14.2%</div>
+      </div>
+      <div style="font-size: 10.5px; color: #9A9890;">08-20 기준</div>
+    </div>
+    <div style="background: #FFFFFF; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 11.5px; color: #6B6A65;">브렌트유 Brent</div>
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <div class="num" style="font-size: 19px; font-weight: 600;">78.32</div>
+        <div class="num" style="font-size: 12px; font-weight: 600; color: #B3261E;">+3.1%</div>
+      </div>
+      <div style="font-size: 10.5px; color: #9A9890;">08-20 기준</div>
+    </div>
+    <div style="background: #FFFFFF; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 11.5px; color: #6B6A65;">건화물운임 BDI</div>
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <div class="num" style="font-size: 19px; font-weight: 600;">2,776</div>
+        <div class="num" style="font-size: 12px; font-weight: 600; color: #0E6B57;">-10.1%</div>
+      </div>
+      <div style="font-size: 10.5px; color: #9A9890;">08-20 기준</div>
+    </div>
+    <div style="background: #FFFFFF; padding: 12px 16px; display: flex; flex-direction: column; gap: 4px;">
+      <div style="font-size: 11.5px; color: #6B6A65;">컨테이너운임 SCFI</div>
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <div class="num" style="font-size: 19px; font-weight: 600;">1,942</div>
+        <div class="num" style="font-size: 12px; font-weight: 600; color: #9A9890;">-0.4%</div>
+      </div>
+      <div style="font-size: 10.5px; color: #B5730C;">08-18 값 이월</div>
+    </div>
+  </div>
+
+  <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 20px 22px; display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div class="lbl">오늘의 요약</div>
+      <div style="display: inline-flex; align-items: center; gap: 5px; background: #EFEDE7; color: #6B6A65; font-size: 11.5px; padding: 3px 8px; border-radius: 7px;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+        상관관계 확인 · 인과관계 미확정
+      </div>
+    </div>
+    <div style="font-size: 19px; font-weight: 500; line-height: 1.6; letter-spacing: -.01em; text-wrap: pretty;">
+      중동 2개국에서 <span class="hl">판매 도매가 급감</span>하는 동안 같은 국가의 <span class="hl">항해중 재고가 늘었고</span>, 시점이 <span class="hl">호르무즈 해협 사건</span>과 겹칩니다.<span class="fn">1,2,3</span> 생산은 변동이 없습니다.
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div class="lbl">도메인 상태</div>
+      <button style="display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border: 1px solid #DAD6CE; background: #FFFFFF; color: #6B6A65; font-size: 11.5px; border-radius: 7px; font-family: inherit; cursor: pointer;">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg>
+        접기
+      </button>
+    </div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px;">
+
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #9A9890; display: inline-block;"></span>
+          <div style="font-size: 15px; font-weight: 600;">생산</div>
+          <div style="font-size: 11.5px; color: #6B6A65; margin-left: auto;">모니터링</div>
+        </div>
+        <div style="font-size: 13.5px; line-height: 1.65; color: #1A1B19;">
+          공장별 생산은 전월 수준을 유지했습니다. 임계값을 넘은 공장이 없습니다. 생산 대시보드에 국가 차원이 없어 중동행 물량만 따로 보지는 못합니다.<span class="fn">4</span>
+        </div>
+        <div style="font-size: 11px; color: #9A9890; border-top: 1px solid #EFEDE7; padding-top: 8px;">대시보드 판정 A1 · 기여 분해 없음</div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #B5730C; display: inline-block;"></span>
+          <div style="font-size: 15px; font-weight: 600;">재고</div>
+          <div style="font-size: 11.5px; color: #B5730C; font-weight: 600; margin-left: auto;">주의</div>
+        </div>
+        <div style="font-size: 13.5px; line-height: 1.65; color: #1A1B19;">
+          오만의 <span class="hl">항해중 재고가 418대</span>로 총재고의 42%를 차지합니다. 아랍에미리트도 28%로 올라 두 나라 모두 도매가 멈춘 것과 맞물립니다.<span class="fn">5,6</span>
+        </div>
+        <div style="font-size: 11px; color: #9A9890; border-top: 1px solid #EFEDE7; padding-top: 8px;">대시보드 판정 A2 · 기여 상위 오만 · 아랍에미리트</div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 16px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="width: 8px; height: 8px; border-radius: 50%; background: #B3261E; display: inline-block;"></span>
+          <div style="font-size: 15px; font-weight: 600;">판매</div>
+          <div style="font-size: 11.5px; color: #B3261E; font-weight: 600; margin-left: auto;">확인 필요</div>
+        </div>
+        <div style="font-size: 13.5px; line-height: 1.65; color: #1A1B19;">
+          오만과 아랍에미리트의 도매가 <span class="hl">전월 대비 급감</span>했습니다. 대시보드 분해로는 투싼·아반떼가 감소분의 대부분을 만들었습니다.<span class="fn">1,7</span>
+        </div>
+        <div style="font-size: 11px; color: #9A9890; border-top: 1px solid #EFEDE7; padding-top: 8px;">대시보드 판정 A3 · 기여 상위 투싼 · 아반떼</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 10px;">
+    <div style="display: flex; align-items: center; justify-content: space-between;">
+      <div class="lbl">변동 목록 · 국가 4건</div>
+      <div style="font-size: 11.5px; color: #6B6A65;">신호등 순 정렬</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div style="font-size: 16px; font-weight: 600;">오만</div>
+          <span style="font-size: 11px; font-weight: 600; color: #B3261E; background: rgba(179,38,30,.08); border: 1px solid #F0CFCB; padding: 2px 7px; border-radius: 7px;">확인 필요</span>
+          <span style="font-size: 11px; color: #0B5847; background: #E7F0ED; padding: 2px 7px; border-radius: 7px;">신규</span>
+          <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">CBU 100%</span>
+          <span style="font-size: 11px; color: #9A9890; background: #FBFAF8; border: 1px solid #E2DFD8; padding: 2px 7px; border-radius: 7px;">법인 미매핑</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: #FBFAF8; border: 1px solid #EFEDE7; border-radius: 7px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lbl">변동</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <div style="font-size: 13.5px;">판매 도매</div>
+              <div class="num" style="font-size: 17px; font-weight: 600; color: #B3261E;">-100%</div>
+              <div style="font-size: 11.5px; color: #6B6A65;">전월 대비</div>
+            </div>
+            <div class="num" style="font-size: 11.5px; color: #6B6A65;">418대 → 0대</div>
+          </div>
+          <div style="background: #FBFAF8; border: 1px solid #EFEDE7; border-radius: 7px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lbl">대시보드 안에서의 분해</div>
+            <div style="font-size: 13px; line-height: 1.6;">투싼 <span class="num" style="font-weight:600;">-52%p</span> · 아반떼 <span class="num" style="font-weight:600;">-31%p</span> · 나머지 <span class="num" style="font-weight:600;">-17%p</span></div>
+            <div style="font-size: 11px; color: #9A9890;">A3 판매 리포트가 낸 값</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="font-size: 14px; font-weight: 600;">호르무즈 해협 봉쇄 위협</div>
+            <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">변동 시점과 1일 차이</span>
+            <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">기사 8건 · 출처 5곳</span>
+          </div>
+          <div style="font-size: 13.5px; line-height: 1.7; color: #1A1B19; text-wrap: pretty;">
+            도매가 멈춘 시점과 해협 사건의 보도 구간이 겹칩니다.<span class="fn">1</span> 같은 기간 항해중 재고가 418대로 늘어 선적은 됐으나 하역이 지연된 모습입니다.<span class="fn">5</span> 건화물운임은 10.1% 내렸습니다.<span class="fn">3</span> 오만 물량은 전부 완성차라 해상 구간 지연에 그대로 노출됩니다.
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; border-top: 1px solid #EFEDE7; padding-top: 12px;">
+          <button style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid #DAD6CE; background: #FFFFFF; color: #1A1B19; font-size: 13px; font-weight: 500; border-radius: 7px; font-family: inherit; cursor: pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+            근거 펼치기
+          </button>
+          <div style="font-size: 11.5px; color: #6B6A65;">후보 4건 · 시점 가까운 순</div>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div style="font-size: 16px; font-weight: 600;">아랍에미리트</div>
+          <span style="font-size: 11px; font-weight: 600; color: #B3261E; background: rgba(179,38,30,.08); border: 1px solid #F0CFCB; padding: 2px 7px; border-radius: 7px;">확인 필요</span>
+          <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">CBU 94%</span>
+          <span style="font-size: 11px; color: #0B5847; background: #E7F0ED; padding: 2px 7px; border-radius: 7px;">GLOVIS ME</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: #FBFAF8; border: 1px solid #EFEDE7; border-radius: 7px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lbl">변동</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <div style="font-size: 13.5px;">판매 도매</div>
+              <div class="num" style="font-size: 17px; font-weight: 600; color: #B3261E;">-62%</div>
+              <div style="font-size: 11.5px; color: #6B6A65;">전월 대비</div>
+            </div>
+            <div class="num" style="font-size: 11.5px; color: #6B6A65;">1,204대 → 458대</div>
+          </div>
+          <div style="background: #FBFAF8; border: 1px solid #EFEDE7; border-radius: 7px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lbl">대시보드 안에서의 분해</div>
+            <div style="font-size: 13px; line-height: 1.6;">두바이 대리점 <span class="num" style="font-weight:600;">-41%p</span> · 아부다비 <span class="num" style="font-weight:600;">-21%p</span></div>
+            <div style="font-size: 11px; color: #9A9890;">A3 판매 리포트가 낸 값</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="font-size: 14px; font-weight: 600;">호르무즈 해협 봉쇄 위협</div>
+            <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">변동 시점과 2일 차이</span>
+            <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">오만과 같은 사건</span>
+          </div>
+          <div style="font-size: 13.5px; line-height: 1.7; color: #1A1B19; text-wrap: pretty;">
+            오만과 같은 사건에 걸려 있습니다.<span class="fn">1</span> 다만 감소 폭이 더 작고 항해중 재고 비중도 28%에 머물러, 하역 지연이 아직 일부 대리점에만 닿은 것으로 보입니다.<span class="fn">6</span>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; border-top: 1px solid #EFEDE7; padding-top: 12px;">
+          <button style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid #DAD6CE; background: #FFFFFF; color: #1A1B19; font-size: 13px; font-weight: 500; border-radius: 7px; font-family: inherit; cursor: pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+            근거 펼치기
+          </button>
+          <div style="font-size: 11.5px; color: #6B6A65;">후보 3건 · 시점 가까운 순</div>
+        </div>
+      </div>
+
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <div style="font-size: 16px; font-weight: 600;">파키스탄</div>
+          <span style="font-size: 11px; font-weight: 600; color: #B5730C; background: rgba(181,115,12,.10); border: 1px solid rgba(181,115,12,.28); padding: 2px 7px; border-radius: 7px;">주의</span>
+          <span style="font-size: 11px; color: #0B5847; background: #E7F0ED; padding: 2px 7px; border-radius: 7px;">상승</span>
+          <span style="font-size: 11px; color: #9A9890; background: #FBFAF8; border: 1px solid #E2DFD8; padding: 2px 7px; border-radius: 7px;">노출 미확인</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div style="background: #FBFAF8; border: 1px solid #EFEDE7; border-radius: 7px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lbl">변동</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <div style="font-size: 13.5px;">재고 선적대기</div>
+              <div class="num" style="font-size: 17px; font-weight: 600; color: #B5730C;">+38%</div>
+              <div style="font-size: 11.5px; color: #6B6A65;">전월 대비</div>
+            </div>
+            <div class="num" style="font-size: 11.5px; color: #6B6A65;">612대 → 845대</div>
+          </div>
+          <div style="background: #FBFAF8; border: 1px solid #EFEDE7; border-radius: 7px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div class="lbl">대시보드 안에서의 분해</div>
+            <div style="font-size: 13px; line-height: 1.6; color: #6B6A65;">국가 시트 없음. 완성차 원장 보완 집계로 만든 변동입니다.</div>
+            <div style="font-size: 11px; color: #B5730C;">보완 집계</div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 9px;">
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <div style="font-size: 14px; font-weight: 600;">카라치항 하역 인력 파업</div>
+            <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">변동 시점과 3일 차이</span>
+            <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">기사 3건 · 출처 2곳</span>
+          </div>
+          <div style="font-size: 13.5px; line-height: 1.7; color: #1A1B19; text-wrap: pretty;">
+            선적대기가 늘어난 구간과 파업 보도가 겹칩니다.<span class="fn">8</span> 다만 기사 3건에 출처 2곳으로 근거 기준에 미치지 못하고 차종 노출도 확인되지 않아 주의까지만 둡니다.
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; border-top: 1px solid #EFEDE7; padding-top: 12px;">
+          <button style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid #DAD6CE; background: #FFFFFF; color: #1A1B19; font-size: 13px; font-weight: 500; border-radius: 7px; font-family: inherit; cursor: pointer;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+            근거 펼치기
+          </button>
+          <div style="font-size: 11.5px; color: #6B6A65;">후보 2건 · 시점 가까운 순</div>
+        </div>
+      </div>
+
+      <div style="background: #FBFAF8; border: 1px dashed #DAD6CE; border-radius: 7px; padding: 16px 20px; display: flex; align-items: center; gap: 14px;">
+        <div style="font-size: 15px; font-weight: 600; color: #6B6A65;">인도</div>
+        <div style="display: flex; align-items: baseline; gap: 6px;">
+          <div style="font-size: 13px; color: #6B6A65;">재고 체류</div>
+          <div class="num" style="font-size: 15px; font-weight: 600; color: #6B6A65;">+24%</div>
+        </div>
+        <div style="font-size: 13px; color: #9A9890;">시간창 안에서 원인 후보를 찾지 못했습니다. 신호등을 붙이지 않습니다.</div>
+        <div style="margin-left: auto; font-size: 11.5px; color: #9A9890;">원인 미확인</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; border-top: 1px solid #E2DFD8; padding-top: 14px; font-size: 11px; color: #9A9890;">
+    <div>모든 문장의 각주는 아래 근거 목록의 번호와 이어집니다. 인과관계는 확정하지 않습니다.</div>
+    <div class="num">2026-08-20 · 배치 #4127</div>
+  </div>
+
+</div>
+<div class="var">근거 패널 펼친 상태(20). 같은 카드 안에서 열리며 화면을 떠나지 않는다</div>
+<style>
+body { margin: 0; background: #F4F2EE; color: #1A1B19;
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, 'Malgun Gothic', sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; text-decoration: none; }
+    a:hover { color: #0B5847; text-decoration: underline; }
+    .num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .lbl { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: #9A9890; }
+    .fn { font-size: 10px; vertical-align: super; color: #0E6B57; font-weight: 600; }
+</style>
+<div style="width: 760px; padding: 24px; box-sizing: border-box;">
+  <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px;">
+
+    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+      <div style="font-size: 16px; font-weight: 600;">오만</div>
+      <span style="font-size: 11px; font-weight: 600; color: #B3261E; background: rgba(179,38,30,.08); border: 1px solid #F0CFCB; padding: 2px 7px; border-radius: 7px;">확인 필요</span>
+      <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 2px 7px; border-radius: 7px;">CBU 100%</span>
+      <div style="margin-left: auto; display: flex; align-items: baseline; gap: 8px;">
+        <div style="font-size: 13px; color: #6B6A65;">판매 도매</div>
+        <div class="num" style="font-size: 16px; font-weight: 600; color: #B3261E;">-100%</div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; border-top: 1px solid #EFEDE7; border-bottom: 1px solid #EFEDE7; padding: 12px 0;">
+      <button style="display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border: 1px solid #0E6B57; background: #E7F0ED; color: #0B5847; font-size: 13px; font-weight: 500; border-radius: 7px; font-family: inherit; cursor: pointer;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg>
+        근거 접기
+      </button>
+      <div style="font-size: 11.5px; color: #6B6A65;">후보 4건 · 변동 시점과 가까운 순</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+
+      <div style="border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-bottom: 1px solid #EFEDE7;">
+          <div style="font-size: 13.5px; font-weight: 600;">호르무즈 해협 봉쇄 위협</div>
+          <span style="font-size: 11px; color: #6B6A65;">사건 · 해상운송 · 시점 1일 차이 · 출처 5곳</span>
+          <span class="fn" style="margin-left: auto;">1</span>
+        </div>
+        <div style="padding: 4px 0;">
+          <div style="display: flex; align-items: baseline; gap: 10px; padding: 9px 14px;">
+            <a href="#" style="font-size: 13px; flex: 1;">Hormuz tensions disrupt Gulf vehicle discharge schedules</a>
+            <span style="font-size: 11px; color: #6B6A65; white-space: nowrap;">Khaleej Times</span>
+            <span class="num" style="font-size: 11px; color: #9A9890; white-space: nowrap;">08-12</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 10px; padding: 9px 14px; border-top: 1px solid #F4F2EE;">
+            <a href="#" style="font-size: 13px; flex: 1;">Shipping lines add war risk surcharge on Gulf routes</a>
+            <span style="font-size: 11px; color: #6B6A65; white-space: nowrap;">Lloyd's List</span>
+            <span class="num" style="font-size: 11px; color: #9A9890; white-space: nowrap;">08-14</span>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 10px; padding: 9px 14px; border-top: 1px solid #F4F2EE;">
+            <a href="#" style="font-size: 13px; flex: 1;">Oman port discharge backlog grows for third week</a>
+            <span style="font-size: 11px; color: #6B6A65; white-space: nowrap;">Times of Oman</span>
+            <span class="num" style="font-size: 11px; color: #9A9890; white-space: nowrap;">08-19</span>
+          </div>
+          <div style="padding: 8px 14px 10px; font-size: 11.5px; color: #9A9890; border-top: 1px solid #F4F2EE;">기사 8건 중 상위 3건. 해협 사건은 인접국 표로 오만·아랍에미리트에 붙었습니다.</div>
+        </div>
+      </div>
+
+      <div style="border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-bottom: 1px solid #EFEDE7;">
+          <div style="font-size: 13.5px; font-weight: 600;">같은 국가 재고 변동</div>
+          <span style="font-size: 11px; color: #6B6A65;">타 도메인 · A2 재고 · 같은 국가 같은 일자</span>
+          <span class="fn" style="margin-left: auto;">5</span>
+        </div>
+        <div style="padding: 12px 14px; display: flex; align-items: center; gap: 20px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="font-size: 11.5px; color: #6B6A65;">항해중 재고</div>
+            <div class="num" style="font-size: 17px; font-weight: 600;">418대</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="font-size: 11.5px; color: #6B6A65;">총재고 대비</div>
+            <div class="num" style="font-size: 17px; font-weight: 600;">42%</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div style="font-size: 11.5px; color: #6B6A65;">선적대기</div>
+            <div class="num" style="font-size: 17px; font-weight: 600;">0대</div>
+          </div>
+          <div style="font-size: 11.5px; color: #9A9890; margin-left: auto; max-width: 200px; line-height: 1.5;">선적은 됐으나 하역이 되지 않은 상태로 읽힙니다.</div>
+        </div>
+      </div>
+
+      <div style="border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-bottom: 1px solid #EFEDE7;">
+          <div style="font-size: 13.5px; font-weight: 600;">건화물운임 BDI</div>
+          <span style="font-size: 11px; color: #6B6A65;">시장 지표 · 날짜만 일치 · 국가 축 없음</span>
+          <span class="fn" style="margin-left: auto;">3</span>
+        </div>
+        <div style="padding: 12px 14px; display: flex; align-items: center; gap: 20px;">
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <div class="num" style="font-size: 17px; font-weight: 600;">2,776</div>
+            <div class="num" style="font-size: 12px; font-weight: 600; color: #0E6B57;">-10.1%</div>
+            <div class="num" style="font-size: 11px; color: #9A9890;">08-20</div>
+          </div>
+          <svg width="220" height="36" viewBox="0 0 220 36" fill="none" style="flex: none;">
+            <polyline points="0,10 20,8 40,12 60,9 80,7 100,11 120,14 140,13 160,18 180,24 200,27 220,29" stroke="#2F6FA8" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></polyline>
+          </svg>
+          <div style="font-size: 11.5px; color: #9A9890; margin-left: auto;">30일</div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #E2DFD8; border-radius: 7px; background: #FBFAF8; padding: 11px 14px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A9890" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg>
+        <div style="font-size: 13px; color: #6B6A65;">설명에 쓰이지 않은 후보 1건</div>
+        <div style="font-size: 11.5px; color: #9A9890;">중동 전력망 증설 계약 · 기사 2건 · 시점 9일 차이</div>
+      </div>
+
+    </div>
+
+    <div style="font-size: 11px; color: #9A9890; border-top: 1px solid #EFEDE7; padding-top: 12px; line-height: 1.6;">
+      각주 번호를 누르면 해당 근거가 강조됩니다. 설명에 쓰인 사실은 전부 위 후보 안에 있습니다. 기사 제목을 누르면 새 창으로 원문이 열립니다.
+    </div>
+
   </div>
 </div>
+<div class="var">예외 상태 여섯(27). E1 변동 없음 · E2 첫 배치 전 · E3 강등 · E4 판정 미수신 · E5 배치 실패 · E6 지표 이월</div>
+<style>
+body { margin: 0; background: #F4F2EE; color: #1A1B19;
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, 'Malgun Gothic', sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; text-decoration: none; }
+    a:hover { color: #0B5847; text-decoration: underline; }
+    .num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .lbl { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: #9A9890; }
+    .cap { font-size: 11.5px; color: #6B6A65; }
+</style>
+<div style="width: 1280px; padding: 28px 32px; box-sizing: border-box; display: flex; flex-direction: column; gap: 18px;">
 
-<div class="var">예외 상태 E1(27). 변동 없음</div>
-<div class="page" style="width:1280px;padding:28px 32px">
-  <section data-el="27" class="card empty-card">
-    <p class="title">오늘 감지된 변동 없음</p>
-    <p class="cap">세 도메인 모두 임계값 안입니다. 정상 상태이며 오류가 아닙니다.</p>
-  </section>
-</div>
+  <div style="display: flex; align-items: baseline; gap: 10px;">
+    <div style="font-size: 16px; font-weight: 600;">예외 상태</div>
+    <div class="cap">화면이 비지 않아야 하는 다섯 경우</div>
+  </div>
 
-<div class="var">예외 상태 E3(27). 생성 실패 강등. 신호등과 후보는 그대로</div>
-<div class="page" style="width:1280px;padding:28px 32px">
-  <section data-el="27" class="banner banner-warn">생성 실패, 판정값만 표시 · 문장 자리에 템플릿 한 줄이 들어갑니다</section>
-</div>
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px;">
 
-<div class="var">예외 상태 E5(27). 배치 실패, 이전 게시본 유지</div>
-<div class="page" style="width:1280px;padding:28px 32px">
-  <section data-el="27" class="banner banner-danger">오늘 배치가 실패했습니다 <span class="num">마지막 성공 2026-08-19</span></section>
-  <p class="cap">8월 19일 리포트를 그대로 보여 줍니다. 원인 후보와 근거는 그날 것입니다.</p>
-</div>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="lbl">1. 변동이 없는 날</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 26px 20px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0E6B57" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="m9 12 2 2 4-4"></path></svg>
+        <div style="font-size: 14px; font-weight: 600;">오늘 감지된 변동 없음</div>
+        <div class="cap" style="text-align: center; line-height: 1.6;">세 도메인 모두 임계값 안입니다. 정상 상태이며 오류가 아닙니다.</div>
+      </div>
+    </div>
 
-<div class="var">예외 상태 E6(27). 시장지표 이월. 값은 비우지 않는다</div>
-<div class="page" style="width:1280px;padding:28px 32px">
-  <section data-el="27" class="market-bar">
-    <div class="metric"><span class="lbl">GPR</span><span class="num">118.4</span><span class="cap warn">08-18 값 이월</span></div>
-  </section>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="lbl">2. 첫 배치 전</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 26px 20px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#9A9890" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+        <div style="font-size: 14px; font-weight: 600;">리포트가 아직 생성되지 않았습니다</div>
+        <div class="cap" style="text-align: center; line-height: 1.6;">다음 배치는 <span class="num">내일 02:00</span>에 시작합니다.</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="lbl">3. 문장 생성 실패 · 강등</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 8px; background: rgba(181,115,12,.08); border-bottom: 1px solid rgba(181,115,12,.28); padding: 9px 14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B5730C" stroke-width="2" stroke-linecap="round"><path d="M12 8v5"></path><path d="M12 16h.01"></path><circle cx="12" cy="12" r="9"></circle></svg>
+          <div style="font-size: 12px; color: #B5730C; font-weight: 500;">생성 실패, 판정값만 표시</div>
+        </div>
+        <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 15px; font-weight: 600;">오만</div>
+            <span style="font-size: 11px; font-weight: 600; color: #B3261E; background: rgba(179,38,30,.08); border: 1px solid #F0CFCB; padding: 2px 7px; border-radius: 7px;">확인 필요</span>
+            <div class="num" style="font-size: 13px; color: #6B6A65; margin-left: auto;">판매 도매 -100%</div>
+          </div>
+          <div style="font-size: 13px; color: #6B6A65; line-height: 1.6; background: #FBFAF8; border: 1px solid #EFEDE7; border-radius: 7px; padding: 10px 12px;">
+            오만 · 판매 도매 전월 대비 -100% · 항해중 재고 418대 · 호르무즈 해협 봉쇄 위협 기사 8건
+          </div>
+          <div class="cap">템플릿 문장입니다. 연관 설명이 붙지 않았습니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="lbl">4. 대시보드 판정 미수신</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; border-bottom: 1px solid #EFEDE7; padding: 9px 14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6A65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><path d="m7 14 4-4 3 3 5-6"></path></svg>
+          <div style="font-size: 12px; color: #6B6A65; font-weight: 500;">A2 재고 리포트 판정 미수신</div>
+        </div>
+        <div style="padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="width: 8px; height: 8px; border-radius: 50%; background: #B5730C; display: inline-block;"></span>
+            <div style="font-size: 15px; font-weight: 600;">재고</div>
+            <span style="font-size: 11px; color: #B5730C; background: rgba(181,115,12,.10); border: 1px solid rgba(181,115,12,.28); padding: 2px 7px; border-radius: 7px; margin-left: auto;">보완 집계</span>
+          </div>
+          <div style="font-size: 13px; line-height: 1.65;">완성차 원장에서 직접 집계한 값으로 변동을 만들었습니다. 대시보드 수치와 다를 수 있습니다.</div>
+          <div class="cap">기여 분해는 표시하지 않습니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="lbl">5. 배치 실패 · 이전 게시본 유지</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+        <div style="display: flex; align-items: center; gap: 8px; background: rgba(179,38,30,.06); border-bottom: 1px solid #F0CFCB; padding: 9px 14px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+          <div style="font-size: 12px; color: #B3261E; font-weight: 500;">오늘 배치가 실패했습니다</div>
+          <div class="num" style="font-size: 11px; color: #6B6A65; margin-left: auto;">마지막 성공 2026-08-19</div>
+        </div>
+        <div style="padding: 14px; font-size: 13px; line-height: 1.65; color: #6B6A65;">
+          <span class="num" style="color:#1A1B19;">8월 19일</span> 리포트를 그대로 보여 줍니다. 화면 상단 기준일도 그날로 표시됩니다. 원인 후보와 근거는 그날 것입니다.
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div class="lbl">참고. 지표 바 지연</div>
+      <div style="background: #FFFFFF; border: 1px solid #E2DFD8; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 3px;">
+            <div class="cap">컨테이너운임 SCFI</div>
+            <div style="display: flex; align-items: baseline; gap: 6px;">
+              <div class="num" style="font-size: 17px; font-weight: 600;">1,942</div>
+              <div class="num" style="font-size: 11.5px; color: #9A9890;">-0.4%</div>
+            </div>
+          </div>
+          <div style="font-size: 11.5px; color: #B5730C;">08-18 값 이월</div>
+        </div>
+        <div style="font-size: 13px; line-height: 1.65; color: #6B6A65;">이월 한도를 넘기면 값을 비우고 기준일 지연으로만 표시합니다. 판정에는 쓰지 않습니다.</div>
+      </div>
+    </div>
+
+  </div>
 </div>
 ```
 
@@ -345,56 +744,259 @@ E2는 게시본 자체가 없는 상태라 대응하는 안내 코드가 없다.
 ##### 배치
 
 ```html
-<div data-screen="UI-2" class="report" style="width:1180px;padding:24px;display:flex;gap:20px">
-  <aside data-el="1" class="side" style="width:248px">
-    <section data-el="2"><span class="lbl">출처</span>
-      <p>완성차 생산 대시보드</p>
-      <p class="cap">운영계획·사업계획·실적 × 일·월·누계·년</p>
-      <p class="cap">스냅샷 <span class="num">2026-08-20 01:38</span></p>
-    </section>
-    <section data-el="3"><span class="lbl">트래킹 지표 <span class="cap">임시 지정</span></span>
-      <ul><li class="active">사업계획 달성 <span class="num">86.1%</span></li>
-          <li>완성차 비중 <span class="num">78%</span></li>
-          <li>수출 비중 <span class="num">37%</span></li></ul>
-      <p class="cap">달성률은 계획과 실적으로 직접 계산합니다. 원본 진도율 컬럼은 총계 행에만 값이 있습니다.</p>
-    </section>
-    <section data-el="4"><span class="lbl">분해 차원</span>
-      <span class="chip">생산법인 28</span><span class="chip">공장지역 18</span>
-      <span class="chip">세부지역 41</span><span class="chip">차종그룹 37</span>
-      <span class="chip">CBU/CKD</span><span class="chip">내수/수출</span>
-      <div data-el="5" class="warn-box">목적지 국가 없음. 수출이 어느 나라로 가는지 데이터에 없습니다.</div>
-      <div data-el="5" class="warn-box">파워트레인은 절반이 미분류라 분해에서 뺐습니다.</div>
-    </section>
-    <section data-el="6"><span class="lbl">버전</span>
-      <ul><li class="active num">v12 · 현재</li><li class="num">v11 · 08-19</li></ul>
-    </section>
-  </aside>
-  <main class="sheet">
-    <div data-el="7" class="sheet-head" style="height:44px">
-      <span class="tag">A1 생산 리포트</span>
-      <span class="title">생산 실적 일일 인사이트</span>
-      <span class="pill num">v12</span>
-      <span class="cap">28개 법인 · 누적 기준</span>
-      <button data-el="8" class="ghost">내려받기</button>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>.var{margin:32px 0 8px;font-size:11.5px;color:#A6A49C;border-left:3px solid #DAD6CE;padding-left:10px;font-family:system-ui,sans-serif}</style>
+
+<style>
+body { margin: 0; background: #F4F2EE; color: #1A1B19;
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, 'Malgun Gothic', sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; text-decoration: none; }
+    a:hover { color: #0B5847; text-decoration: underline; }
+    .num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .lbl { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: #9A9890; }
+    .hl { font-weight: 600; background: rgba(181,115,12,.14); border-radius: 3px; padding: 0 2px; }
+    .fn { font-size: 10px; vertical-align: super; color: #0E6B57; font-weight: 600; }
+    .body { font-size: 12.5px; color: #3C3B37; }
+</style>
+<div style="width: 1180px; padding: 24px; box-sizing: border-box; display: flex; align-items: flex-start; gap: 20px;">
+
+  <aside style="width: 248px; flex: none; display: flex; flex-direction: column; gap: 20px; border: 1px solid #E2DFD8; background: #FBFAF8; border-radius: 11px; padding: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">출처</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6A65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><rect x="7" y="10" width="3" height="7"></rect><rect x="13" y="6" width="3" height="11"></rect></svg>
+          <span class="body">완성차 생산 대시보드</span>
+        </div>
+        <div style="font-size: 11.5px; color: #6B6A65;">운영계획·사업계획·실적 × 일·월·누적·년</div>
+        <div style="font-size: 11.5px; color: #6B6A65;">스냅샷 <span class="num">2026-08-20 01:38</span></div>
+      </div>
     </div>
-    <div class="sheet-body">
-      <section data-el="9"><span class="lbl">요약</span><p class="summary">누적 사업계획 2,020,531대 중 1,739,722대로 86.1%입니다. 운영계획 기준으로는 99.2%라 정본 선택이 달성률을 13.1%포인트 움직입니다<sup class="fn">1</sup></p></section>
-      <section data-el="10" class="grid-3">
-        <div class="box kpi"><span class="lbl">누적 사업계획</span><span class="num">2,020,531</span></div>
-        <div class="box kpi"><span class="lbl">누적 실적</span><span class="num">1,739,722</span></div>
-        <div class="box kpi"><span class="lbl">달성률</span><span class="num">86.1%</span></div>
-      </section>
-      <section data-el="11" class="breakdown">
-        <div class="sec-head"><span class="lbl">변동을 대시보드 안에서 분해</span><span class="cap">사업계획 대비 달성률 · 계획 10,000대 이상 법인 · 낮은 순</span></div>
-        <div class="box"><div class="bar-row"><span class="name">HMGMA 미국</span><span class="bar" style="width:46%"></span><span class="num">45.9%</span><span class="num">16,338 / 35,600</span></div>
-          <div class="bar-row"><span class="name">BHMC 중국</span><span class="bar" style="width:73%"></span><span class="num">72.6%</span></div>
-          <div class="bar-row"><span class="name">HMC 한국</span><span class="bar" style="width:85%"></span><span class="num">85.0%</span><span class="num">미달 138,268</span></div></div>
-        <div data-el="12" class="box"><div class="table-head">생산 구성 <span class="cap">누적 실적 기준</span></div>
-          <div class="stack">완성차 78% / 반조립 22%</div>
-          <div class="stack">내수 63% / 수출 37%</div></div>
-      </section>
-      <section data-el="13"><span class="lbl">해설</span><p class="prose">달성률로는 미국 신공장이 가장 낮고 대수로는 한국이 가장 큽니다. 어느 나라로 갈 물량이 덜 나왔는지는 데이터에 목적지 국가가 없어 알 수 없습니다<sup class="fn">1</sup></p></section>
-      <p data-el="14" class="fixed-note">이 리포트는 생산 대시보드 데이터만 씁니다. 계획은 사업계획 기준이며 운영계획 기준과 266,381대 차이가 있습니다.</p>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">트래킹 지표</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 7px; background: #FFFFFF; border-radius: 8px; padding: 7px 10px; box-shadow: inset 0 0 0 1px #E2DFD8;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #B5730C;"></span>
+          <span class="body" style="font-weight: 500;">사업계획 달성</span>
+          <span class="num" style="font-size: 11.5px; color: #B5730C; margin-left: auto;">86.1%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 7px 10px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+          <span class="body">완성차 비중</span>
+          <span class="num" style="font-size: 11.5px; color: #6B6A65; margin-left: auto;">78%</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 7px 10px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+          <span class="body">수출 비중</span>
+          <span class="num" style="font-size: 11.5px; color: #6B6A65; margin-left: auto;">37%</span>
+        </div>
+      </div>
+      <div style="font-size: 11px; color: #A6A49C; line-height: 1.5;">달성률은 계획과 실적으로 직접 계산합니다. 원본 진도율 컬럼은 총계 행에만 값이 있습니다.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">분해 차원</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">생산법인 28</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">공장지역 18</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">세부지역 41</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">차종그룹 37</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">CBU/CKD</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">내수/수출</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: flex-start; gap: 6px; background: rgba(181,115,12,.08); border: 1px solid rgba(181,115,12,.28); border-radius: 7px; padding: 8px 10px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5730C" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+          <div style="font-size: 11px; color: #B5730C; line-height: 1.5;">목적지 국가 없음. 수출이 어느 나라로 가는지 데이터에 없습니다.</div>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 6px; background: rgba(181,115,12,.08); border: 1px solid rgba(181,115,12,.28); border-radius: 7px; padding: 8px 10px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5730C" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+          <div style="font-size: 11px; color: #B5730C; line-height: 1.5;">파워트레인은 절반이 미분류라 분해에서 뺐습니다.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">버전</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div class="num" style="background: #FFFFFF; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 500; box-shadow: inset 0 0 0 1px #E2DFD8;">v12 · 현재</div>
+        <div class="num" style="padding: 6px 10px; font-size: 12px; color: #6B6A65;">v11 · 08-19</div>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; border: 1px solid #E2DFD8; background: #FFFFFF; border-radius: 11px; overflow: hidden;">
+
+    <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px; border-bottom: 1px solid #E2DFD8;">
+      <span style="background: #E7F0ED; color: #0B5847; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 5px;">A1 생산 리포트</span>
+      <span style="font-size: 13px; font-weight: 600;">생산 실적 일일 인사이트</span>
+      <span class="num" style="background: #EFEDE7; color: #6B6A65; font-size: 11px; padding: 3px 8px; border-radius: 20px;">v12</span>
+      <span style="font-size: 11px; color: #6B6A65; margin-left: 8px;">28개 법인 · 누적 기준</span>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+        <button style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid #DAD6CE; background: #FFFFFF; color: #3C3B37; font-size: 12px; padding: 6px 12px; border-radius: 7px; font-family: inherit; cursor: pointer;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3"></path><path d="m6 11 6 6 6-6"></path><path d="M19 21H5"></path></svg>
+          내려받기
+        </button>
+      </div>
+    </div>
+
+    <div style="padding: 22px; display: flex; flex-direction: column; gap: 22px;">
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">요약</div>
+        <div style="font-size: 16px; font-weight: 500; line-height: 1.65; letter-spacing: -.01em; text-wrap: pretty;">
+          누적 생산이 사업계획의 <span class="hl">86.1%</span>에 머물러 <span class="hl">280,809대</span>가 덜 나왔습니다. 대수로는 한국이 138,268대로 가장 크지만, 달성률로는 <span class="hl">미국 신공장이 45.9%</span>로 가장 낮습니다.<span class="fn">1</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+            <div style="font-size: 13px; font-weight: 600;">누적 사업계획</div>
+          </div>
+          <div class="num" style="font-size: 22px; font-weight: 600;">2,020,531</div>
+          <div style="font-size: 11px; color: #9A9890;">운영계획 기준은 1,754,150대</div>
+        </div>
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+            <div style="font-size: 13px; font-weight: 600;">누적 실적</div>
+          </div>
+          <div class="num" style="font-size: 22px; font-weight: 600;">1,739,722</div>
+          <div style="font-size: 11px; color: #9A9890;">계획 대비 -280,809대</div>
+        </div>
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="width: 6px; height: 6px; border-radius: 50%; background: #B5730C;"></span>
+            <div style="font-size: 13px; font-weight: 600;">달성률</div>
+          </div>
+          <div style="display: flex; align-items: baseline; gap: 8px;">
+            <div class="num" style="font-size: 22px; font-weight: 600;">86.1%</div>
+          </div>
+          <div style="height: 8px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+            <div style="width: 86%; height: 100%; background: #C9922E;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <div class="lbl">변동을 대시보드 안에서 분해</div>
+          <div style="font-size: 11.5px; color: #6B6A65;">사업계획 대비 달성률 · 계획 10,000대 이상 법인</div>
+        </div>
+
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-bottom: 1px solid #EFEDE7;">
+            <div style="font-size: 12.5px; font-weight: 600;">법인별 달성률</div>
+            <div style="font-size: 11px; color: #9A9890;">낮은 순</div>
+          </div>
+          <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 150px; flex: none;">HMGMA <span style="color:#9A9890;">미국</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 46%; height: 100%; background: #C9922E;"></div>
+              </div>
+              <div class="num" style="width: 52px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">45.9%</div>
+              <div class="num" style="width: 142px; flex: none; text-align: right; font-size: 12px; color: #6B6A65;">16,338 / 35,600</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 150px; flex: none;">BHMC <span style="color:#9A9890;">중국</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 73%; height: 100%; background: #C9922E;"></div>
+              </div>
+              <div class="num" style="width: 52px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">72.6%</div>
+              <div class="num" style="width: 142px; flex: none; text-align: right; font-size: 12px; color: #6B6A65;">75,599 / 104,095</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 150px; flex: none;">HMMI <span style="color:#9A9890;">인도네시아</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 74%; height: 100%; background: #C9922E;"></div>
+              </div>
+              <div class="num" style="width: 52px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">73.8%</div>
+              <div class="num" style="width: 142px; flex: none; text-align: right; font-size: 12px; color: #6B6A65;">24,112 / 32,680</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 150px; flex: none;">HMC <span style="color:#9A9890;">한국</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 85%; height: 100%; background: #8FB4D2;"></div>
+              </div>
+              <div class="num" style="width: 52px; flex: none; text-align: right; font-size: 12.5px;">85.0%</div>
+              <div class="num" style="width: 142px; flex: none; text-align: right; font-size: 12px; color: #6B6A65;">786,532 / 924,800</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 150px; flex: none;">HMMC <span style="color:#9A9890;">체코</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 88%; height: 100%; background: #8FB4D2;"></div>
+              </div>
+              <div class="num" style="width: 52px; flex: none; text-align: right; font-size: 12.5px;">88.4%</div>
+              <div class="num" style="width: 142px; flex: none; text-align: right; font-size: 12px; color: #6B6A65;">119,740 / 135,400</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 150px; flex: none;">HMB <span style="color:#9A9890;">브라질</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 89%; height: 100%; background: #8FB4D2;"></div>
+              </div>
+              <div class="num" style="width: 52px; flex: none; text-align: right; font-size: 12.5px;">88.8%</div>
+              <div class="num" style="width: 142px; flex: none; text-align: right; font-size: 12px; color: #6B6A65;">96,689 / 108,900</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-bottom: 1px solid #EFEDE7;">
+            <div style="font-size: 12.5px; font-weight: 600;">생산 구성</div>
+            <div style="font-size: 11px; color: #9A9890;">누적 실적 기준</div>
+          </div>
+          <div style="padding: 14px; display: flex; flex-direction: column; gap: 14px;">
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <div style="display: flex; align-items: baseline; gap: 8px;">
+                <div class="body" style="font-weight: 500;">완성차와 반조립</div>
+                <div style="font-size: 11px; color: #9A9890;">종합 리포트의 노출 판정에 쓰입니다</div>
+              </div>
+              <div style="display: flex; height: 20px; border-radius: 4px; overflow: hidden;">
+                <div style="width: 78%; height: 100%; background: #2F6FA8;"></div>
+                <div style="width: 22%; height: 100%; background: #8FB4D2;"></div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #2F6FA8;"></span><span style="font-size: 11.5px; color: #3C3B37;">완성차 78%</span></div>
+                <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #8FB4D2;"></span><span style="font-size: 11.5px; color: #3C3B37;">반조립 22%</span></div>
+              </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 7px;">
+              <div style="display: flex; align-items: baseline; gap: 8px;">
+                <div class="body" style="font-weight: 500;">내수와 수출</div>
+                <div style="font-size: 11px; color: #9A9890;">목적지 국가는 데이터에 없습니다</div>
+              </div>
+              <div style="display: flex; height: 20px; border-radius: 4px; overflow: hidden;">
+                <div style="width: 63%; height: 100%; background: #5C93BF;"></div>
+                <div style="width: 37%; height: 100%; background: #C9922E;"></div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #5C93BF;"></span><span style="font-size: 11.5px; color: #3C3B37;">내수 63%</span></div>
+                <div style="display: flex; align-items: center; gap: 5px;"><span style="width: 10px; height: 10px; border-radius: 2px; background: #C9922E;"></span><span style="font-size: 11.5px; color: #3C3B37;">수출 37%</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">해설</div>
+        <div style="font-size: 13.5px; line-height: 1.75; color: #1A1B19; text-wrap: pretty;">
+          미달 폭이 가장 큰 곳은 한국입니다. 138,268대로 전체 미달분의 절반을 차지합니다. 다만 달성률로 보면 85.0%로 평균 수준이고, 계획 자체가 92만대로 크기 때문에 절대 대수가 커진 것입니다.<span class="fn">1</span> 눈에 띄는 쪽은 미국 신공장입니다. 계획 35,600대에 실적 16,338대로 절반에 못 미칩니다. 가동 초기의 상승 곡선인지 실제 차질인지는 이 데이터만으로 가릴 수 없습니다.<span class="fn">2</span> 중국과 인도네시아도 70%대에 머물러 있습니다.
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid #EFEDE7; padding-top: 14px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A9890" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+        <div style="font-size: 11.5px; color: #9A9890; line-height: 1.6;">이 리포트는 생산 대시보드 데이터만 씁니다. 계획은 사업계획 기준이며 운영계획 기준과 266,381대 차이가 있습니다. 어느 쪽을 기준으로 삼을지는 미정입니다.</div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -459,55 +1061,218 @@ E2는 게시본 자체가 없는 상태라 대응하는 안내 코드가 없다.
 ##### 배치
 
 ```html
-<div data-screen="UI-3" class="report" style="width:1180px;padding:24px;display:flex;gap:20px">
-  <aside data-el="1" class="side" style="width:248px">
-    <section data-el="2"><span class="lbl">출처</span>
-      <div class="danger-box">재고 대시보드 원천이 아직 없습니다. 인입 데이터에 재고 파일이 들어 있지 않습니다.</div>
-      <p class="cap">아래 지표는 판매 데이터에서 유도했거나 단발 스냅샷입니다.</p>
-    </section>
-    <section data-el="3"><span class="lbl">지금 만들 수 있는 것</span>
-      <ul><li class="active">유통 체류 <span class="num">-34,104</span><span class="cap">딜러 구간 · 도매 정본 빼기 소매 · 감소 방향 표기 · distributionStay</span></li>
-          <li>재고 회전 MOS <span class="num">불안정</span></li>
-          <li>현지재고 스냅샷 <span class="num">1일</span></li></ul>
-    </section>
-    <section data-el="4"><span class="lbl">없는 것</span>
-      <ul class="x-list"><li>항해중 재고 <span class="cap">afloat</span></li>
-        <li>선적대기 재고 <span class="cap">awaitingShipment</span></li>
-        <li>법인재고와 딜러재고 구분 <span class="cap">entityVsDealer</span></li>
-        <li>국가별 재고 시계열 <span class="cap">countryDailySeries</span></li></ul>
-    </section>
-    <section data-el="5"><span class="lbl">버전</span>
-      <ul><li class="active num">v3 · 현재</li><li class="num">v2 · 08-19</li></ul>
-    </section>
-  </aside>
-  <main class="sheet">
-    <div data-el="6" class="sheet-head" style="height:44px">
-      <span class="tag">A2 재고 리포트</span>
-      <span class="title">재고 현황 일일 인사이트</span>
-      <span class="pill num">v3</span>
-      <span class="cap warn">유도 지표로만 구성</span>
-      <button data-el="7" class="ghost">내려받기</button>
-    </div>
-    <div class="sheet-body">
-      <div data-el="8" class="banner banner-danger">
-        <p class="title">이 리포트는 아직 자기 데이터가 없습니다</p>
-        <p>인입 파일 여섯 개를 전부 확인했지만 재고를 항해중·선적대기·법인·딜러로 나눈 데이터가 없습니다. 아래는 판매 데이터에서 유도했거나 하루치 스냅샷인 값입니다. 판정 근거로 쓰기 전에 원천을 받아야 합니다.</p>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>.var{margin:32px 0 8px;font-size:11.5px;color:#A6A49C;border-left:3px solid #DAD6CE;padding-left:10px;font-family:system-ui,sans-serif}</style>
+
+<style>
+body { margin: 0; background: #F4F2EE; color: #1A1B19;
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, 'Malgun Gothic', sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; text-decoration: none; }
+    a:hover { color: #0B5847; text-decoration: underline; }
+    .num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .lbl { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: #9A9890; }
+    .hl { font-weight: 600; background: rgba(181,115,12,.14); border-radius: 3px; padding: 0 2px; }
+    .fn { font-size: 10px; vertical-align: super; color: #0E6B57; font-weight: 600; }
+    .body { font-size: 12.5px; color: #3C3B37; }
+</style>
+<div style="width: 1180px; padding: 24px; box-sizing: border-box; display: flex; align-items: flex-start; gap: 20px;">
+
+  <aside style="width: 248px; flex: none; display: flex; flex-direction: column; gap: 20px; border: 1px solid #E2DFD8; background: #FBFAF8; border-radius: 11px; padding: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">출처</div>
+      <div style="display: flex; align-items: flex-start; gap: 6px; background: rgba(179,38,30,.06); border: 1px solid #F0CFCB; border-radius: 7px; padding: 10px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+        <div style="font-size: 11px; color: #B3261E; line-height: 1.55;">재고 대시보드 원천이 아직 없습니다. 인입 데이터에 재고 파일이 들어 있지 않습니다.</div>
       </div>
-      <section data-el="9"><span class="lbl">유도 지표 · 유통 체류</span>
-        <p class="cap">화면은 줄어드는 방향을 앞의 빼기 부호로 그립니다. 저장되는 값은 양수입니다.</p>
-        <p class="summary">딜러에게 넘긴 물량과 팔린 물량 사이에 34,104대가 남아 있습니다<sup class="fn">1</sup></p>
-        <div class="grid-3"><div class="box kpi"><span class="lbl">도매 정본 누계</span><span class="num">677,201</span></div><div class="box kpi"><span class="lbl">소매 누계</span><span class="num">643,097</span></div><div class="box kpi"><span class="lbl">딜러 구간 차이</span><span class="num warn">34,104 · 5.0%</span></div></div>
-      </section>
-      <section data-el="10" class="breakdown">
-        <div class="sec-head"><span class="lbl">국가별 체류 비중</span><span class="cap">도매 대비 미판매 비율 · 도매 1,000대 이상</span></div>
-        <div class="box"><div class="bar-row"><span class="name">칠레 <span class="num">B07</span></span><span class="bar" style="width:25%"></span><span class="num">25.2% · 3,064대</span></div>
-          <div class="bar-row"><span class="name">페루 <span class="num">B29</span></span><span class="bar" style="width:21%"></span><span class="num">21.2%</span></div></div>
-      </section>
-      <section data-el="11"><span class="lbl">원천을 받으면 여기에 들어갈 것</span>
-        <div class="dashed grid-2"><div>항해중 비중</div><div>선적대기 비중</div><div>법인재고와 딜러재고</div><div>국가별 일별 시계열</div></div>
-      </section>
-      <section data-el="12"><span class="lbl">해설</span><p class="prose">칠레와 페루는 선적과 도매가 같아 물량이 딜러에서 멈췄습니다. 이 구분은 단계 차이로 미루어 짐작한 것이고 재고 원천이 들어오면 직접 확인해야 합니다<sup class="fn">2</sup></p></section>
-      <p data-el="13" class="fixed-note">이 리포트의 값은 판매 대시보드에서 유도한 것입니다. 뉴스와 시장지표는 다루지 않습니다. 재고 원천이 들어오면 유도 지표를 실측값으로 교체합니다.</p>
+      <div style="font-size: 11.5px; color: #6B6A65; line-height: 1.55;">아래 지표는 판매 데이터에서 유도했거나 단발 스냅샷입니다.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">지금 만들 수 있는 것</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 7px; background: #FFFFFF; border-radius: 8px; padding: 7px 10px; box-shadow: inset 0 0 0 1px #E2DFD8;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #B5730C;"></span>
+          <span class="body" style="font-weight: 500;">유통 체류</span>
+          <span class="num" style="font-size: 11.5px; color: #B5730C; margin-left: auto;">-34,104</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 7px 10px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+          <span class="body">재고 회전 MOS</span>
+          <span class="num" style="font-size: 11.5px; color: #9A9890; margin-left: auto;">불안정</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 7px 10px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+          <span class="body">현지재고 스냅샷</span>
+          <span class="num" style="font-size: 11.5px; color: #9A9890; margin-left: auto;">1일</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">없는 것</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <div style="display: flex; align-items: center; gap: 7px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          <span class="body">항해중 재고</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          <span class="body">선적대기 재고</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          <span class="body">법인재고와 딜러재고 구분</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 7px;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          <span class="body">국가별 재고 시계열</span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">버전</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div class="num" style="background: #FFFFFF; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 500; box-shadow: inset 0 0 0 1px #E2DFD8;">v3 · 현재</div>
+        <div class="num" style="padding: 6px 10px; font-size: 12px; color: #6B6A65;">v2 · 08-19</div>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; border: 1px solid #E2DFD8; background: #FFFFFF; border-radius: 11px; overflow: hidden;">
+
+    <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px; border-bottom: 1px solid #E2DFD8;">
+      <span style="background: #E7F0ED; color: #0B5847; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 5px;">A2 재고 리포트</span>
+      <span style="font-size: 13px; font-weight: 600;">재고 현황 일일 인사이트</span>
+      <span class="num" style="background: #EFEDE7; color: #6B6A65; font-size: 11px; padding: 3px 8px; border-radius: 20px;">v3</span>
+      <span style="font-size: 11px; color: #B5730C; margin-left: 8px;">유도 지표로만 구성</span>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+        <button style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid #DAD6CE; background: #FFFFFF; color: #3C3B37; font-size: 12px; padding: 6px 12px; border-radius: 7px; font-family: inherit; cursor: pointer;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3"></path><path d="m6 11 6 6 6-6"></path><path d="M19 21H5"></path></svg>
+          내려받기
+        </button>
+      </div>
+    </div>
+
+    <div style="padding: 22px; display: flex; flex-direction: column; gap: 22px;">
+
+      <div style="display: flex; align-items: flex-start; gap: 10px; background: rgba(179,38,30,.06); border: 1px solid #F0CFCB; border-radius: 7px; padding: 14px 16px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B3261E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px;"><path d="M12 9v4"></path><path d="M12 17h.01"></path><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path></svg>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <div style="font-size: 13.5px; font-weight: 600; color: #B3261E;">이 리포트는 아직 자기 데이터가 없습니다</div>
+          <div style="font-size: 12.5px; color: #3C3B37; line-height: 1.6;">인입 파일 여섯 개를 전부 확인했지만 재고를 항해중·선적대기·법인·딜러로 나눈 데이터가 없습니다. 아래는 판매 데이터에서 유도했거나 하루치 스냅샷인 값입니다. 판정 근거로 쓰기 전에 원천을 받아야 합니다.</div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">유도 지표 · 유통 체류</div>
+        <div style="font-size: 11px; color: #9A9890; margin-top: -4px;">화면은 줄어드는 방향을 앞의 빼기 부호로 그립니다. 저장되는 값은 양수입니다.</div>
+        <div style="font-size: 16px; font-weight: 500; line-height: 1.65; letter-spacing: -.01em; text-wrap: pretty;">
+          딜러에게 넘긴 물량과 팔린 물량 사이에 <span class="hl">34,104대</span>가 남아 있습니다. 재고라고 부를 수는 없지만 어디에 쌓이는지는 이 값이 가리킵니다.<span class="fn">1</span>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px;">
+          <div style="border: 1px solid #E2DFD8; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; gap: 7px;">
+            <div class="body" style="font-weight: 600;">도매 정본 누계</div>
+            <div class="num" style="font-size: 21px; font-weight: 600;">677,201</div>
+            <div style="font-size: 11px; color: #9A9890;">미주 29개국</div>
+          </div>
+          <div style="border: 1px solid #E2DFD8; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; gap: 7px;">
+            <div class="body" style="font-weight: 600;">소매 누계</div>
+            <div class="num" style="font-size: 21px; font-weight: 600;">643,097</div>
+            <div style="font-size: 11px; color: #9A9890;">미주 29개국</div>
+          </div>
+          <div style="border: 1px solid #E2DFD8; border-radius: 7px; padding: 14px; display: flex; flex-direction: column; gap: 7px;">
+            <div class="body" style="font-weight: 600;">딜러 구간 차이</div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <div class="num" style="font-size: 21px; font-weight: 600; color: #B5730C;">34,104</div>
+              <div class="num" style="font-size: 12px; color: #B5730C;">5.0%</div>
+            </div>
+            <div style="font-size: 11px; color: #9A9890;">칠레 25.2%가 최대</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <div class="lbl">국가별 체류 비중</div>
+          <div style="font-size: 11.5px; color: #6B6A65;">도매 대비 미판매 비율 · 도매 1,000대 이상</div>
+        </div>
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; padding: 12px 14px; display: flex; flex-direction: column; gap: 9px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="body" style="width: 120px; flex: none;">칠레 <span class="num" style="color:#9A9890;">B07</span></div>
+            <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+              <div style="width: 100%; height: 100%; background: #C9922E;"></div>
+            </div>
+            <div class="num" style="width: 120px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">25.2% <span style="color:#9A9890; font-weight:400;">3,064대</span></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="body" style="width: 120px; flex: none;">페루 <span class="num" style="color:#9A9890;">B24</span></div>
+            <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+              <div style="width: 84%; height: 100%; background: #C9922E;"></div>
+            </div>
+            <div class="num" style="width: 120px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">21.2% <span style="color:#9A9890; font-weight:400;">2,473대</span></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="body" style="width: 120px; flex: none;">파나마 <span class="num" style="color:#9A9890;">B22</span></div>
+            <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+              <div style="width: 43%; height: 100%; background: #8FB4D2;"></div>
+            </div>
+            <div class="num" style="width: 120px; flex: none; text-align: right; font-size: 12.5px;">10.8% <span style="color:#9A9890;">391대</span></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="body" style="width: 120px; flex: none;">캐나다 <span class="num" style="color:#9A9890;">B06</span></div>
+            <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+              <div style="width: 33%; height: 100%; background: #8FB4D2;"></div>
+            </div>
+            <div class="num" style="width: 120px; flex: none; text-align: right; font-size: 12.5px;">8.3% <span style="color:#9A9890;">5,986대</span></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div class="body" style="width: 120px; flex: none;">미국 <span class="num" style="color:#9A9890;">B28</span></div>
+            <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+              <div style="width: 26%; height: 100%; background: #8FB4D2;"></div>
+            </div>
+            <div class="num" style="width: 120px; flex: none; text-align: right; font-size: 12.5px;">6.6% <span style="color:#9A9890;">29,548대</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">원천을 받으면 여기에 들어갈 것</div>
+        <div style="border: 1px dashed #DAD6CE; border-radius: 7px; background: #FBFAF8; padding: 16px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div class="body" style="font-weight: 600; color: #6B6A65;">항해중 비중</div>
+            <div style="font-size: 11.5px; color: #9A9890; line-height: 1.55;">배에 실렸으나 내리지 못한 물량. 해상 구간 지연을 가장 먼저 보여 주는 값입니다.</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div class="body" style="font-weight: 600; color: #6B6A65;">선적대기 비중</div>
+            <div style="font-size: 11.5px; color: #9A9890; line-height: 1.55;">항만에 쌓였으나 아직 싣지 못한 물량. 선복 부족을 보여 줍니다.</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div class="body" style="font-weight: 600; color: #6B6A65;">법인재고와 딜러재고</div>
+            <div style="font-size: 11.5px; color: #9A9890; line-height: 1.55;">어느 단계에 쌓였는지 가릅니다. 지금은 유통 체류 한 덩어리로만 보입니다.</div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div class="body" style="font-weight: 600; color: #6B6A65;">국가별 일별 시계열</div>
+            <div style="font-size: 11.5px; color: #9A9890; line-height: 1.55;">언제부터 쌓이기 시작했는지 봅니다. 뉴스 시점과 맞대려면 이게 있어야 합니다.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">해설</div>
+        <div style="font-size: 13.5px; line-height: 1.75; color: #1A1B19; text-wrap: pretty;">
+          칠레와 페루는 선적과 도매가 정확히 같습니다. 보낸 물량이 그대로 딜러까지 갔고 거기서 멈췄다는 뜻입니다.<span class="fn">2</span> 반면 캐나다는 선적보다 도매가 4,358대 적어 일부가 아직 법인 단계에 있고, 딜러 단계에서도 5,986대가 남아 있습니다. 같은 체류라도 걸린 자리가 다릅니다. 다만 이 구분은 선적과 도매의 차이로 미루어 짐작한 것이고, 재고 원천이 들어오면 직접 확인해야 합니다.
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid #EFEDE7; padding-top: 14px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A9890" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+        <div style="font-size: 11.5px; color: #9A9890; line-height: 1.6;">이 리포트의 값은 판매 대시보드에서 유도한 것입니다. 뉴스와 시장지표는 다루지 않습니다. 재고 원천이 들어오면 유도 지표를 실측값으로 교체합니다.</div>
+      </div>
+
     </div>
   </main>
 </div>
@@ -573,66 +1338,281 @@ E2는 게시본 자체가 없는 상태라 대응하는 안내 코드가 없다.
 ##### 배치
 
 ```html
-<div data-screen="UI-4" class="report" style="width:1180px;padding:24px;display:flex;gap:20px">
-  <aside data-el="1" class="side" style="width:248px">
-    <section data-el="2"><span class="lbl">출처</span>
-      <p>완성차 판매 대시보드</p>
-      <p class="cap">선적·도매·소매 4계열 × 일·월·누계·년</p>
-      <p class="cap">스냅샷 <span class="num">2026-08-20 01:40</span></p>
-    </section>
-    <section data-el="3"><span class="lbl">트래킹 지표 <span class="cap">임시 지정</span></span>
-      <ul><li class="active">유통 체류율 <span class="num">-5.0%</span><span class="cap">도매 정본 대비 소매 · 도매 정본보다 소매가 적은 방향 · 값 5.0% · distributionStay</span></li>
-          <li>계획 대비 진도율 <span class="num">96.4%</span></li>
-          <li>전년 동월 대비 <span class="num">-1.8%</span></li></ul>
-      <p class="cap">인입 CSV의 실제 컬럼에서 뽑았습니다. 현업 인터뷰로 확정합니다.</p>
-    </section>
-    <section data-el="4"><span class="lbl">분해 차원</span>
-      <span class="chip">국가 29</span><span class="chip">차종그룹 37</span>
-      <span class="chip">대리점</span><span class="chip">차급 16</span><span class="chip">CBU/CKD</span>
-      <div data-el="5" class="warn-box">국가와 차종이 함께 있는 파일은 미주 한 장뿐입니다. 전 세계 파일은 실적이 비어 있습니다. 지금 못 만드는 지표는 전 세계 국가×차종 하나입니다. <span class="cap">globalCountryByModel</span></div>
-    </section>
-    <section data-el="6"><span class="lbl">버전</span>
-      <ul><li class="active num">v12 · 현재</li><li class="num">v11 · 08-19</li></ul>
-    </section>
-  </aside>
-  <main class="sheet">
-    <div data-el="7" class="sheet-head" style="height:44px">
-      <span class="tag">A3 판매 리포트</span>
-      <span class="title">판매 실적 일일 인사이트</span>
-      <span class="pill num">v12</span>
-      <span class="cap">미주 29개국 · 누계 기준</span>
-      <button data-el="8" class="ghost">내려받기</button>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap">
+<style>.var{margin:32px 0 8px;font-size:11.5px;color:#A6A49C;border-left:3px solid #DAD6CE;padding-left:10px;font-family:system-ui,sans-serif}</style>
+
+<style>
+body { margin: 0; background: #F4F2EE; color: #1A1B19;
+      font-family: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, 'Malgun Gothic', sans-serif;
+      -webkit-font-smoothing: antialiased; }
+    a { color: #0E6B57; text-decoration: none; }
+    a:hover { color: #0B5847; text-decoration: underline; }
+    .num { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+    .lbl { font-size: 10.5px; font-weight: 500; text-transform: uppercase; letter-spacing: .09em; color: #9A9890; }
+    .hl { font-weight: 600; background: rgba(181,115,12,.14); border-radius: 3px; padding: 0 2px; }
+    .fn { font-size: 10px; vertical-align: super; color: #0E6B57; font-weight: 600; }
+    .body { font-size: 12.5px; color: #3C3B37; }
+</style>
+<div style="width: 1180px; padding: 24px; box-sizing: border-box; display: flex; align-items: flex-start; gap: 20px;">
+
+  <aside style="width: 248px; flex: none; display: flex; flex-direction: column; gap: 20px; border: 1px solid #E2DFD8; background: #FBFAF8; border-radius: 11px; padding: 16px;">
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">출처</div>
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6B6A65" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"></path><rect x="7" y="10" width="3" height="7"></rect><rect x="13" y="6" width="3" height="11"></rect></svg>
+          <span class="body">완성차 판매 대시보드</span>
+        </div>
+        <div style="font-size: 11.5px; color: #6B6A65;">선적·도매·소매 4계열 × 일·월·누계·년</div>
+        <div style="font-size: 11.5px; color: #6B6A65;">스냅샷 <span class="num">2026-08-20 01:40</span></div>
+      </div>
     </div>
-    <div class="sheet-body">
-      <section data-el="9"><span class="lbl">요약</span><p class="summary">도매로 넘긴 물량과 팔린 물량 사이에 34,104대가 남아 있습니다. 칠레 25.2%, 페루 21.2%가 크고 푸에르토리코는 반대 방향입니다<sup class="fn">1</sup></p></section>
-      <section data-el="10"><span class="lbl">단계별 흐름 · 누계 실적</span>
-        <p class="cap">화면은 줄어드는 방향을 앞의 빼기 부호로 그립니다. 저장되는 값은 양수입니다.</p>
-        <div class="flow">
-          <div class="box stage">선적 <span class="num">679,551</span></div>
-          <div class="gap"><span class="lbl">법인 단계 체류</span><span class="num">-2,350</span></div>
-          <div class="box stage">도매 정본 <span class="num">677,201</span></div>
-          <div class="gap gap-warn"><span class="lbl">유통 체류</span><span class="num">-34,104</span></div>
-          <div class="box stage">소매 <span class="num">643,097</span></div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">트래킹 지표</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; align-items: center; gap: 7px; background: #FFFFFF; border-radius: 8px; padding: 7px 10px; box-shadow: inset 0 0 0 1px #E2DFD8;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #B3261E;"></span>
+          <span class="body" style="font-weight: 500;">유통 체류율</span>
+          <span class="num" style="font-size: 11.5px; color: #B3261E; margin-left: auto;">-5.0%</span>
         </div>
-        <p class="cap">선적과 도매 정본은 거의 붙어 있고 벌어지는 구간은 도매 정본과 소매 사이입니다. 별도 재고 데이터가 없어 이 값으로 대신합니다.</p>
-      </section>
-      <section data-el="11" class="breakdown">
-        <div class="sec-head"><span class="lbl">변동을 대시보드 안에서 분해</span><span class="cap">유통 체류율 · 도매 1,000대 이상 14개국</span></div>
-        <div class="box">
-          <div class="table-head">쌓이는 쪽 <span class="cap">도매가 소매보다 많음</span></div>
-          <div class="bar-row"><span class="name">칠레 <span class="num">B07</span></span><span class="bar" style="width:25%"></span><span class="num">25.2% · 3,064대</span></div>
-          <div class="bar-row"><span class="name">페루 <span class="num">B29</span></span><span class="bar" style="width:21%"></span><span class="num">21.2%</span></div>
-          <div class="table-head">덜어내는 쪽 <span class="cap">소매가 도매보다 많음</span></div>
-          <div class="bar-row bar-neg"><span class="name">푸에르토리코 <span class="num">B35</span></span><span class="bar" style="width:14%"></span><span class="num">-13.7% · 712대</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 7px 10px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+          <span class="body">계획 대비 진도율</span>
+          <span class="num" style="font-size: 11.5px; color: #6B6A65; margin-left: auto;">96.4%</span>
         </div>
-        <div data-el="12" class="box">
-          <div class="table-head">캐나다 차종별 <span class="cap">5,986대 중 상위 5</span></div>
-          <div class="bar-row"><span class="name">아반떼</span><span class="bar" style="width:42%"></span><span class="num">도매 12,473 소매 9,929</span><span class="num">2,544</span></div>
-          <div class="bar-row"><span class="name">코나</span><span class="bar" style="width:39%"></span><span class="num">2,328</span></div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 7px 10px;">
+          <span style="width: 6px; height: 6px; border-radius: 50%; background: #9A9890;"></span>
+          <span class="body">전년 동월 대비</span>
+          <span class="num" style="font-size: 11.5px; color: #6B6A65; margin-left: auto;">-1.8%</span>
         </div>
-      </section>
-      <section data-el="13"><span class="lbl">해설</span><p class="prose">비율과 대수가 다른 이야기를 합니다. 칠레는 비율이 크고 캐나다는 대수가 큽니다. 캐나다 5,986대 중 아반떼와 코나가 4,872대입니다<sup class="fn">1</sup></p></section>
-      <p data-el="14" class="fixed-note">이 리포트는 판매 대시보드 데이터만 씁니다. 왜 안 팔리는지는 여기서 답하지 않습니다. 도매는 공식 집계 기준이며 실 도매(664,269대) 기준과 12,932대 차이가 있습니다. 이 차이는 미주 누계 상세 행 기준입니다.</p>
+      </div>
+      <div style="font-size: 11px; color: #A6A49C; line-height: 1.5;">인입 CSV의 실제 컬럼에서 뽑았습니다. 현업 인터뷰로 확정합니다.</div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">분해 차원</div>
+      <div style="display: flex; flex-wrap: wrap; gap: 5px;">
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">국가 29</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">차종그룹 37</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">대리점</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">차급 16</span>
+        <span style="font-size: 11px; color: #6B6A65; background: #EFEDE7; padding: 3px 8px; border-radius: 7px;">CBU/CKD</span>
+      </div>
+      <div style="display: flex; align-items: flex-start; gap: 6px; background: rgba(181,115,12,.08); border: 1px solid rgba(181,115,12,.28); border-radius: 7px; padding: 8px 10px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#B5730C" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+        <div style="font-size: 11px; color: #B5730C; line-height: 1.5;">국가와 차종이 함께 있는 파일은 미주 한 장뿐입니다. 전 세계 파일은 실적이 비어 있습니다.</div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div class="lbl">버전</div>
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div class="num" style="background: #FFFFFF; border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 500; box-shadow: inset 0 0 0 1px #E2DFD8;">v12 · 현재</div>
+        <div class="num" style="padding: 6px 10px; font-size: 12px; color: #6B6A65;">v11 · 08-19</div>
+      </div>
+    </div>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; border: 1px solid #E2DFD8; background: #FFFFFF; border-radius: 11px; overflow: hidden;">
+
+    <div style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px; border-bottom: 1px solid #E2DFD8;">
+      <span style="background: #E7F0ED; color: #0B5847; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 5px;">A3 판매 리포트</span>
+      <span style="font-size: 13px; font-weight: 600;">판매 실적 일일 인사이트</span>
+      <span class="num" style="background: #EFEDE7; color: #6B6A65; font-size: 11px; padding: 3px 8px; border-radius: 20px;">v12</span>
+      <span style="font-size: 11px; color: #6B6A65; margin-left: 8px;">미주 29개국 · 누계 기준</span>
+      <div style="margin-left: auto; display: flex; align-items: center; gap: 6px;">
+        <button style="display: inline-flex; align-items: center; gap: 6px; border: 1px solid #DAD6CE; background: #FFFFFF; color: #3C3B37; font-size: 12px; padding: 6px 12px; border-radius: 7px; font-family: inherit; cursor: pointer;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17V3"></path><path d="m6 11 6 6 6-6"></path><path d="M19 21H5"></path></svg>
+          내려받기
+        </button>
+      </div>
+    </div>
+
+    <div style="padding: 22px; display: flex; flex-direction: column; gap: 22px;">
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">요약</div>
+        <div style="font-size: 16px; font-weight: 500; line-height: 1.65; letter-spacing: -.01em; text-wrap: pretty;">
+          도매로 넘긴 물량과 실제 팔린 물량 사이에 <span class="hl">34,104대</span>가 남아 있습니다. 미주 전체로는 5.0%인데 <span class="hl">칠레 25.2%, 페루 21.2%</span>로 두 나라가 크게 벌어져 있습니다.<span class="fn">1</span> 반대로 브라질과 멕시코는 소매가 도매를 넘어 쌓였던 물량을 덜어내고 있습니다.<span class="fn">2</span>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">단계별 흐름 · 누계 실적</div>
+        <div style="font-size: 11px; color: #9A9890; margin-top: -4px;">화면은 줄어드는 방향을 앞의 빼기 부호로 그립니다. 저장되는 값은 양수입니다.</div>
+        <div style="display: flex; align-items: stretch; gap: 0;">
+          <div style="flex: 1; border: 1px solid #E2DFD8; border-radius: 7px 0 0 7px; padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-size: 12.5px; font-weight: 600;">선적</div>
+            <div class="num" style="font-size: 21px; font-weight: 600;">679,551</div>
+            <div style="font-size: 11px; color: #9A9890;">배에 실린 물량</div>
+          </div>
+          <div style="width: 54px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-top: 1px solid #E2DFD8; border-bottom: 1px solid #E2DFD8; background: #FBFAF8;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9A9890" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            <div class="num" style="font-size: 10.5px; color: #6B6A65;">-2,350</div>
+          </div>
+          <div style="flex: 1; border: 1px solid #E2DFD8; padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-size: 12.5px; font-weight: 600;">도매</div>
+            <div class="num" style="font-size: 21px; font-weight: 600;">677,201</div>
+            <div style="font-size: 11px; color: #9A9890;">딜러에게 넘긴 물량</div>
+          </div>
+          <div style="width: 54px; flex: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-top: 1px solid #E2DFD8; border-bottom: 1px solid #E2DFD8; background: rgba(181,115,12,.08);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#B5730C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+            <div class="num" style="font-size: 10.5px; color: #B5730C; font-weight: 600;">-34,104</div>
+          </div>
+          <div style="flex: 1; border: 1px solid #E2DFD8; border-radius: 0 7px 7px 0; padding: 14px; display: flex; flex-direction: column; gap: 6px;">
+            <div style="font-size: 12.5px; font-weight: 600;">소매</div>
+            <div class="num" style="font-size: 21px; font-weight: 600;">643,097</div>
+            <div style="font-size: 11px; color: #9A9890;">최종 고객에게 팔린 물량</div>
+          </div>
+        </div>
+        <div style="display: flex; align-items: flex-start; gap: 7px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9A9890" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 2px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+          <div style="font-size: 11.5px; color: #9A9890; line-height: 1.6;">선적과 도매는 거의 붙어 있고 벌어지는 구간은 도매와 소매 사이입니다. 이 차이가 딜러에 쌓인 물량입니다. 별도 재고 데이터가 없어 이 값으로 대신합니다.</div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: baseline; gap: 10px;">
+          <div class="lbl">변동을 대시보드 안에서 분해</div>
+          <div style="font-size: 11.5px; color: #6B6A65;">도매 대비 소매 격차율 · 도매 1,000대 이상 14개국</div>
+        </div>
+
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-bottom: 1px solid #EFEDE7;">
+            <div style="font-size: 12.5px; font-weight: 600;">쌓이는 쪽</div>
+            <div style="font-size: 11px; color: #9A9890;">도매가 소매보다 많음</div>
+          </div>
+          <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 9px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">칠레 <span class="num" style="color:#9A9890;">B07</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 100%; height: 100%; background: #2F6FA8;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">25.2% <span style="color:#9A9890; font-weight:400;">3,064대</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">페루 <span class="num" style="color:#9A9890;">B24</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 84%; height: 100%; background: #2F6FA8;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">21.2% <span style="color:#9A9890; font-weight:400;">2,473대</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">파나마 <span class="num" style="color:#9A9890;">B22</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 43%; height: 100%; background: #5C93BF;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px;">10.8% <span style="color:#9A9890;">391대</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">캐나다 <span class="num" style="color:#9A9890;">B06</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 33%; height: 100%; background: #5C93BF;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px;">8.3% <span style="color:#9A9890;">5,986대</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">미국 <span class="num" style="color:#9A9890;">B28</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 26%; height: 100%; background: #8FB4D2;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px;">6.6% <span style="color:#9A9890;">29,548대</span></div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-top: 1px solid #EFEDE7; border-bottom: 1px solid #EFEDE7;">
+            <div style="font-size: 12.5px; font-weight: 600;">덜어내는 쪽</div>
+            <div style="font-size: 11px; color: #9A9890;">소매가 도매보다 많음</div>
+          </div>
+          <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 9px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">푸에르토리코 <span class="num" style="color:#9A9890;">B35</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden; display: flex; justify-content: flex-end;">
+                <div style="width: 54%; height: 100%; background: #4B8B7A;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px;">-13.7% <span style="color:#9A9890;">712대</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">콜롬비아 <span class="num" style="color:#9A9890;">B08</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden; display: flex; justify-content: flex-end;">
+                <div style="width: 42%; height: 100%; background: #4B8B7A;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px;">-10.5% <span style="color:#9A9890;">535대</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 120px; flex: none;">브라질 <span class="num" style="color:#9A9890;">B05</span></div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden; display: flex; justify-content: flex-end;">
+                <div style="width: 12%; height: 100%; background: #4B8B7A;"></div>
+              </div>
+              <div class="num" style="width: 130px; flex: none; text-align: right; font-size: 12.5px;">-3.1% <span style="color:#9A9890;">2,632대</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="border: 1px solid #E2DFD8; border-radius: 7px; overflow: hidden;">
+          <div style="display: flex; align-items: center; gap: 8px; background: #FBFAF8; padding: 10px 14px; border-bottom: 1px solid #EFEDE7;">
+            <div style="font-size: 12.5px; font-weight: 600;">캐나다 차종별</div>
+            <div style="font-size: 11px; color: #9A9890;">5,986대 중 상위 5</div>
+          </div>
+          <div style="padding: 12px 14px; display: flex; flex-direction: column; gap: 9px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 96px; flex: none;">아반떼</div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 100%; height: 100%; background: #2F6FA8;"></div>
+              </div>
+              <div class="num" style="width: 140px; flex: none; text-align: right; font-size: 12.5px;">도매 12,473 소매 9,929</div>
+              <div class="num" style="width: 58px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">2,544</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 96px; flex: none;">코나</div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 92%; height: 100%; background: #2F6FA8;"></div>
+              </div>
+              <div class="num" style="width: 140px; flex: none; text-align: right; font-size: 12.5px;">도매 13,993 소매 11,665</div>
+              <div class="num" style="width: 58px; flex: none; text-align: right; font-size: 12.5px; font-weight: 600;">2,328</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 96px; flex: none;">베뉴</div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 42%; height: 100%; background: #5C93BF;"></div>
+              </div>
+              <div class="num" style="width: 140px; flex: none; text-align: right; font-size: 12.5px;">도매 7,306 소매 6,237</div>
+              <div class="num" style="width: 58px; flex: none; text-align: right; font-size: 12.5px;">1,069</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 96px; flex: none;">싼타페</div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 29%; height: 100%; background: #8FB4D2;"></div>
+              </div>
+              <div class="num" style="width: 140px; flex: none; text-align: right; font-size: 12.5px;">도매 4,494 소매 3,762</div>
+              <div class="num" style="width: 58px; flex: none; text-align: right; font-size: 12.5px;">732</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="body" style="width: 96px; flex: none;">쏘나타</div>
+              <div style="flex: 1; height: 14px; background: #F4F2EE; border-radius: 3px; overflow: hidden;">
+                <div style="width: 17%; height: 100%; background: #8FB4D2;"></div>
+              </div>
+              <div class="num" style="width: 140px; flex: none; text-align: right; font-size: 12.5px;">도매 1,859 소매 1,415</div>
+              <div class="num" style="width: 58px; flex: none; text-align: right; font-size: 12.5px;">444</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <div class="lbl">해설</div>
+        <div style="font-size: 13.5px; line-height: 1.75; color: #1A1B19; text-wrap: pretty;">
+          미주 전체로는 도매와 소매 차이가 5.0%지만 나라별로 크게 갈립니다. 칠레와 페루는 넘긴 물량의 5분의 1이 아직 팔리지 않았고, 두 나라 모두 선적과 도매가 정확히 같아 물량이 딜러 단계에서 멈춰 있습니다.<span class="fn">1</span> 캐나다는 격차율은 8.3%지만 대수로는 5,986대로 커서, 아반떼와 코나 두 차종이 그중 4,872대를 차지합니다.<span class="fn">3</span> 반대로 푸에르토리코와 콜롬비아는 소매가 도매를 앞질러 이전에 쌓인 물량을 덜어내는 중입니다.<span class="fn">2</span>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: flex-start; gap: 8px; border-top: 1px solid #EFEDE7; padding-top: 14px;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9A9890" stroke-width="2" stroke-linecap="round" style="flex: none; margin-top: 1px;"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+        <div style="font-size: 11.5px; color: #9A9890; line-height: 1.6;">이 리포트는 판매 대시보드 데이터만 씁니다. 왜 안 팔리는지는 여기서 답하지 않습니다. 바깥 원인은 종합 리포트에서 봅니다. 도매는 공식 집계 기준이며 실 도매(664,269대) 기준과 12,932대 차이가 있습니다.</div>
+      </div>
+
     </div>
   </main>
 </div>
