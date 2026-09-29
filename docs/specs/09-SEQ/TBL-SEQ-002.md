@@ -736,7 +736,7 @@ sequenceDiagram
   ADM->>API: GET /api/admin/batch/status
   API->>BAT: get_status()
   BAT->>DB_OPS: batch_run 최근, auto_run_blocked가 선 ingest_file
-  BAT-->>ADM: 실행 중 여부, 자동 실행을 막고 있는 것, 브리핑 저장소 ping 결과
+  BAT-->>ADM: 실행 중 여부, 자동 실행을 막고 있는 것, briefingStore.reachable
   ADM->>API: GET /api/admin/batch/run/{batchRunId}
   API->>BAT: get_run(batchRunId)
   BAT->>DB_OPS: batch_stage_result 여덟 행, llm_call
@@ -898,9 +898,8 @@ sequenceDiagram
 |:--|:--|:--|:--|
 | F1 | [[TBL-DOM-005]] | 생명선으로 세울 수 없는 타입 넷이 있다. `SchemaRegistry`, `CrosswalkTable`, `BriefingStorePort`, `LlmPort`다. 앞의 둘은 클래스 스물여덟 밖의 값 객체이고 뒤의 둘은 포트다 | 포트 둘은 구현체([[TBL-DOM-005#BriefingStoreReader]] [[TBL-DOM-005#HChatClient]])로 그렸고 앞의 둘은 그리지 않았다. 클래스 명세 `analysis/schemas.py`에 값 객체 자리가 있으니 그대로 두어도 된다 |
 | F2 | [[TBL-DOM-005#DegradeHandler]] · [[TBL-DOM-005#ReportPublisher]] | 강등 시 템플릿 문장을 누가 채우는가. 클래스 명세는 `DegradeHandler.fill_template`이고 옛 시퀀스는 게시기가 채웠다 | [[#SEQ-3]]과 [[#SEQ-11]]에서 `fill_template`은 [[TBL-DOM-005#DegradeHandler]]가 돌리고 게시기는 결과를 넣기만 하는 것으로 그렸다. 클래스 명세와 같다 |
-| F3 | [[TBL-API-002#GET/api/admin/batch/status]] | 응답에 브리핑 저장소 접속 확인 결과가 있는지가 명시돼 있지 않다. 클래스 명세는 `BriefingStoreReader.ping`을 이 엔드포인트가 부른다고 했다 | [[#SEQ-12]]의 `get_status` 응답에 ping 결과를 함께 그렸다. API 문서에 필드 하나가 늘어야 한다 |
 
-옛 시퀀스 문서의 되먹임 여덟은 상류가 다시 쓰이면서 전부 닫혔다. 회귀 급변의 경로 둘은 [[TBL-INFRA-002#C20]]과 [[TBL-UC-002#UC-S10]] 4가, 1·3단계 멈춤은 [[TBL-INFRA-002#C20]]이, 열람 사본은 [[TBL-DOM-006#a_report_snapshot]] [[TBL-DOM-006#market_series]]가, 알림 유일성은 [[TBL-DOM-006#alert_event]]의 유일 제약이 정했다.
+F3은 닫혔다. [[TBL-API-002#GET/api/admin/batch/status]] 응답에 `briefingStore`(`reachable` `checkedAt` `lastSnapshotId`)가 들어가 [[#SEQ-12]]의 `get_status` 화살표와 같아졌다. 닫힌 번호는 다시 쓰지 않는다. 옛 시퀀스 문서의 되먹임 여덟은 상류가 다시 쓰이면서 전부 닫혔다. 회귀 급변의 경로 둘은 [[TBL-INFRA-002#C20]]과 [[TBL-UC-002#UC-S10]] 4가, 1·3단계 멈춤은 [[TBL-INFRA-002#C20]]이, 열람 사본은 [[TBL-DOM-006#a_report_snapshot]] [[TBL-DOM-006#market_series]]가, 알림 유일성은 [[TBL-DOM-006#alert_event]]의 유일 제약이 정했다.
 
 ## 8. 미결사항
 
