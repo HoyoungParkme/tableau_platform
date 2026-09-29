@@ -64,7 +64,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 화면 | 없음 |
 | 테스트 | 구현 함수의 테스트 관점 전부. 저장소를 막아 놓고 돌려도 `read`가 예외 없이 보완 집계로 내려가는지. `BriefingStoreReader`에 쓰기 계열 메서드가 없는지(코드 검사). 읽어 온 값이 `a_judgment.current_value`에 소수점까지 같은지. A1 보완 집계가 `axis_type=plant`로만 나오는지. 스냅샷 키·필드는 미결이라 검증 목록은 가짜 payload로 둔다 |
 | 선행 | B1 |
-| 완료 | 아직 없음 |
+| 완료 | 커밋 d42cd82 · PR 없음 · 2026-09-29. 함수 9. 브리핑 저장소 모양은 가정(briefing.report_snapshot·judgment·contribution, QUERIES 한 곳). PostgreSQL 16 컨테이너에서 46건 통과(전체) |
 
 #### C2 사건 묶음 (3단계)
 
