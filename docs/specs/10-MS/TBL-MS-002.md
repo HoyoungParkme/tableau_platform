@@ -16,20 +16,11 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 등급·점수·순위를 만드는 함수는 없다. 후보에 붙는 값은 근접도 넷(날짜 차이·기사 수·출처 수·국가 일치 방식)과 정렬 규칙이 낳은 자리 번호 `sort_order` 하나뿐이다([[TBL-PRD-002#R10]]).
 
-### 0.1 상류와 어긋난 곳
+### 0.1 항목 ID와 열거 값
 
 항목 ID는 `클래스.함수`이고 [[TBL-DOM-005]] 4장 메서드 표의 공개 메서드와 1:1이다. 사설 헬퍼(`-`로 표시된 것)는 항목이 아니다.
 
-열거 값은 [[TBL-API-002]]를 따른다. API가 바깥 계약이기 때문이다. [[TBL-DOM-005]]와 [[TBL-DOM-006]]이 같은 값을 짧게 적은 곳이 아래 여섯이며, 이 문서는 API 쪽 값을 쓴다. 두 문서를 API 값으로 고치는 것이 되먹임이다.
-
-| 뜻 | API 값 (이 문서) | DOM-005·DOM-006에 적힌 값 |
-|:--|:--|:--|
-| 계획 정본 | `operationPlan` `businessPlan` | `operatingPlan` `businessPlan` |
-| 국가 일치 방식 | `countryDirect` `straitAttributed` `crossDomainSameCountry` `dateOnly` | `direct` `strait` `crossDomain` `dateOnly` |
-| 후보 유형 | `event` `article` `marketMetric` `crossDomainAnomaly` | `event` `article` `market` `crossDomain` |
-| 명명 주체 | `llm` `representativeArticle` | `llm` `representative` |
-| 워치리스트 변화 | `new` `raised` `lowered` `dropped` | `new` `up` `down` `exit` |
-| 노출 취득 경로 | `columnDirect` `productionDerived` | `column` `derived` |
+열거 값은 [[TBL-API-002]]를 따른다. API가 바깥 계약이기 때문이다. [[TBL-DOM-005]]와 [[TBL-DOM-006]]도 같은 값을 쓴다. 계획 정본 `operationPlan`·`businessPlan`, 국가 일치 방식 `countryDirect`·`straitAttributed`·`crossDomainSameCountry`·`dateOnly`, 후보 유형 `event`·`article`·`marketMetric`·`crossDomainAnomaly`, 명명 주체 `llm`·`representativeArticle`, 워치리스트 변화 `new`·`raised`·`lowered`·`dropped`, 노출 취득 경로 `columnDirect`·`productionDerived`다. 세 문서에서 값이 갈리면 API가 정본이고 나머지를 고친다.
 
 컬럼 이름은 [[TBL-DOM-006]]을, 응답 필드 이름은 [[TBL-API-002]]를 그대로 쓴다. 둘은 층이 달라 같을 필요가 없다(`plan_alt_diff` 컬럼이 `planAlternativeDiff` 필드로 나간다).
 
@@ -1311,7 +1302,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `get_status() -> dict`
 
-**처리** 최근 [[TBL-DOM-006#batch_run]]과 **자동 실행을 막고 있는 것**(`auto_run_blocked=true`인 [[TBL-DOM-006#ingest_file]])을 함께 돌려준다. 실행 중 여부와 [[#BriefingStoreReader.ping]] 결과도 담는다. ping 필드는 [[TBL-API-002#GET/api/admin/batch/status]]에 아직 없다([[TBL-SEQ-002]] 7장 F3).
+**처리** 최근 [[TBL-DOM-006#batch_run]]과 **자동 실행을 막고 있는 것**(`auto_run_blocked=true`인 [[TBL-DOM-006#ingest_file]])을 함께 돌려준다. 실행 중 여부와 [[#BriefingStoreReader.ping]] 결과(`briefingStore.reachable` `checkedAt` `lastSnapshotId`)도 담는다. 판정을 한 건도 읽지 않는 가벼운 확인이라 실패해도 이 함수는 200이다.
 
 **테스트 관점** 회귀 차단이 걸려 있을 때 무엇이 막고 있는지가 파일 단위로 나오는지.
 
@@ -1512,7 +1503,6 @@ A3 판매  globalCountryByModel                                                 
 - [ ] [[#FormALedgerParser.check_columns]]가 대조할 실제 컬럼 목록. 형태 A 실물 파일을 아직 본 적이 없다
 - [ ] [[#FormBPivotParser.detect_file_base_date]]가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다
 - [ ] [[#HChatClient.complete]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 것은 가정이며 실호출 확인 범위가 좁다. 지원되지 않으면 세 역할의 검증 단계가 늘어난다
-- [ ] 0.1절의 열거 값 여섯을 [[TBL-DOM-005]]·[[TBL-DOM-006]]에서 [[TBL-API-002]] 값으로 고치는 것. 이 문서는 API 값을 썼다
 - [ ] [[#DomainReportService.get_latest_by_domain]]에서 사본이 없을 때 판정값과 차트를 `pub` 어디서 읽는가. 판정 사본은 `mart`에만 있다([[TBL-SEQ-002]] 8장)
 - [ ] 설정 변경 경로. [[TBL-DOM-006#threshold_setting]] 새 버전 행을 SQL로 넣을지 CLI를 만들지. 정해지면 함수가 하나 는다
 - [ ] 현업 피드백("맞다·아니다·모르겠다") 저장 함수. 화면에 넣을지가 미결이라 이 문서에도 두지 않았다([[TBL-PRD-002#R19]])
