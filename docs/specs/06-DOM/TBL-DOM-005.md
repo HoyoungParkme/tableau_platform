@@ -519,7 +519,7 @@ classDiagram
 테이블: [[TBL-DOM-006#country_period_fact]] · 도메인: [[TBL-DOM-004#CountryPeriodFact]]
 
 `country_code`·`period_type`·`file_base_date` 셋이 행의 자리다. 생산 행은 국가가 없어 이 팩트에 들어오지 않는다.
-`plan_source` operatingPlan·businessPlan 중 계산에 쓴 것. `plan_alt_diff`는 쓰지 않은 쪽과의 차이다.
+`plan_source` operationPlan·businessPlan 중 계산에 쓴 것. `plan_alt_diff`는 쓰지 않은 쪽과의 차이다.
 `compare_value`·`compare_basis`는 결합 단계가 굳힌다. 변동 판정은 읽기만 한다.
 `inventory_*` 넷은 원천이 없어 비어 있고 `inventory_source`는 derived로 고정된다.
 `market_asof` 그 기간 마지막 날 기준 시장지표 4종의 값. `quality_flags` 중복 적재 의심 같은 표시.
@@ -537,7 +537,7 @@ classDiagram
 
 테이블: [[TBL-DOM-006#model_exposure]] · 도메인: [[TBL-DOM-004#ModelExposure]]
 
-`exposure` CBU·CKD·unknown. `acquired_by` column(형태 B 컬럼 직독)·derived(형태 A 생산 모델코드 유도).
+`exposure` CBU·CKD·unknown. `acquired_by` columnDirect(형태 B 컬럼 직독)·productionDerived(형태 A 생산 모델코드 유도).
 `derivation_note`는 사람 말로 적은 근거다. 점수 칸을 두지 않는다.
 
 #### Anomaly 변동
@@ -568,7 +568,7 @@ classDiagram
 테이블: [[TBL-DOM-006#event]] · 도메인: [[TBL-DOM-004#Event]]
 
 `article_count`·`source_count`는 3단계 코드가 센다. 신호등의 입력이므로 모델이 손대지 못한다.
-`named_by` llm·representative. 이름만 6단계 LLM이 붙이고 실패하면 대표 기사 제목이다.
+`named_by` llm·representativeArticle. 이름만 6단계 LLM이 붙이고 실패하면 대표 기사 제목이다.
 
 #### MarketPoint 시장 지표 관측값
 
@@ -587,8 +587,8 @@ classDiagram
 
 테이블: [[TBL-DOM-006#cause_candidate]] · 도메인: [[TBL-DOM-004#CauseCandidate]]
 
-`candidate_type` event·article·market·crossDomain. `candidate_id`는 그 유형의 식별자다.
-근접도 값 넷 `day_diff`·`article_count`·`source_count`·`country_match`(direct·strait·crossDomain·dateOnly)가 정렬과 신호등의 유일한 입력이다.
+`candidate_type` event·article·marketMetric·crossDomainAnomaly. `candidate_id`는 그 유형의 식별자다.
+근접도 값 넷 `day_diff`·`article_count`·`source_count`·`country_match`(countryDirect·straitAttributed·crossDomainSameCountry·dateOnly)가 정렬과 신호등의 유일한 입력이다.
 `sort_order`는 정렬 규칙이 낳은 자리 번호다. 등급·점수 칸은 없다.
 
 #### CauseLink 연관 설명
@@ -602,7 +602,7 @@ classDiagram
 테이블: [[TBL-DOM-006#watch_item]] · 도메인: [[TBL-DOM-004#WatchItem]]
 
 `traffic_light` red·yellow·none·notApplicable. `light_basis`는 어느 후보의 어떤 값이 기준을 넘었는가다.
-`change_badge` new·up·down·none. 직전 게시본과의 비교 결과다.
+`change_badge` new·raised. 직전 게시본과의 비교 결과이며 변화가 없으면 비운다.
 
 #### CReport C 리포트
 
@@ -628,7 +628,7 @@ classDiagram
 
 테이블: [[TBL-DOM-006#alert_event]] · 도메인: [[TBL-DOM-004#AlertEvent]]
 
-`change_type` new·up·down·exit. 리포트와 국가 조합으로 유일하다.
+`change_type` new·raised·lowered·dropped. 리포트와 국가 조합으로 유일하다.
 
 #### Country 국가
 
