@@ -10,7 +10,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 ## 0. 이 문서가 다루는 것
 
-[[TBL-DOM-005]]가 정한 클래스 스물여덟의 공개 메서드 하나하나가 **무엇을 받아 무엇을 돌려주고 어디서 갈라지는가**를 정한다. 호출 순서는 [[TBL-SEQ-002]]가, 테이블과 컬럼은 [[TBL-DOM-006]]이, 응답 스키마는 [[TBL-API-002]] 4장이 정한다. 이 문서는 그 셋 사이의 계약이다.
+[[TBL-DOM-005]]가 정한 클래스 스물아홉의 공개 메서드 하나하나가 **무엇을 받아 무엇을 돌려주고 어디서 갈라지는가**를 정한다. 호출 순서는 [[TBL-SEQ-002]]가, 테이블과 컬럼은 [[TBL-DOM-006]]이, 응답 스키마는 [[TBL-API-002]] 4장이 정한다. 이 문서는 그 셋 사이의 계약이다.
 
 **뼈대는 한 줄이다. 판정은 배치 1~5단계에서 코드가 끝내고, 6~8단계는 확정된 판정을 읽을 수 있게 만드는 일이다**([[TBL-INFRA-002#C19]]). 그래서 [[#TrafficLightJudge.judge]]와 [[#ProximityCalculator.calculate]]의 시그니처에 LLM 인자가 없고, 그 두 함수가 사는 `judgment/` 아래 어느 파일도 `adapters/`를 import 하지 않는다. LLM 세 역할이 전부 실패해도 변동·후보·근접도·신호등은 그대로 게시된다.
 
@@ -28,7 +28,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 ## 1. 함수 목록
 
-함수는 106개이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-005]] 1장을 그대로 따른다.
+함수는 110개이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-005]] 1장을 그대로 따른다.
 
 | 계층 | 클래스 | 함수 | 단계 |
 |:--|:--|:--|:--|
@@ -54,10 +54,11 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 | 서술 | [[TBL-DOM-005#DegradeHandler]] | `degrade` `fill_template` `degraded_roles` | 6~8 |
 | 게시 | [[TBL-DOM-005#ReportPublisher]] | `number_evidence` `publish` `publish_a_report` `diff_watchlist` `copy_display_values` | 8 |
 | 열람 | [[TBL-DOM-005#CReportService]] | `get_latest` `get_by_id` | 없음 |
-| 열람 | [[TBL-DOM-005#DomainReportService]] | `get_latest_by_domain` `get_by_id` `list_versions` `build_domain_extra` `list_missing_metrics` | 없음 |
+| 열람 | [[TBL-DOM-005#DomainReportService]] | `get_latest_by_domain` `get_by_id` `list_versions` `build_domain_extra` `list_missing_metrics` `render_pdf` | 없음 |
 | 열람 | [[TBL-DOM-005#MarketService]] | `get_series` `as_of` `is_carried_over` | 4에서도 쓴다 |
 | 관리 | [[TBL-DOM-005#BatchService]] | `get_status` `list_runs` `get_run` `request_rerun` `publish_version` | 없음 |
 | 관리 | [[TBL-DOM-005#MasterService]] | `get_summary` `list_unmapped` `upload_crosswalk` `confirm_crosswalk` | 없음 |
+| 관리 | [[TBL-DOM-005#ExposureService]] | `summary` `switch` `verify` | 없음 |
 | 어댑터 | [[TBL-DOM-005#HChatClient]] | `complete` `remaining_tokens` | 6~8 |
 | 어댑터 | [[TBL-DOM-005#BriefingStoreReader]] | `read_judgments` `read_contributions` `read_report_document` `snapshot_id` `ping` | 2 |
 
@@ -229,7 +230,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **출력** 원장 그대로의 표와 골격 행 수.
 
-**테스트 관점** **[확인 필요] 형태 A 실물 파일을 아직 본 적이 없다.** IF 레이아웃 정의(생산 17열, 판매·재고 23열)로만 검증한다.
+**테스트 관점** 실물 원장(현대차 데이터_0910.xlsx)과 IF 레이아웃 정의가 같다. 생산 16열, 판매·재고 22열이고 둘째 줄은 영문 코드 행이라 세어 두고 뺀다. 레이아웃 파일의 `→ 측정값(실적)` 칸은 구분 표시라 열이 아니다(2026-09-30 대조). 실물 앞부분 표본으로 검증한다.
 
 근거: [[TBL-SEQ-002#SEQ-4]] · [[TBL-INFRA-002#C6]]
 
@@ -239,7 +240,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **처리** 기대 컬럼 목록과 실제 컬럼을 대조해 `{expected, found}` 어긋남 목록을 돌려준다. 빈 목록이면 통과다. 어긋나도 예외를 던지지 않고 목록으로 돌려 미리보기가 적는다.
 
-**테스트 관점** 생산 17열, 판매·재고 23열에서 한 열을 지운 파일이 그 열 이름을 정확히 짚는지.
+**테스트 관점** 생산 16열, 판매·재고 22열에서 한 열을 지운 파일이 그 열 이름을 정확히 짚는지.
 
 근거: [[TBL-DOM-005#FormALedgerParser]]
 
@@ -589,7 +590,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **예외** 없다. **음수를 예외로 처리하지 않는다.**
 
-**테스트 관점** 미주 누계에서 선적 679,551 · 도매(공식) 677,201 · 소매 643,097로 `entity_stage_gap=2,350`, `dealer_stage_gap=34,104`, `dealer_stage_gap_rate=0.050`이 나오는지. 국가별 딜러 구간 상위가 칠레 0.252, 페루 0.212, 파나마 0.108, 미국 0.066 순인지. 푸에르토리코 -0.137과 콜롬비아 -0.105가 오류가 아니라 값으로 저장되는지. 법인 구간에서 캐나다 0.083이 잡히는지.
+**테스트 관점** 미주 누계(CDO 인입 샘플 CSV 추출본, 미주 30개국 629행)에서 선적 679,551 · 도매(공식) 677,201 · 소매 643,097로 `entity_stage_gap=2,350`, `dealer_stage_gap=34,104`, `dealer_stage_gap_rate=0.050`이 나오는지. 국가별 딜러 구간 상위가 칠레 0.252, 페루 0.212, 파나마 0.108, 미국 0.066 순인지. 푸에르토리코 -0.137과 콜롬비아 -0.105가 오류가 아니라 값으로 저장되는지. 법인 구간에서 캐나다 0.083이 잡히는지. 저장소 시험은 엑셀 표본(CDO 판매 인입 데이터 샘플)의 미주 부분집합으로 짠다. 그 표본은 선적 681,761 · 도매(공식) 679,411 · 소매 644,519라 법인 구간 2,350은 같고 딜러 구간은 34,892다.
 
 근거: [[TBL-SEQ-002#SEQ-7]] · [[TBL-PRD-002#R9]] · [[TBL-INFRA-002#C17]]
 
@@ -629,7 +630,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **처리** `official − actual`. 어느 쪽이 정본인지와 무관하게 부호를 고정한다. 한쪽이 없으면 `None`.
 
-**테스트 관점** 미주 누계 상세 행 기준으로 실 도매 664,269와 도매(공식) 677,201, 차이 12,932대다. 검증식은 이 상세 행 기준 값으로 짠다. 같은 파일의 총계 행 값(실 도매 1,692,227 대 도매(공식) 1,706,430, 차이 14,203대)은 상세 행과 범위가 달라 상세 행 합과 더하면 안 되고 대조에만 쓴다. 같은 국가의 체류율이 `wholesale_basis`에 따라 달라질 때 이 값으로 그 차이가 설명되는지.
+**테스트 관점** 미주 누계 상세 행 기준(CDO 인입 샘플 CSV 추출본)으로 실 도매 664,269와 도매(공식) 677,201, 차이 12,932대다. 검증식은 이 상세 행 기준 값으로 짠다. 같은 파일의 총계 행 값(실 도매 1,692,227 대 도매(공식) 1,706,430, 차이 14,203대)은 상세 행과 범위가 달라 상세 행 합과 더하면 안 되고 대조에만 쓴다. 범위가 다른 것은 미주만 남긴 추출본에 전 권역 총계 행이 남은 탓이다. 같은 국가의 체류율이 `wholesale_basis`에 따라 달라질 때 이 값으로 그 차이가 설명되는지.
 
 근거: [[TBL-INFRA-002#C18]] · [[TBL-DOM-006#sales_stage_flow]]
 
@@ -675,7 +676,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **출력** 변동 0~2건. 음수 비율도 절대값으로 임계를 보고 방향은 값의 부호가 말한다.
 
-**테스트 관점** 미주 누계(선적 679,551 · 도매 정본 677,201 · 소매 643,097)에서 `metric=distributionStay` 변동의 값이 **34,104**, `metric=entityStageStay` 변동의 값이 **2,350**인지. 두 지표 이름이 뒤바뀌면 이 두 값이 서로 자리를 바꾸므로 한 번에 걸린다. 칠레 0.252와 페루 0.212가 `distributionStay`로 올라오는지. 푸에르토리코 -0.137이 방향 표시와 함께 올라오는지. 화면에 유도값 표기가 붙는지.
+**테스트 관점** 미주 누계(CSV 추출본. 선적 679,551 · 도매 정본 677,201 · 소매 643,097)에서 `metric=distributionStay` 변동의 값이 **34,104**, `metric=entityStageStay` 변동의 값이 **2,350**인지. 두 지표 이름이 뒤바뀌면 이 두 값이 서로 자리를 바꾸므로 한 번에 걸린다. 칠레 0.252와 페루 0.212가 `distributionStay`로 올라오는지. 푸에르토리코 -0.137이 방향 표시와 함께 올라오는지. 화면에 유도값 표기가 붙는지.
 
 근거: [[TBL-PRD-002#R9]] · [[TBL-PRD-002#R14]] · [[TBL-INFRA-002#C17]]
 
@@ -1196,9 +1197,9 @@ marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지�
 
 **시그니처** `get_by_id(report_id: str, viewer: Viewer) -> CReport`
 
-**처리** 현업 토큰으로 미게시본을 부르면 **404**다. 존재 여부를 알려 주지 않기 위해 403이 아니다. 관리자 세션이면 미게시본도 돌려준다.
+**처리** 현업 서명 주소로 미게시본을 부르면 **404**다. 존재 여부를 알려 주지 않기 위해 403이 아니다. 관리자 세션이면 미게시본도 돌려준다.
 
-**테스트 관점** 현업 토큰으로 미게시 리포트를 부르면 404인지. 관리자면 200인지.
+**테스트 관점** 현업 서명 주소로 미게시 리포트를 부르면 404인지. 관리자면 200인지.
 
 근거: [[TBL-API-002#GET/api/intel/creport/version/{reportId}]] · [[TBL-SEQ-002#SEQ-1]]
 
@@ -1265,6 +1266,20 @@ A3 판매  globalCountryByModel                                                 
 **테스트 관점** A1에 목적지 국가, A2에 항해중·선적대기가 이유와 함께 나오는지. 건수가 A1 둘·A2 넷·A3 하나인지. `countryDailySeries`가 A3가 아니라 **A2**에 있는지(국가 일별 시계열은 재고 쪽에서 요구된 것이다). `code`가 [[TBL-API-002]] 4.13절 enum 밖으로 나가지 않는지.
 
 근거: [[TBL-PRD-002#R1]] · [[TBL-API-002]] 4.13절
+
+#### DomainReportService.render_pdf A 리포트 PDF 지면
+
+**시그니처** `render_pdf(report: DomainReport) -> tuple[bytes, str]`
+
+**처리** [[#DomainReportService.get_by_id]]가 돌려준 한 본을 화면과 같은 순서(머리, 트래킹 지표, 요약, 해설, 도메인별 분해, 제약 경고, 못 만드는 지표, 근거, 고정 문구)의 HTML 한 장으로 옮기고 WeasyPrint로 PDF를 만든다. 막대는 서버가 SVG로 그린다. **사본 글자를 그대로 쓰고 문장을 새로 만들지 않는다.** 각주 표기 `[n]`만 위첨자로 바꾼다. 화면의 색 규칙(법인 달성률 주의선)은 옮기지 않고 값을 적는다. 외부 주소·글꼴·그림을 싣지 않는다. 저장하지 않고 LLM을 부르지 않는다. 같은 발주처 브리핑 갈래의 방식이다(유저 결정 2026-09-30).
+
+**출력** `(PDF 바이트, 파일 이름)`. 파일 이름은 `areport-{domain}-{baseDate}-v{version}.pdf`다.
+
+**예외** 없다. 버전이 없으면 앞선 `get_by_id`가 404를 낸다.
+
+**테스트 관점** 세 도메인의 HTML에 사본의 해설·근거·못 만드는 지표·고정 문구가 글자 그대로 있는지. `[1]`이 남지 않고 외부 주소(`http`)와 스크립트가 없는지. 실제 PDF가 `%PDF`로 시작하고 한글 글꼴(나눔고딕)이 박히는지(WeasyPrint 시스템 라이브러리가 있는 이미지에서 돈다). 내려받기 응답이 `application/pdf` 첨부이고 `Cache-Control: no-store`인지.
+
+근거: [[TBL-API-002#GET/api/intel/areport/pdf/{domainReportId}]] · [[TBL-SEQ-002#SEQ-2]] · [[TBL-UC-002#UC-H1]] 6
 
 #### MarketService.get_series 시장지표 시계열 조회
 
@@ -1405,6 +1420,40 @@ A3 판매  globalCountryByModel                                                 
 
 근거: [[TBL-SEQ-002#SEQ-13]] · [[TBL-PRD-002#R17]]
 
+#### ExposureService.summary 열람 주소 조회
+
+**시그니처** `summary() -> list[dict]`
+
+**처리** [[TBL-DOM-006#screen_exposure]]를 읽어 화면 넷(`creport` `areportProduction` `areportInventory` `areportSales`)을 이 순서로 돌려준다. 행이 없는 화면은 `enabled=false`, `url=null`이다. `url`은 `PUBLIC_BASE_URL`과 화면 경로와 `token`을 이은 완성본이다.
+
+**출력** `ScreenExposure` 넷([[TBL-API-002]] 4.14절).
+
+**테스트 관점** 아무도 켜지 않았을 때 넷 모두 꺼짐이고 주소가 없는지. `PUBLIC_BASE_URL`이 있으면 주소가 그것으로 시작하는지.
+
+근거: [[TBL-API-002#GET/api/admin/exposure/summary]] · [[TBL-SEQ-002#SEQ-15]]
+
+#### ExposureService.switch 열람 주소 전환·회전
+
+**시그니처** `switch(screen: str, enabled: bool, rotate_token: bool, admin_id: str) -> dict`
+
+**처리** 화면 값이 넷 밖이면 → `/problems/validation-failed` 400 · 행이 없거나 `rotate_token`이 참이면 → URL에 실을 수 있는 무작위 32바이트 서명값을 새로 만든다 · 아니면 서명값을 그대로 두고 `enabled`만 바꾼다. 행을 upsert하고 `updated_by` `updated_at`을 남긴다. **회전하면 이전 서명값은 그 자리에서 무효다. 자동 회전은 없다.**
+
+**출력** 그 화면의 `ScreenExposure` 한 줄.
+
+**테스트 관점** 처음 켜면 주소가 생기고 그 서명값이 [[#ExposureService.verify]]를 통과하는지. 회전 뒤 이전 서명값이 막히고 새 값이 열리는지. 끄면 막히고 다시 켜면 같은 주소가 열리는지. web 계정이 켜고 바꿀 수는 있고 지울 수는 없는지.
+
+근거: [[TBL-API-002#POST/api/admin/exposure/switch/{screen}]] · [[TBL-SEQ-002#SEQ-15]] · [[TBL-UC-002#UC-A4]]
+
+#### ExposureService.verify 열람 주소 확인
+
+**시그니처** `verify(token: str) -> str | None`
+
+**처리** 켜져 있는 화면의 서명값과 글자 단위로 같은 것을 찾아 그 화면 값을 돌려준다. 비교는 걸린 시간으로 값이 새지 않는 방식으로 한다. 없으면 `None`. 열람 API의 인증 의존성이 부르고, 토큰이 없으면 `/problems/unauthenticated` 401, `None`이거나 다른 화면이면 `/problems/invalid-token` 403을 낸다. **읽는 표는 `pub`의 [[TBL-DOM-006#screen_exposure]] 하나다**([[TBL-INFRA-002#C10]]).
+
+**테스트 관점** C 리포트 주소로 A 리포트가, A1 주소로 A3가 403인지. 특정 버전과 PDF도 그 버전 도메인의 주소로만 열리는지. 틀린 서명값이 오류 문장에 되풀이되지 않는지. 확인 중 `pub` 밖 조회가 0회인지.
+
+근거: [[TBL-SEQ-002#SEQ-1]] · [[TBL-SEQ-002#SEQ-2]] · [[TBL-API-002]] 1.1절
+
 ## 9. 어댑터
 
 #### HChatClient.complete LLM 호출
@@ -1499,13 +1548,13 @@ A3 판매  globalCountryByModel                                                 
 
 ## 10. 미결사항
 
-- [ ] [[#TrafficLightJudge.judge]]의 임계값 실제 수치. `min_article_count` `min_source_count` `event_window_days` `cbu_share_threshold`가 전부 현업 검토 대기다. 값이 정해져야 RED·YELLOW·none의 비율을 가늠할 수 있다
+- [x] [[#TrafficLightJudge.judge]]의 임계값. 현업 검토 전 기본값을 설정 초기 행 v1로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣는다
 - [ ] [[#TrafficLightJudge.build_watch_items]]의 2차·3차 정렬 열쇠. 이 문서는 `대표 후보 날짜 차이 → 국가 코드`로 두었으나 상위 문서에 확정 문장이 없다
 - [ ] [[#ProximityCalculator.day_diff]]를 기간 구분에 따라 보정할지. 누계·년 변동은 후보가 구조적으로 멀어 보인다. 지금은 보정하지 않고 화면에 기간 구분을 적는 것으로 둔다
 - [ ] [[#BriefingStoreReader.read_judgments]]의 반환 키와 필드. 정해져야 [[#AJudgmentReader.validate_shape]]의 대조 목록이 확정된다
-- [ ] [[#FormALedgerParser.check_columns]]가 대조할 실제 컬럼 목록. 형태 A 실물 파일을 아직 본 적이 없다
+- [x] [[#FormALedgerParser.check_columns]]가 대조할 실제 컬럼 목록. 실물 원장과 IF 레이아웃 정의가 같다(생산 16열, 판매·재고 22열, 2026-09-30)
 - [ ] [[#FormBPivotParser.detect_file_base_date]]가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다
 - [ ] [[#HChatClient.complete]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 것은 가정이며 실호출 확인 범위가 좁다. 지원되지 않으면 세 역할의 검증 단계가 늘어난다
 - [ ] [[#DomainReportService.get_latest_by_domain]]에서 사본이 없을 때 판정값과 차트를 `pub` 어디서 읽는가. 판정 사본은 `mart`에만 있다([[TBL-SEQ-002]] 8장)
 - [ ] 설정 변경 경로. [[TBL-DOM-006#threshold_setting]] 새 버전 행을 SQL로 넣을지 CLI를 만들지. 정해지면 함수가 하나 는다
-- [ ] 현업 피드백("맞다·아니다·모르겠다") 저장 함수. 화면에 넣을지가 미결이라 이 문서에도 두지 않았다([[TBL-PRD-002#R19]])
+- [ ] 현업 피드백("맞다·아니다·모르겠다") 저장 함수. 화면에 넣을지가 미결이라 이 문서에도 두지 않았다([[TBL-PRD-002#R19]]). 피드백은 사번이 필요한데 열람은 화면 단위 서명 주소라 개인을 식별하지 않는다(2026-09-30)
