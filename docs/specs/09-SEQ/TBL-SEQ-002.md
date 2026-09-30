@@ -520,7 +520,7 @@ sequenceDiagram
   PX-->>CS: 정렬된 목록과 자리 번호
   CS->>CS: apply_limit(candidates). 상한을 적용하고 잘린 건수를 함께 돌려준다
   CS->>DB_MART: cause_candidate. sort_order, 근접도 값 넷, is_truncated
-  CS->>TLJ: 후보와 근접도
+  CS->>TLJ: 상한을 적용하기 전 정렬 목록과 근접도. 잘린 사건도 판정에 든다
   TLJ->>TLJ: meets_threshold (judge 안). 기사 수 최소 이상, 출처 수 최소 이상, 날짜 차이 시간창 이하
   alt 셋을 채우고 완성차 노출이 확인됐다
     TLJ->>DB_MART: traffic_light=red. light_basis에 값과 기준값을 쌍으로
