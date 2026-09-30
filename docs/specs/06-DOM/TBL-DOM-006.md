@@ -539,7 +539,7 @@ erDiagram
 | `extra_dimensions` | jsonb | Y | 그 파일에만 있는 축. 세부지역, 제네시스, N시리즈 등 |
 | `period_type` | text | N | `day` `month` `cumulative` `year` |
 | `file_base_date` | date | N | 형태 A는 행의 기준일자, 형태 B는 파일이 붙여 준 날 |
-| `measure_type` | text | N | 아래 아홉 중 하나 |
+| `measure_type` | text | N | 아래 기본 아홉과 그 확장 중 하나 |
 | `measure_value` | numeric(18,3) | Y | 결측은 NULL. 0으로 바꾸지 않는다 |
 | `is_total_row` | boolean | N | 총계 행이면 참. 판정 대상에서 뺀다 |
 | `data_form` | text | N | `A` `B` |
@@ -549,7 +549,7 @@ erDiagram
 
 기본키 `measure_row_id`. 유일 제약 `(ingest_file_id, source_row_no, measure_type, period_type)`.
 
-`measure_type` 아홉. `operationPlan`(운영계획) `businessPlan`(사업계획) `actual`(실적) `progressRate`(진도율) `yoyRate`(전년대비) `shipment`(선적) `actualWholesale`(실 도매) `officialWholesale`(도매(공식)) `retail`(소매). 계획 두 종류와 도매 두 기준을 둘 다 저장한다([[TBL-INFRA-002#C18]]). 어느 쪽을 계산에 쓸지는 [[#threshold_setting]]이 고른다.
+`measure_type` 기본 아홉. `operationPlan`(운영계획) `businessPlan`(사업계획) `actual`(실적) `progressRate`(진도율) `yoyRate`(전년대비) `shipment`(선적) `actualWholesale`(실 도매) `officialWholesale`(도매(공식)) `retail`(소매). 확장 둘. 판매 계열(선적·실 도매·도매(공식)·소매)의 계획·진도율·전년대비는 계열 이름을 앞에 붙이고(예 `shipmentBusinessPlan` `retailYoyRate`) 진도율은 기준 계획을 뒤에 붙인다(예 `progressRateBusinessPlan`). 한 원행이 계열마다 계획을 하나씩 가져 유일 제약을 지키려면 이름이 갈려야 한다. 형태 A 원장의 재고 네 열은 `inventoryEntity` `inventoryDealer` `inventoryInTransit` `inventoryAwaiting`으로 저장하되 판정에는 아직 쓰지 않는다(재고 원천 결정 대기). 계획 두 종류와 도매 두 기준을 둘 다 저장한다([[TBL-INFRA-002#C18]]). 어느 쪽을 계산에 쓸지는 [[#threshold_setting]]이 고른다.
 
 넓은 형태로 두지 않은 이유. 기간 블록이나 지표 종류가 늘 때마다 컬럼이 늘고 하류 조회가 전부 바뀐다. 컬럼 구성이 다른 형태 A와 같은 테이블에 들어가지도 못한다([[TBL-INFRA-002]] 6.1절).
 
@@ -968,7 +968,7 @@ erDiagram
 | `compare_period` | text | Y | 예 2025 누계 |
 | `value` | numeric(18,3) | N | |
 | `compare_value` | numeric(18,3) | Y | |
-| `compare_basis` | text | N | `plan` `yoy` `mom` |
+| `compare_basis` | text | N | `plan` `yoy` `mom`. 단계 흐름 유도 변동(`source=derived`)은 맞는 값이 없어 `mom`을 쓰고 `compare_value`에 직전 파일의 같은 구간 값을 넣는다. 판정은 비율과 체류 임계로 한다 |
 | `change_rate` | numeric(10,6) | Y | |
 | `detection_unit` | text | N | `modelGroup` `modelDetail` |
 | `source` | text | N | `aJudgment` `supplementaryAggregate` `derived` |
@@ -1315,7 +1315,7 @@ erDiagram
 | `commentary` | text | Y | 해설 문단 |
 | `fixed_text` | text | Y | 고정 문구 |
 | `tracking_metrics` | jsonb | Y | 트래킹 지표 셋. 이름·현재값·판정 |
-| `breakdown` | jsonb | Y | 분해 블록 사본. 표와 막대의 값 |
+| `breakdown` | jsonb | Y | 분해 블록 사본. 표와 막대의 값. 칸이 없는 항목을 함께 묶는다: `blocks`(도메인 덩어리. API 4장 ProductionExtra·InventoryExtra·SalesExtra 이름), `judgments`(트래킹 지표별 판정과 기여), `dimensions`(분해 차원과 값 개수), `measureComposition`(측정값 구성), `snapshotAt`(스냅샷 일시). 브리핑 갈래 규격이 오면 키 이름을 맞춘다 |
 | `missing_metrics` | jsonb | Y | 못 만드는 지표 목록. 이름과 사유 |
 | `constraint_warnings` | jsonb | Y | 제약 경고 목록. 코드와 문구 |
 | `is_degraded` | boolean | N | 브리핑 갈래가 강등 상태로 게시했는가 |
@@ -1403,7 +1403,7 @@ erDiagram
 | `unblock_reason` | text | Y | 관리자가 적은 사유 |
 | `original_path` | text | N | 원본 보관 경로 |
 | `ingest_seq` | integer | N | 같은 기준일 파일의 몇 번째 회차인가 |
-| `status` | text | N | `previewed` `committed` `blocked` `unblocked` |
+| `status` | text | N | `previewed` `committed` `blocked` `unblocked`. 형태 판별에 실패한 파일은 행을 남기지 않고 원본만 볼륨에 둔다 |
 | `ingested_at` | timestamptz | N | |
 | `ingested_by` | text | N | 사람 또는 `batch` |
 
@@ -1526,7 +1526,7 @@ erDiagram
 | 컬럼 | 타입 | 널 | 설명 |
 |:--|:--|:--|:--|
 | `unmapped_id` | bigserial | N | |
-| `source` | text | N | `sales` `production` `news` |
+| `source` | text | N | `sales` `production` `news`. OEM(Marklines) 미매핑은 행을 남기지 않고 적재 결과의 건수로만 센다 |
 | `kind` | text | N | 국가·차종·법인 중 무엇을 못 붙였는가 |
 | `value` | text | N | 못 붙인 원본 값 |
 | `occurrence_count` | integer | N | 등장 횟수 |
