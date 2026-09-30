@@ -1580,7 +1580,7 @@ classDiagram
 | `resolve_country_match(anomaly, target) -> str` | 검색 메서드 셋 안에서 | [[TBL-UC-002#UC-S5]] 5 | 없음 |
 | `apply_limit(candidates) -> tuple` | `search` 끝, [[#ProximityCalculator]] `sort` 뒤 | [[TBL-UC-002#UC-S5]] 6·6a | 없음 |
 
-규칙. `setting`이 시간창과 후보 상한을 준다. `search`는 [[#CauseCandidate]] 목록을 돌려준다. 후보 유형이 넷이라 검색 메서드가 셋이다(사건과 기사는 같은 경로로 찾는다). `resolve_country_match`는 국가 직접, 해협 귀속, 같은 국가 다른 도메인, 날짜만 일치 넷 중 하나를 돌려준다. 해협 귀속을 따로 두는 이유는 호르무즈 기사가 오만·아랍에미리트에 붙지 않으면 중동 변동의 후보가 비어 버리기 때문이다([[#Strait]] [[TBL-PRD-002#R10]]). 시장지표가 `dateOnly`로만 붙는 것은 국가·차종과 이어지지 않기 때문이다. `apply_limit`은 상한을 적용하고 잘린 건수를 함께 돌려준다. 잘린 건수는 화면에 적어 "후보가 이것뿐"이라고 오해하지 않게 한다([[TBL-UC-002#UC-H3]] 3). 국가 축이 없는 변동은 처음부터 대상이 아니다([[TBL-UC-002#UC-S5]] 1).
+규칙. `setting`이 시간창과 후보 상한을 준다. `search`는 [[#CauseCandidate]] 목록을 돌려준다. 후보 유형이 넷이라 검색 메서드가 셋이다(사건과 기사는 같은 경로로 찾는다). `resolve_country_match`는 국가 직접, 해협 귀속, 같은 국가 다른 도메인, 날짜만 일치 넷 중 하나를 돌려준다. 해협 귀속을 따로 두는 이유는 호르무즈 기사가 오만·아랍에미리트에 붙지 않으면 중동 변동의 후보가 비어 버리기 때문이다([[#Strait]] [[TBL-PRD-002#R10]]). 시장지표가 `dateOnly`로만 붙는 것은 국가·차종과 이어지지 않기 때문이다. `apply_limit`은 상한을 적용하고 잘린 건수를 함께 돌려준다. 잘린 건수는 화면에 적어 "후보가 이것뿐"이라고 오해하지 않게 한다([[TBL-UC-002#UC-H3]] 3). 국가 축이 없는 변동은 처음부터 대상이 아니다([[TBL-UC-002#UC-S5]] 1). 사건 후보는 변동의 도메인에 배정된 뉴스 카테고리만 붙는다([[TBL-DOM-006#category_route]], 자사 크로스워크 08 시트 이관본. FVL은 판매·재고 임시 배정, 유저 결정 2026-09-30). 배정 밖 카테고리와 카테고리가 없는 사건은 붙지 않는다.
 
 #### ProximityCalculator 근접도 계산기
 
@@ -1944,7 +1944,7 @@ classDiagram
 | `confirm_crosswalk(upload_id, confirm_removal) -> dict` | [[TBL-API-002#POST/api/admin/master/confirm/{crosswalkUploadId}]] | [[TBL-UC-002#UC-A2]] 4·3a | `not-found` `removal-not-confirmed` |
 | `diff_against_current(upload) -> dict` | `upload_crosswalk` 안에서만 | [[TBL-UC-002#UC-A2]] 3 | 없음 |
 
-규칙. 넷이 [[TBL-API-002]]의 마스터 엔드포인트 넷과 1:1이고 마스터 화면([[TBL-UI-002#UI-7]])이 부른다. `get_summary`는 매칭률 셋(판매→국가, 생산→국가, 뉴스→국가)과 버전 이력을 돌려준다. `upload_crosswalk`는 같은 값이 두 국가로 갈리면 올리기를 막고 충돌 행을 돌려준다. `diff_against_current`는 확정하면 무엇이 지워지는지 미리 보여 준다. `confirm_crosswalk`는 지워지는 매핑이 있으면 확인 없이는 409를 낸다. 확정 전에 지워지는 매핑을 보여 주는 이유는 크로스워크가 통째 교체이기 때문이다. 한 줄 빠진 파일을 올리면 그 국가의 과거 매핑이 조용히 사라진다([[TBL-PRD-002#N8]]). 확정은 새 버전으로 갱신되고 다음 배치부터 적용되며 과거 판정은 바뀌지 않는다. [[#Country]] [[#Strait]] [[#GlovisEntity]]를 관리한다. 글로비스 법인 매핑은 아직 비어 있다. 발주자에게 받아야 채워지고, 빈 동안에는 법인 미매핑으로 표시하며 오류로 보지 않는다([[TBL-PRD-002#R17]]).
+규칙. 넷이 [[TBL-API-002]]의 마스터 엔드포인트 넷과 1:1이고 마스터 화면([[TBL-UI-002#UI-7]])이 부른다. `get_summary`는 매칭률 셋(판매→국가, 생산→국가, 뉴스→국가)과 버전 이력을 돌려준다. `upload_crosswalk`는 같은 값이 두 국가로 갈리면 올리기를 막고 충돌 행을 돌려준다. `diff_against_current`는 확정하면 무엇이 지워지는지 미리 보여 준다. `confirm_crosswalk`는 지워지는 매핑이 있으면 확인 없이는 409를 낸다. 확정 전에 지워지는 매핑을 보여 주는 이유는 크로스워크가 통째 교체이기 때문이다. 한 줄 빠진 파일을 올리면 그 국가의 과거 매핑이 조용히 사라진다([[TBL-PRD-002#N8]]). 확정은 새 버전으로 갱신되고 다음 배치부터 적용되며 과거 판정은 바뀌지 않는다. [[#Country]] [[#Strait]] [[#GlovisEntity]]와 뉴스 카테고리 도메인 배정([[TBL-DOM-006#category_route]], 시트 `category_route`)을 관리한다. 글로비스 법인 매핑은 아직 비어 있다. 발주자에게 받아야 채워지고, 빈 동안에는 법인 미매핑으로 표시하며 오류로 보지 않는다([[TBL-PRD-002#R17]]).
 
 #### ExposureService 열람 주소
 
