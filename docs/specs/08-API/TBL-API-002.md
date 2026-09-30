@@ -10,9 +10,9 @@ upstream: [TBL-UI-002, TBL-DOM-004, TBL-INFRA-002, TBL-UC-002, TBL-PRD-002]
 
 ## 0. 이 문서가 다루는 것
 
-화면 일곱([[TBL-UI-002#UI-1]] [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] [[TBL-UI-002#UI-5]] [[TBL-UI-002#UI-6]] [[TBL-UI-002#UI-7]])이 부르는 REST 엔드포인트와 그 응답 모양을 정한다. 엔드포인트 19개, 공용 스키마 13개다.
+화면 여덟([[TBL-UI-002#UI-1]] [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] [[TBL-UI-002#UI-5]] [[TBL-UI-002#UI-6]] [[TBL-UI-002#UI-7]] [[TBL-UI-002#UI-8]])이 부르는 REST 엔드포인트와 그 응답 모양을 정한다. 엔드포인트 22개, 공용 스키마 14개다.
 
-두 묶음이다. **현업 열람**은 `/api/intel` 아래 다섯 개이며 서명 토큰으로 연다. **관리**는 `/api/admin` 아래 열네 개이며 세션으로 연다. 열람 쪽은 읽기만 하고 LLM을 부르지 않는다([[TBL-PRD-002#N5]]).
+두 묶음이다. **현업 열람**은 `/api/intel` 아래 여섯 개이며 화면 단위 서명 주소로 연다. **관리**는 `/api/admin` 아래 열여섯 개이며 세션으로 연다. 열람 쪽은 읽기만 하고 LLM을 부르지 않는다([[TBL-PRD-002#N5]]).
 
 이 문서의 핵심 제약은 하나다. **등급·점수·순위를 뜻하는 필드를 응답 어디에도 두지 않는다.** 원인 후보가 들고 있는 것은 코드가 센 값 넷뿐이며(날짜 차이, 기사 수, 출처 수, 국가 일치 방식) 그 값이 정렬과 신호등의 유일한 입력이다([[TBL-PRD-002#R10]] [[TBL-DOM-004#CauseCandidate]], PRD 6.14). 금지 필드명은 1.3절에 목록으로 적었다.
 
@@ -24,13 +24,13 @@ upstream: [TBL-UI-002, TBL-DOM-004, TBL-INFRA-002, TBL-UC-002, TBL-PRD-002]
 
 | 묶음 | 방식 | 헤더 | 근거 |
 |:--|:--|:--|:--|
-| 현업 열람 `/api/intel` | VODA가 발급한 서명 토큰 | `Authorization: Bearer <token>` | [[TBL-PRD-002#R29]] 단독 주소, 추가 로그인 없음 |
+| 현업 열람 `/api/intel` | 화면 단위 서명 주소의 서명값 | 쿼리 `token`, 또는 화면이 옮겨 싣는 `Authorization: Bearer <token>` | [[TBL-PRD-002#R29]] 단독 주소, 추가 로그인 없음, 개인 식별 없음 |
 | 관리 `/api/admin` | 세션 쿠키 | `Cookie: sid=...` + 쓰기 메서드에 `X-CSRF-Token` | [[TBL-UC-002#UC-A1]] 관리 화면 로그인 |
 
-- 토큰 검증은 폐쇄망 안에서 끝낸다. 서명 공개키를 컨테이너에 두고 외부 조회를 하지 않는다([[TBL-PRD-002#N1]] [[TBL-INFRA-002#C10]]).
+- 서명값 확인은 폐쇄망 안에서 끝낸다. 계산이 아니라 [[TBL-DOM-006#screen_exposure]]와 대조하고 외부 조회를 하지 않는다([[TBL-PRD-002#N1]] [[TBL-INFRA-002#C10]]).
 - 세션 쿠키는 `HttpOnly`, `SameSite=Strict`로 내린다.
-- 현업 토큰으로 `/api/admin`을 부르면 403이다. 반대 방향은 허용하지 않는다.
-- 토큰 발급 주체와 만료 시간의 세부는 [확인 필요]다. VODA 포털 팀과 맞춰야 한다.
+- 화면마다 서명 주소가 다르다. C 리포트 주소로 A 리포트를, A1 주소로 A2를 열 수 없다(403 `invalid-token`). 서명값을 `/api/admin`에 실어도 세션이 아니므로 401이다.
+- 서명값은 관리자가 [[#POST/api/admin/exposure/switch/{screen}]]으로 발급·회전한다. 만료가 없고 자동 회전도 없다. 같은 발주처의 브리핑 갈래가 정한 방식이다(유저 결정 2026-09-30).
 
 ### 1.2 공통 응답 규칙
 
@@ -72,7 +72,7 @@ upstream: [TBL-UI-002, TBL-DOM-004, TBL-INFRA-002, TBL-UC-002, TBL-PRD-002]
 | `dealerStageGap` | 도매정본 − 소매 | 677,201 − 643,097 = 34,104 |
 | `dealerStageGapRate` | `dealerStageGap` ÷ 도매정본 | 0.050 |
 
-4.3절 `metric`의 두 값이 이 표를 가리킨다. `entityStageStay`가 `entityStageGap`(선적 − 도매정본, 법인 구간, 미주 누계 2,350)이고 `distributionStay`가 `dealerStageGap`(도매정본 − 소매, 딜러 구간, 미주 누계 34,104)이다. 화면 표기는 각각 법인 단계 체류와 유통 체류다. `wholesaleToRetailGap`은 쓰지 않는다.
+표의 실측값은 CDO 인입 샘플 CSV 추출본(미주 30개국 629행)의 누계 상세 행 합이다. 4.3절 `metric`의 두 값이 이 표를 가리킨다. `entityStageStay`가 `entityStageGap`(선적 − 도매정본, 법인 구간, 미주 누계 2,350)이고 `distributionStay`가 `dealerStageGap`(도매정본 − 소매, 딜러 구간, 미주 누계 34,104)이다. 화면 표기는 각각 법인 단계 체류와 유통 체류다. `wholesaleToRetailGap`은 쓰지 않는다.
 
 양수는 그 단계에 물량이 남아 있다는 뜻이다(칠레 0.252, 페루 0.212). 음수는 뒤 단계가 더 크다는 뜻이며 이전에 쌓인 것을 덜어내는 중이다(푸에르토리코 -0.137, 콜롬비아 -0.105). **음수를 예외로 처리하지 않는다**([[TBL-PRD-002#R9]]). [[TBL-UI-002#UI-4]] 단계별 흐름이 `-34,104`로 그리는 것은 감소 방향을 나타낸 렌더링이며 API 값은 양수 34,104다.
 
@@ -92,8 +92,9 @@ RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `stat
 
 | type | status | 언제 | 확장 필드 |
 |:--|--:|:--|:--|
-| `/problems/unauthenticated` | 401 | 토큰 없음·만료, 세션 없음 | |
-| `/problems/forbidden` | 403 | 현업 토큰으로 관리 API 호출 | |
+| `/problems/unauthenticated` | 401 | 열람 주소에 서명값 없음, 관리 세션 없음 | |
+| `/problems/forbidden` | 403 | 관리 세션에 관리자 권한이 없음 | |
+| `/problems/invalid-token` | 403 | 열람 주소의 서명값이 맞지 않거나 그 화면 제공이 꺼짐, 또는 다른 화면의 주소 | |
 | `/problems/not-found` | 404 | 리포트·배치·파일 ID가 없음 | `resource` |
 | `/problems/no-published-report` | 404 | 첫 배치 전([[TBL-UI-002#UI-1]] E2) | `nextScheduledAt` |
 | `/problems/validation-failed` | 400 | 요청 본문·쿼리 검증 실패 | `errors[]` |
@@ -113,7 +114,7 @@ RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `stat
 
 ## 3. 엔드포인트
 
-### 3.1 현업 열람 (서명 토큰)
+### 3.1 현업 열람 (화면 서명 주소)
 
 #### GET/api/intel/creport/latest 최신 C 리포트 조회
 
@@ -132,7 +133,7 @@ RFC 9457 `application/problem+json`이다. 공통 필드는 `type` `title` `stat
   get:
     summary: 게시된 최신 C 리포트 전체
     operationId: getLatestCReport
-    security: [{ bearerToken: [] }]
+    security: [{ screenToken: [] }]
     responses:
       '200':
         description: 게시본
@@ -277,14 +278,14 @@ components:
 
 화면 [[TBL-UI-002#UI-1]] · 유스케이스 [[TBL-UC-002#UC-A3]] · 서비스 `CReportService.get_by_id`
 
-게시되지 않은 버전은 관리 세션으로만 열린다. 현업 토큰으로 미게시본을 부르면 404다. 존재 여부를 알려 주지 않기 위함이다.
+게시되지 않은 버전은 관리 세션으로만 열린다. 현업 서명 주소로 미게시본을 부르면 404다. 존재 여부를 알려 주지 않기 위함이다.
 
 ```yaml
 /api/intel/creport/version/{reportId}:
   get:
     summary: 리포트 ID로 한 본 조회
     operationId: getCReportById
-    security: [{ bearerToken: [] }, { adminSession: [] }]
+    security: [{ screenToken: [] }, { adminSession: [] }]
     parameters:
       - name: reportId
         in: path
@@ -297,7 +298,7 @@ components:
           application/json:
             schema: { $ref: '#/components/schemas/CReport' }
       '404':
-        description: 없거나 현업 토큰으로 부른 미게시본
+        description: 없거나 현업 서명 주소로 부른 미게시본
         content:
           application/problem+json:
             schema: { $ref: '#/components/schemas/Problem' }
@@ -318,7 +319,7 @@ components:
   get:
     summary: 지표 하나의 시계열
     operationId: getMarketSeries
-    security: [{ bearerToken: [] }]
+    security: [{ screenToken: [] }]
     parameters:
       - name: indicatorId
         in: path
@@ -387,7 +388,7 @@ A1 생산·A2 재고·A3 판매 중 한 도메인의 최신 게시 리포트를 
   get:
     summary: 도메인 하나의 최신 A 리포트
     operationId: getDomainReport
-    security: [{ bearerToken: [] }]
+    security: [{ screenToken: [] }]
     parameters:
       - name: domain
         in: path
@@ -485,10 +486,10 @@ components:
         download:
           type: object
           nullable: true
-          description: 파일 형식은 [확인 필요]
+          description: 보고 있는 버전의 PDF. 사본이 없으면 null
           properties:
-            url: { type: string }
-            format: { type: string }
+            url: { type: string, example: /api/intel/areport/pdf/01a0f1a1d405 }
+            format: { type: string, enum: [pdf] }
         judgments:
           type: array
           description: 트래킹 지표별 변동 판정과 내부 분해
@@ -627,7 +628,7 @@ components:
   get:
     summary: A 리포트 한 버전
     operationId: getDomainReportById
-    security: [{ bearerToken: [] }]
+    security: [{ screenToken: [] }]
     parameters:
       - name: domainReportId
         in: path
@@ -639,6 +640,46 @@ components:
         content:
           application/json:
             schema: { $ref: '#/components/schemas/DomainReport' }
+      '404':
+        description: 없는 버전
+        content:
+          application/problem+json:
+            schema: { $ref: '#/components/schemas/Problem' }
+```
+
+#### GET/api/intel/areport/pdf/{domainReportId} A 리포트 PDF 내려받기
+
+보고 있는 버전 지면을 PDF로 받는다. 서버가 요청마다 만들고 저장하지 않는다. LLM을 부르지 않는다.
+
+화면 [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] · 유스케이스 [[TBL-UC-002#UC-H1]] 6 · 서비스 `DomainReportService.render_pdf`
+
+그 버전 도메인의 서명 주소로 온 요청만 연다. 내려받기는 새 요청이라 헤더를 실을 수 없어 쿼리 `token`으로 온다. 지면은 [[#GET/api/intel/areport/version/{domainReportId}]] 응답과 같은 사본 글자를 화면과 같은 순서로 옮긴 것이다. 화면의 색 규칙은 옮기지 않고 값을 적는다. 같은 발주처의 브리핑 갈래가 정한 방식(서버 생성, WeasyPrint와 서버 SVG)을 따른다(유저 결정 2026-09-30).
+
+```yaml
+/api/intel/areport/pdf/{domainReportId}:
+  get:
+    summary: A 리포트 한 버전의 PDF
+    operationId: getDomainReportPdf
+    security: [{ screenToken: [] }]
+    parameters:
+      - name: domainReportId
+        in: path
+        required: true
+        schema: { type: string }
+    responses:
+      '200':
+        description: PDF 한 부. 파일 이름은 areport-{domain}-{baseDate}-v{version}.pdf
+        headers:
+          Content-Disposition: { schema: { type: string, example: 'attachment; filename="areport-production-2026-09-17-v12.pdf"' } }
+          Cache-Control: { schema: { type: string, example: no-store } }
+        content:
+          application/pdf:
+            schema: { type: string, format: binary }
+      '403':
+        description: 다른 화면의 주소
+        content:
+          application/problem+json:
+            schema: { $ref: '#/components/schemas/Problem' }
       '404':
         description: 없는 버전
         content:
@@ -1613,9 +1654,81 @@ components:
             schema: { $ref: '#/components/schemas/Problem' }
 ```
 
+### 3.5 관리·열람 주소 (세션)
+
+#### GET/api/admin/exposure/summary 열람 주소 조회
+
+화면 넷의 제공 여부와 VODA에 걸 서명 주소 완성본을 준다. 행이 없는 화면은 꺼짐이고 주소가 없다.
+
+화면 [[TBL-UI-002#UI-8]] · 유스케이스 [[TBL-UC-002#UC-A4]] 1 · 서비스 `ExposureService.summary`
+
+```yaml
+/api/admin/exposure/summary:
+  get:
+    summary: 열람 주소 넷
+    operationId: getExposureSummary
+    security: [{ adminSession: [] }]
+    responses:
+      '200':
+        description: 화면 넷. 순서는 creport, areportProduction, areportInventory, areportSales
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items: { $ref: '#/components/schemas/ScreenExposure' }
+      '401':
+        description: 관리 세션 없음
+        content:
+          application/problem+json:
+            schema: { $ref: '#/components/schemas/Problem' }
+```
+
+#### POST/api/admin/exposure/switch/{screen} 열람 주소 전환·회전
+
+화면 하나의 제공을 켜거나 끄고, 요청하면 서명값을 새로 만든다. 처음 켜는 화면은 서명값이 함께 생긴다. 회전하면 VODA에 걸린 이전 주소는 그 자리에서 막힌다.
+
+화면 [[TBL-UI-002#UI-8]] · 유스케이스 [[TBL-UC-002#UC-A4]] 2·2a·2b · 서비스 `ExposureService.switch`
+
+```yaml
+/api/admin/exposure/switch/{screen}:
+  post:
+    summary: 제공 전환과 서명값 회전
+    operationId: switchExposure
+    security: [{ adminSession: [] }]
+    parameters:
+      - name: screen
+        in: path
+        required: true
+        schema: { type: string, enum: [creport, areportProduction, areportInventory, areportSales] }
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [enabled]
+            properties:
+              enabled: { type: boolean }
+              rotateToken: { type: boolean, default: false, description: 참이면 새 서명값. 이전 주소는 바로 무효 }
+    responses:
+      '200':
+        description: 바뀐 화면 한 줄
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ScreenExposure' }
+      '400':
+        description: 화면 값이 넷 밖
+        content:
+          application/problem+json:
+            schema: { $ref: '#/components/schemas/Problem' }
+```
+
 ## 4. 스키마
 
-엔드포인트가 공유하는 조각들이다. OpenAPI의 `components.schemas` 아래에 들어간다. REST 문서의 항목은 엔드포인트뿐이라 아래 열셋은 절로 두고 번호로 가리킨다.
+엔드포인트가 공유하는 조각들이다. OpenAPI의 `components.schemas` 아래에 들어간다. REST 문서의 항목은 엔드포인트뿐이라 아래 열넷은 절로 두고 번호로 가리킨다.
 
 ### 4.1 problem 에러 본문
 
@@ -1964,7 +2077,7 @@ CauseLink:
 
 부호 규약은 1.4절에 적었다. 음수를 예외로 두지 않는다.
 
-`actualWholesale`(실 도매)과 `officialWholesale`(도매 공식)은 기준이 다른 두 값이다. 미주 누계 상세 행 기준으로는 실 도매 664,269 대 도매(공식) 677,201로 12,932대가 벌어진다. 도매(공식) 대비 1.9%다. 같은 파일의 전체 총계 행은 실 도매 1,692,227 대 도매(공식) 1,706,430으로 차이가 14,203대이지만, 총계 행은 상세 행과 범위가 다르므로 상세 행 합과 더하지 않고 대조에만 쓴다.
+`actualWholesale`(실 도매)과 `officialWholesale`(도매 공식)은 기준이 다른 두 값이다. 미주 누계 상세 행 기준(CDO 인입 샘플 CSV 추출본)으로는 실 도매 664,269 대 도매(공식) 677,201로 12,932대가 벌어진다. 도매(공식) 대비 1.9%다. 같은 파일의 전체 총계 행은 실 도매 1,692,227 대 도매(공식) 1,706,430으로 차이가 14,203대이지만, 총계 행은 상세 행과 범위가 다르므로 상세 행 합과 더하지 않고 대조에만 쓴다. 범위가 다른 것은 미주만 남긴 추출본에 전 권역 총계 행이 남은 탓이다.
 
 두 구간 차이는 4.3절 `metric`의 두 값과 짝이다. `entityStageGap`이 `entityStageStay`(법인 구간, 화면 표기 법인 단계 체류)이고 `dealerStageGap`이 `distributionStay`(딜러 구간, 화면 표기 유통 체류)다.
 
@@ -2003,7 +2116,7 @@ StageFlow:
     wholesaleAlternativeDiff:
       type: number
       nullable: true
-      description: 다른 도매 기준과의 차이. 미주 누계 상세 행 기준으로는 12,932다. 총계 행 기준 차이는 14,203이나 범위가 달라 상세 행과 더하지 않는다
+      description: 다른 도매 기준과의 차이. 미주 누계 상세 행 기준(CDO 인입 샘플 CSV 추출본)으로는 12,932다. 총계 행 기준 차이는 14,203이나 범위가 달라 상세 행과 더하지 않는다
     derivationType:
       type: string
       enum: [derived, measured]
@@ -2121,18 +2234,36 @@ MissingMetric:
     willFillWhen: { type: string, nullable: true, example: 재고 원천을 받으면 }
 ```
 
+### 4.14 screen_exposure 열람 주소
+
+화면 하나의 제공 여부와 서명 주소 완성본. 관리 화면만 받는다([[TBL-UI-002#UI-8]]).
+
+```yaml
+ScreenExposure:
+  type: object
+  required: [screen, label, path, enabled]
+  properties:
+    screen: { type: string, enum: [creport, areportProduction, areportInventory, areportSales] }
+    label: { type: string, example: A1 생산 리포트 }
+    path: { type: string, example: /intel/areport/production }
+    enabled: { type: boolean }
+    url: { type: string, nullable: true, description: VODA에 걸 서명 주소 완성본. PUBLIC_BASE_URL과 화면 경로와 token. 행이 없으면 null }
+    updatedAt: { type: string, format: date-time, nullable: true }
+    updatedBy: { type: string, nullable: true, description: 마지막으로 바꾼 관리자 사번 }
+```
+
 ## 5. 미결사항
 
-먼저 참조 규약 하나를 적는다. **4장 공용 스키마 열셋은 항목이 될 수 없다.** 이 문서의 항목 ID 패턴이 메서드와 경로여서 스키마 이름은 항목 ID가 되지 못한다. 하류 문서는 이 문서의 항목 참조 표기를 쓰지 말고 절 번호로 가리킨다(예: 4.3절 Anomaly, 4.8절 StageFlow).
+먼저 참조 규약 하나를 적는다. **4장 공용 스키마 열넷은 항목이 될 수 없다.** 이 문서의 항목 ID 패턴이 메서드와 경로여서 스키마 이름은 항목 ID가 되지 못한다. 하류 문서는 이 문서의 항목 참조 표기를 쓰지 말고 절 번호로 가리킨다(예: 4.3절 Anomaly, 4.8절 StageFlow).
 
-- [ ] 현업 서명 토큰의 발급 주체, 만료 시간, 갱신 방식. VODA 포털 팀과 맞춰야 한다(1.1절)
-- [ ] A 리포트 내려받기 파일 형식. `download.format` 값이 정해지지 않았다([[TBL-UI-002#UI-2]])
+- [x] 현업 서명 토큰의 발급 주체, 만료 시간, 갱신 방식. 화면 단위 서명 주소로 정했다. 관리자가 발급·회전하고 만료가 없다(유저 결정 2026-09-30, 1.1절)
+- [x] A 리포트 내려받기 파일 형식. 서버가 만드는 PDF(`download.format=pdf`)로 정했다(유저 결정 2026-09-30, [[#GET/api/intel/areport/pdf/{domainReportId}]])
 - [ ] A 판정 스냅샷을 브리핑 갈래에서 어떤 키와 모양으로 받는지. 이것이 정해져야 `judgments`와 4.4절의 필드가 확정된다([[TBL-DOM-004#DomainJudgment]])
-- [ ] 후보 상한 기본값(사건 5, 기사 10, 지표 6)과 시간창 기본값. 지금은 설정값이라는 것만 정했다([[TBL-PRD-002#R10]])
+- [x] 후보 상한 기본값과 시간창 기본값. 설정 초기 행 v1에 사건 5건, 시간창 7일로 넣었다(유저 결정 2026-09-30). 기사 10·지표 6은 코드 상수다([[TBL-PRD-002#R10]])
 - [ ] 신호등 임계값(최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준)을 응답에 내릴지. 지금은 4.6절의 `basis`에만 담고 화면에 기준선을 그리지 않는다
 - [ ] [[#GET/api/intel/creport/latest]] 응답 크기. 후보와 근거를 한 번에 담으면 국가가 늘었을 때 커진다. 근거 패널을 별도 호출로 나눌지 [확인 필요]
 - [ ] 미매핑 엑셀 내려받기를 `format=xlsx`로 같은 엔드포인트에서 받을지 별도 주소를 둘지
 - [ ] 관리 API의 감사 로그를 어디에 남길지. 지금은 해제·확정 응답에 행위자만 담았다
-- [ ] 현업 피드백("맞다·아니다·모르겠다") 엔드포인트. 화면에 넣을지가 아직 미결이라 여기도 두지 않았다([[TBL-PRD-002#R19]])
+- [ ] 현업 피드백("맞다·아니다·모르겠다") 엔드포인트. 화면에 넣을지가 아직 미결이라 여기도 두지 않았다([[TBL-PRD-002#R19]]). 피드백은 사번이 필요한데 열람은 화면 단위 서명 주소라 개인을 식별하지 않는다(2026-09-30)
 - [ ] 2본째 상세 화면을 만들면 그 조회 엔드포인트가 더 필요하다([[TBL-PRD-002#R28]])
 - [ ] 알림 채널이 정해지면 발송 상태 조회가 필요한지([[TBL-PRD-002#R24]])
