@@ -31,7 +31,7 @@ PostgreSQL 16 한 대에 스키마로 나눈다([[TBL-INFRA-002]] 6장).
 |:--|:--|--:|:--|:--|
 | `raw` | 받은 파일을 행 그대로. 형태 A는 원장 행, 형태 B는 펼치기 전 셀 | 3 | worker·web | worker |
 | `std` | 표준화한 완성차 긴 형태, 기사, 시장지표, OEM 판매 | 5 | worker·web | worker |
-| `master` | 크로스워크 이관본과 버전 | 8 | worker·web | worker·web |
+| `master` | 크로스워크 이관본과 버전, 뉴스 카테고리 도메인 배정 | 9 | worker·web | worker·web |
 | `mart` | A 판정 사본·결합·변동·후보·근접도·신호등·연관 설명 | 10 | worker | worker |
 | `pub` | 게시된 C 리포트와 근거, A 리포트 게시 사본, 지표 시계열 사본, 열람 화면의 서명 주소 | 11 | worker·web(게시 전환·열람 주소) | web |
 | `ops` | 적재·배치 이력, LLM 호출, 설정, 미매핑, 저장소 접속 확인 | 7 | worker·web | worker·web |
@@ -217,6 +217,11 @@ erDiagram
   glovis_entity {
     text entity_code PK
     text country_code FK
+  }
+  category_route {
+    text domain PK
+    text category PK
+    boolean is_provisional
   }
   country ||--o{ dealer_prefix_map : "대리점 접두"
   country ||--o{ glovis_entity : "법인"
@@ -793,6 +798,39 @@ erDiagram
 기본키 `entity_code`.
 
 행이 없는 것이 곧 미매핑이다. 별도 플래그를 두지 않는다.
+
+#### category_route 뉴스 카테고리 도메인 배정
+
+클래스: 없음 (보조 테이블. [[TBL-DOM-005#MasterService]]가 쓰고 [[TBL-DOM-005#CandidateSearcher]]가 읽는다)
+
+스키마 `master`. 도메인 변동에 원인 후보로 붙일 수 있는 뉴스 카테고리다. 자사 크로스워크 08 시트(도메인·카테고리 라우팅)의 이관본이며, 크로스워크 시트 `category_route`로 올리면 통째 바뀐다([[TBL-PRD-002#R4]] [[TBL-PRD-002#R5]]).
+
+| 컬럼 | 타입 | 널 | 설명 |
+|:--|:--|:--|:--|
+| `domain` | text | N | `production` `inventory` `sales` |
+| `category` | text | N | 사내 뉴스 카테고리 코드. 원본의 FWD·KD는 적재 때 가공본 코드 FWD/KD로 합친다 |
+| `is_provisional` | boolean | N | 발주처 확인 전 임시 배정인가 |
+| `note` | text | Y | 배정 근거 |
+
+기본키 `(domain, category)`.
+
+초기 행은 자사 08 시트의 배정 아홉에 FVL 임시 배정 둘을 더한 열한 줄이다(유저 결정 2026-09-30, #27 재결정). 첫 마이그레이션이 넣는다. FVL(완성차 물류)은 08 시트에 없어 판매·재고에 임시로 둔다. 발주처 회신이 오면 크로스워크 시트로 바꾼다.
+
+| `domain` | `category` | `is_provisional` | `note` |
+|:--|:--|:--|:--|
+| `production` | `OEM` | `false` | 08 시트 |
+| `production` | `FWD/KD` | `false` | 08 시트 |
+| `sales` | `MRT` | `false` | 08 시트 |
+| `sales` | `GEO` | `false` | 08 시트 |
+| `sales` | `ENR` | `false` | 08 시트 |
+| `sales` | `NDS` | `false` | 08 시트 |
+| `sales` | `REG` | `false` | 08 시트 |
+| `sales` | `FVL` | `true` | 임시. 완성차 물류 |
+| `inventory` | `MRT` | `false` | 08 시트 |
+| `inventory` | `FWD/KD` | `false` | 08 시트 |
+| `inventory` | `FVL` | `true` | 임시. 완성차 물류 |
+
+카테고리를 걸러 쓰는 이유. 같은 나라의 뉴스라도 도메인과 무관한 카테고리가 후보로 붙으면 신호등 근거가 부풀려진다. 배정 밖 카테고리와 카테고리가 없는 사건은 후보가 되지 않는다([[TBL-DOM-005#CandidateSearcher]]). 생산 변동은 국가 축이 없어 지금은 후보 검색 대상이 아니므로 생산 두 줄은 목적지 국가가 들어올 때를 위한 것이다([[TBL-INFRA-002#C16]]).
 
 ### 2.4 mart 스키마
 
@@ -1651,6 +1689,7 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 | 사건을 날짜로 찾기 | `mart.event (last_seen DESC)` · `mart.event (country_code, last_seen DESC)` |
 | 지표 as-of 값 | `std.market_point` 기본키 `(indicator_id, observed_on)` |
 | 변동에 후보 붙이기 | `mart.cause_candidate (anomaly_id, sort_order)` |
+| 변동 도메인의 뉴스 카테고리 | `master.category_route` 기본키 `(domain, category)`. 열한 행이라 실행마다 한 번 읽는다 |
 | 같은 국가 다른 도메인 변동 | `mart.anomaly (batch_run_id, country_code, domain) WHERE axis_type = 'country'` |
 | 단계 흐름 조회 | `mart.sales_stage_flow (batch_run_id, country_code, period_type, file_base_date)` 유일 제약 |
 | 대리점 코드로 국가 찾기 | `master.dealer_prefix_map` 기본키 |
@@ -1707,6 +1746,7 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 - [ ] A 리포트 게시 사본의 실제 구조. 브리핑 갈래가 문장과 각주와 버전을 어떤 키로 내주는지 확인해야 [[#a_report_snapshot]]과 [[#a_report_evidence]]의 컬럼이 확정된다
 - [ ] `raw` 보관 2년, 나머지 무기한이라는 방침의 실제 용량. 폐쇄망 디스크가 확정되면 [[#raw_pivot_cell]]부터 다시 본다
 - [ ] [[#ingest_file]]의 `ingest_seq`를 몇 회차까지 남길지. 원본 파일 보존과 별개로 파생 행의 회차 보관 범위다
+- [ ] [[#category_route]]의 배정 확인. 자사 08 시트 배정과 FVL 임시 배정(판매·재고)을 발주처에 확인한다. 회신이 오면 크로스워크 시트로 바꾼다
 - [ ] [[#llm_call]]에 프롬프트를 남길지. 남기려면 마스킹 규칙부터 정한다([[TBL-INFRA-002#C3]])
 - [x] 신호등 기준값의 초기 행. 현업 검토 전 기본값을 [[#threshold_setting]] 초기 행 `v1`로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣고, 값이 오면 새 버전 행을 넣는다
 - [ ] [[#country_period_fact]]를 매핑된 국가 전부에 만들지, 데이터 있는 국가만 만들지. 지금은 데이터 있는 국가만으로 둔다
