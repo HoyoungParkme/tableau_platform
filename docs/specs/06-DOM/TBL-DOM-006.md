@@ -31,12 +31,12 @@ PostgreSQL 16 한 대에 스키마로 나눈다([[TBL-INFRA-002]] 6장).
 |:--|:--|--:|:--|:--|
 | `raw` | 받은 파일을 행 그대로. 형태 A는 원장 행, 형태 B는 펼치기 전 셀 | 3 | worker·web | worker |
 | `std` | 표준화한 완성차 긴 형태, 기사, 시장지표, OEM 판매 | 5 | worker·web | worker |
-| `master` | 크로스워크 이관본과 버전 | 8 | worker·web | worker |
+| `master` | 크로스워크 이관본과 버전 | 8 | worker·web | worker·web |
 | `mart` | A 판정 사본·결합·변동·후보·근접도·신호등·연관 설명 | 10 | worker | worker |
-| `pub` | 게시된 C 리포트와 근거, A 리포트 게시 사본, 지표 시계열 사본 | 10 | worker | web |
-| `ops` | 적재·배치 이력, LLM 호출, 설정, 미매핑 | 6 | worker·web | web |
+| `pub` | 게시된 C 리포트와 근거, A 리포트 게시 사본, 지표 시계열 사본 | 10 | worker·web(게시 전환) | web |
+| `ops` | 적재·배치 이력, LLM 호출, 설정, 미매핑, 저장소 접속 확인 | 7 | worker·web | worker·web |
 
-계정 분리는 [[TBL-INFRA-002]] 5장을 따른다. `web`은 `pub` 읽기와 `raw`·`std`·`ops` 쓰기(수동 적재)만 가지고, `worker`가 전 스키마에 쓴다.
+계정 분리는 [[TBL-INFRA-002]] 5장을 따른다. `web`은 `pub` 읽기와 `raw`·`std`·`master`·`ops` 쓰기(수동 적재·크로스워크·배치 요청)를 가지고, 게시 전환에 쓰는 `pub` 칸(`c_report`의 게시 여부와 게시 시각, `alert_event`, `report_watch_item`·`report_anomaly`의 배지) 쓰기를 더 가진다. `mart`는 읽지 않는다([[TBL-INFRA-002#C10]]). 재실행 비교 표도 worker가 계산해 `ops`에 둔다. `worker`가 전 스키마에 쓴다.
 
 시간 두 칸. 아래 테이블은 `period_type`과 `file_base_date`를 반드시 함께 가진다. 하나만 두면 일 단위 값과 누계 값이 같은 컬럼에 섞여 구분되지 않는다. [[#vehicle_measure]] [[#a_judgment]] [[#country_period_fact]] [[#sales_stage_flow]] [[#model_exposure]] [[#anomaly]] 여섯이다. `period_type`은 `day` `month` `cumulative` `year` 넷이다. 형태 A(IF 원장)로 들어온 행은 `period_type = 'day'`이고 `file_base_date`가 그 행의 기준일자와 같다. 형태 B(피벗 리포트)는 헤더에서 온 기간 구분과 파일이 붙여 준 날이다.
 
@@ -420,6 +420,7 @@ erDiagram
     text status
     boolean backfill_mode
     text setting_version FK
+    text baseline_batch_run_id
   }
   batch_stage_result {
     text batch_run_id PK
@@ -444,6 +445,11 @@ erDiagram
     text source
     text value
     integer occurrence_count
+  }
+  briefing_store_check {
+    text check_id PK
+    boolean reachable
+    timestamptz checked_at
   }
   ingest_file ||--o{ unmapped_value : "못 붙인 값"
   batch_run ||--o{ batch_stage_result : "여덟 단계"
@@ -976,6 +982,7 @@ erDiagram
 | `stage_flow_id` | bigint | Y | `source`가 `derived`일 때 [[#sales_stage_flow]] |
 | `fact_id` | bigint | Y | `source`가 `supplementaryAggregate`일 때 [[#country_period_fact]] |
 | `breakdown_summary` | jsonb | Y | 내부 분해 요약 |
+| `candidate_truncated_count` | integer | Y | 후보 상한에 걸려 잘린 건수. 5단계가 적는다. 4단계에서 행을 만든 뒤 5단계 전까지는 비어 있다 |
 | `setting_version` | text | N | |
 | `a_snapshot_id` | text | Y | |
 | `base_date` | date | N | |
@@ -1415,7 +1422,7 @@ erDiagram
 
 클래스: [[TBL-DOM-005#BatchRun]]
 
-스키마 `ops`. [[TBL-DOM-005#PipelineRunner]]의 `run`이 쓴다.
+스키마 `ops`. [[TBL-DOM-005#PipelineRunner]]의 `run`이 쓴다. 재실행·재생성 요청은 관리 API가 `queued` 행으로 먼저 남기고 worker가 이어 받는다.
 
 | 컬럼 | 타입 | 널 | 설명 |
 |:--|:--|:--|:--|
@@ -1437,6 +1444,9 @@ erDiagram
 | `setting_version` | text | N | [[#threshold_setting]] |
 | `a_snapshot_id` | text | Y | 2단계에서 읽은 A 판정 스냅샷 |
 | `report_id` | text | Y | 만들어진 [[#c_report]] |
+| `baseline_batch_run_id` | text | Y | 재실행·재생성의 비교 기준 [[#batch_run]]. 요청의 compareWith, 없으면 그 기준일 게시본을 만든 실행, 없으면 앞서 판정을 끝낸 가장 최근 실행. 요청 때 정해 고정한다 |
+| `comparison` | jsonb | Y | 당시와의 비교 표(기준 실행, 안내 문장, 필드별 당시·지금·원인·위반). worker가 재실행·재생성을 마칠 때 계산해 둔다. web은 이 칸만 읽고 `mart`를 읽지 않는다 |
+| `llm_free_comparison` | jsonb | Y | 같은 기준일·같은 입력의 반대쪽(LLM 없음·있음) 실행과의 신호등·후보 순서 대조. worker가 실행을 마칠 때 계산한다 |
 
 기본키 `batch_run_id`.
 
@@ -1516,6 +1526,22 @@ erDiagram
 기본키 `version`.
 
 정본 선택 셋이 여기 있는 것이 재현의 핵심이다. 계획이 두 종류이고 도매가 두 기준이며 차종 감지 단위가 둘이다. 어느 쪽을 골랐는지가 계획 대비 달성률과 체류율과 변동 건수를 통째로 바꾼다. 코드에 상수로 박으면 바뀔 때 과거 판정과의 차이를 설명할 수 없다([[TBL-INFRA-002#C18]]).
+
+#### briefing_store_check 브리핑 저장소 접속 확인
+
+클래스: 없음 (보조 테이블. worker가 쓰고 [[TBL-DOM-005#BatchService]]의 `get_status`가 읽는다)
+
+스키마 `ops`. worker가 대기열을 확인할 때마다(30초) 브리핑 갈래 저장소에 붙는지 확인한 결과 한 행이다. web은 저장소에 직접 붙지 않는다([[TBL-INFRA-002#C5]]).
+
+| 컬럼 | 타입 | 널 | 설명 |
+|:--|:--|:--|:--|
+| `check_id` | text | N | 늘 `briefing` 한 행 |
+| `reachable` | boolean | N | 붙었는가 |
+| `checked_at` | timestamptz | N | 확인 시각 |
+
+기본키 `check_id`.
+
+접속 문자열과 오류 원문을 남기지 않는다. 실패 이유는 worker 로그에만 둔다.
 
 #### unmapped_value 미매핑 값
 
