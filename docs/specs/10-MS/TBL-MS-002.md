@@ -711,9 +711,9 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 3. 후보마다 [[#CandidateSearcher.resolve_country_match]]로 국가 일치 방식을 정한다.
 4. [[#ProximityCalculator.calculate]] → [[#ProximityCalculator.sort]].
 5. 상한을 적용하기 전 정렬 목록을 사본으로 남기고 [[#CandidateSearcher.apply_limit]]으로 상한을 적용해 잘린 건수를 받는다.
-6. [[TBL-DOM-006#cause_candidate]]에 `sort_order`와 근접도 값 넷을 넣는다. 유일 제약은 `(anomaly_id, sort_order)`.
+6. [[TBL-DOM-006#cause_candidate]]에 `sort_order`와 근접도 값 넷을 넣는다. 유일 제약은 `(anomaly_id, sort_order)`. 잘린 건수는 변동 행의 `candidate_truncated_count`에 적는다. 6단계부터 다시 돈 재실행의 게시본도 이 값을 읽는다.
 
-**출력** `(후보 목록, 잘린 건수, 상한 전 정렬 목록)`. **후보가 0건인 변동도 목록에 남는다.** 신호등은 셋째 값으로 판정한다([[#TrafficLightJudge.judge]]). 저장과 화면은 상한까지만이다.
+**출력** `(후보 목록, 잘린 건수, 상한 전 정렬 목록)`. **후보가 0건인 변동도 목록에 남는다.** 신호등은 셋째 값으로 판정한다([[#TrafficLightJudge.judge]]). 저장과 화면은 상한까지다. 다만 신호등을 정한 사건이 상한 밖이면 5단계가 그 사건 하나를 목록 끝에 더한다([[#TrafficLightJudge.judge]]).
 
 **테스트 관점** 같은 기준일을 두 번 돌려 후보 구성과 순서가 같은지. `axis_type=plant`인 변동의 후보가 전건 0인지. 후보 0건 변동이 "원인 미확인"으로 화면에 남는지. 상한 밖으로 밀린 사건도 신호등 판정에 드는지.
 
@@ -723,7 +723,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **시그니처** `search_events(anomaly: Anomaly) -> list[CauseCandidate]`
 
-**처리** 그 국가에 직접 걸린 사건과 [[TBL-DOM-006#strait_country]]로 귀속된 사건 중 `abs(event.last_seen − anomaly.file_base_date) ≤ setting.event_window_days`인 것을 찾는다. 라우팅 카테고리로 한 번 더 거른다. 사건마다 상위 기사 3건을 함께 담는다(화면이 최소 3건을 요구한다).
+**처리** 그 국가에 직접 걸린 사건과 [[TBL-DOM-006#strait_country]]로 귀속된 사건 중 `abs(event.last_seen − anomaly.file_base_date) ≤ setting.event_window_days`인 것을 찾는다. 라우팅 카테고리 표는 발주처가 줄 때까지 두지 않고 모든 카테고리를 후보로 본다(표가 오면 여기서 한 번 더 거른다). 사건마다 상위 기사 3건을 함께 담는다(화면이 최소 3건을 요구한다).
 
 **테스트 관점** 호르무즈 사건이 오만·아랍에미리트 변동의 후보로 나오고 `countryMatch=straitAttributed`로 구분되는지. 해협 표가 비어 있으면 중동 변동의 후보가 통째로 비는지(그 사실이 화면에 드러나는지).
 
@@ -846,7 +846,7 @@ key = (day_diff 오름차순, source_count 내림차순, article_count 내림차
 
 **시그니처** `judge(anomaly: Anomaly, candidates: list[CauseCandidate]) -> TrafficLight`
 
-**입력** 변동 한 건, 상한을 적용하기 전의 정렬된 후보 목록([[#CandidateSearcher.search]]의 셋째 값), 인스턴스의 `setting`. 기준을 채우는 사건이 날짜 차이 때문에 상한 밖으로 밀려도 신호등이 본다. 그 사건은 저장된 후보 목록(화면)에 없을 수 있고 근거 수치(`basis`)가 판정 이유를 적는다. **LLM 클라이언트를 인자로도 속성으로도 받지 않는다. 이 함수가 사는 `judgment/traffic_light.py`는 `adapters/`를 import 하지 않는다.**
+**입력** 변동 한 건, 상한을 적용하기 전의 정렬된 후보 목록([[#CandidateSearcher.search]]의 셋째 값), 인스턴스의 `setting`. 기준을 채우는 사건이 날짜 차이 때문에 상한 밖으로 밀려도 신호등이 본다. 그 사건이 상한 밖이면 5단계가 그 사건 하나를 저장 목록 끝에 더하고 잘린 건수를 하나 줄인다(상한을 하나 넘을 수 있다). 신호등의 이유가 목록에서 보이게 하기 위해서다. **LLM 클라이언트를 인자로도 속성으로도 받지 않는다. 이 함수가 사는 `judgment/traffic_light.py`는 `adapters/`를 import 하지 않는다.**
 
 **처리**
 1. `anomaly.axis_type != 'country'`이면 → `level=notApplicable`, `label='판정 대상 아님'`, `basis=None`. 생산은 여기서 빠진다. **`none`('원인 미확인')으로 적지 않는다.** 후보를 찾지 못한 것과 처음부터 판정 대상이 아닌 것은 다른 사실이다.
@@ -1280,7 +1280,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `as_of(indicator_id: str, on_date: date) -> MarketMetric | None`
 
-**처리** 그 날짜 이하의 가장 최근 값을 돌려준다. **파이프라인 함수다.** [[#FactJoiner.attach_market_asof]]가 4단계에서 부른다. 이월 한도를 넘으면 `None`.
+**처리** 그 날짜 이하의 가장 최근 값을 돌려준다. **파이프라인 함수다.** [[#FactJoiner.attach_market_asof]]가 4단계에서 부른다. 이월 한도(7일, 상수)를 넘으면 `None`.
 
 **테스트 관점** 주말·공휴일 날짜로 불러도 직전 영업일 값이 나오는지. 한도 초과에서 예외가 아니라 `None`인지.
 
@@ -1302,7 +1302,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `get_status() -> dict`
 
-**처리** 최근 [[TBL-DOM-006#batch_run]]과 **자동 실행을 막고 있는 것**(`auto_run_blocked=true`인 [[TBL-DOM-006#ingest_file]])을 함께 돌려준다. 실행 중 여부와 [[#BriefingStoreReader.ping]] 결과(`briefingStore.reachable` `checkedAt` `lastSnapshotId`)도 담는다. 판정을 한 건도 읽지 않는 가벼운 확인이라 실패해도 이 함수는 200이다.
+**처리** 최근 [[TBL-DOM-006#batch_run]]과 **자동 실행을 막고 있는 것**(`auto_run_blocked=true`인 [[TBL-DOM-006#ingest_file]])을 함께 돌려준다. 실행 중 여부와 worker가 남긴 [[#BriefingStoreReader.ping]] 결과([[TBL-DOM-006#briefing_store_check]]. `briefingStore.reachable` `checkedAt` `lastSnapshotId`)도 담는다. web은 브리핑 저장소에 붙지 않는다([[TBL-INFRA-002#C5]]). 판정을 한 건도 읽지 않는 가벼운 확인이라 실패해도 이 함수는 200이다.
 
 **테스트 관점** 회귀 차단이 걸려 있을 때 무엇이 막고 있는지가 파일 단위로 나오는지.
 
@@ -1324,7 +1324,7 @@ A3 판매  globalCountryByModel                                                 
 
 **처리** [[TBL-DOM-006#batch_stage_result]] **여덟 행**과 [[TBL-DOM-006#llm_call]] 집계를 함께 돌려준다. 단계 이름은 [[#PipelineRunner.stage_names]]가 준 것을 쓴다. 대기 중이라 단계 행이 아직 없으면 시작 단계 앞은 `skipped`, 나머지는 `pending`으로 채운다.
 
-재실행·재생성이면 당시와의 비교 표를 붙인다. 비교 기준은 그 기준일 게시본을 만든 실행이고, 없거나 이 실행 자신이면 이 실행보다 앞서 판정을 끝낸 가장 최근 실행이다. 판정을 직접 만들지 않은 실행(시작 단계 6 이상)은 앞서 5단계를 끝낸 실행의 판정을 쓴 것으로 본다. 실행마다 식별자가 달라 자연 열쇠로 맞춘다. 변동은 `도메인 국가(또는 공장) 지표 기간 비교기준`, 후보는 `종류:대상`이고 다른 도메인 변동 후보의 대상은 그 변동의 열쇠로 바꾼다. 원인은 기준 실행이 끝난 뒤 바뀐 입력으로 정하고 매핑, 설정, 늦게 온 데이터, A 판정 순이다. 문장은 두 실행의 게시 사본(헤드라인, 변동별 연관 설명)만 비교하고 위반이 아니다. LLM 없는 실행 대조는 같은 기준일·같은 설정 버전·같은 A 판정 스냅샷의 반대쪽 실행과만 한다.
+재실행·재생성이면 당시와의 비교 표를 붙인다. **비교 표와 LLM 없는 실행 대조는 worker가 실행을 마칠 때 계산해 [[TBL-DOM-006#batch_run]]의 `comparison` `llm_free_comparison`에 둔 값을 그대로 읽는다.** web은 `mart`를 읽지 않는다([[TBL-INFRA-002#C10]]). 비교 기준은 요청 때 고정한 `baseline_batch_run_id`이고, 그 실행이 판정을 끝내지 못했으면 비교 표를 내지 않는다. 끝나지 못한(`failed`) 실행은 비교하지 않는다. 판정을 직접 만들지 않은 실행(시작 단계 6 이상)은 앞서 5단계를 끝낸 실행의 판정을 쓴 것으로 본다. 실행마다 식별자가 달라 자연 열쇠로 맞춘다. 변동은 `도메인 국가(또는 공장) 지표 기간 비교기준`, 후보는 `종류:대상`이고 다른 도메인 변동 후보의 대상은 그 변동의 열쇠로 바꾼다. 원인은 기준 실행이 끝난 뒤 바뀐 입력으로 정하고 매핑, 설정, 늦게 온 데이터, A 판정 순이다. 문장은 두 실행의 게시 사본(헤드라인, 변동별 연관 설명)만 비교하고 위반이 아니다. LLM 없는 실행 대조는 같은 기준일·같은 설정 버전·같은 A 판정 스냅샷의 반대쪽 실행과만 한다.
 
 **테스트 관점** 단계가 언제나 여덟인지. 6~8단계에만 `degrade_reason`이 붙는지.
 
@@ -1337,8 +1337,8 @@ A3 판매  globalCountryByModel                                                 
 **처리**
 1. `start_stage`가 1~8 밖이면 → `/problems/stage-out-of-range` 400. 자동 실행이 막혀 있으면 → `/problems/regression-blocked` 409. 같은 기준일 배치가 대기 중이거나 돌고 있으면 → `/problems/batch-in-progress` 409.
 2. **실행하지 않고 대기 행을 남긴다.** [[TBL-DOM-006#batch_run]]에 `status=queued` 행을 넣는다. `trigger`는 시작 단계 1이면 `regenerate`, 아니면 `rerun`이다. web에는 LLM 키와 브리핑 저장소 접속이 없고 worker는 한 번에 하나만 돌기 때문이다([[TBL-INFRA-002]] 4장).
-3. **당시 입력을 대기 행에 싣는다.** 기준 실행(`compareWith`, 없으면 그 기준일 게시본을 만든 실행, 없으면 그 기준일의 가장 최근 끝난 실행)의 `setting_version`과 `a_snapshot_id`를 옮겨 적는다. 기준이 없으면 최신 설정이고 저장소를 새로 읽는다.
-4. worker가 대기 행을 들어온 순서대로 집어 [[#PipelineRunner.run]]을 부른다. 설정은 대기 행의 버전으로 고정하고, A 판정은 그 스냅샷을 복사해 둔 mart 사본을 브리핑 저장소와 같은 모양으로 다시 읽는다. **그 기준일의 데이터 스냅샷, 당시 A 판정 스냅샷, 당시 설정 버전으로 돈다.** 시작을 거부당한 대기 행은 `failed`로 닫는다.
+3. **당시 입력과 비교 기준을 대기 행에 싣는다.** 비교 기준은 `compareWith`, 없으면 그 기준일 게시본을 만든 실행, 없으면 앞서 판정을 끝낸 가장 최근 실행이고 `baseline_batch_run_id`에 고정한다. 당시 입력(`setting_version` `a_snapshot_id`)은 비교 기준에서, 비교 기준이 없으면 그 기준일의 가장 최근 끝난 실행에서 옮겨 적는다. 둘 다 없으면 최신 설정이고 저장소를 새로 읽는다.
+4. worker가 대기 행을 들어온 순서대로 집어 [[#PipelineRunner.run]]을 부른다. 설정은 대기 행의 버전으로 고정하고, A 판정은 그 스냅샷을 복사해 둔 mart 사본을 브리핑 저장소와 같은 모양으로 다시 읽는다. **그 기준일의 데이터 스냅샷, 당시 A 판정 스냅샷, 당시 설정 버전으로 돈다.** 시작을 거부당한 대기 행은 `failed`로 닫는다. 실행을 마치면 비교 표와 LLM 없는 실행 대조를 계산해 그 행에 적는다.
 5. `options.backfillMode`가 참이면 5단계까지만 채우고 LLM 세 역할을 생략하며 게시하지 않는다.
 6. 결과는 **새 버전이고 `is_published=false`**다.
 7. 정기 배치도 같은 대기열을 거친다. 재생성이 돌고 있으면 정기 배치는 그 뒤에서 기다린다([[TBL-UC-002#UC-A3]] 2a).
