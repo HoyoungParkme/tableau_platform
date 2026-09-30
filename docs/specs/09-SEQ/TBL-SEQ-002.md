@@ -22,8 +22,8 @@ upstream: [TBL-UC-002, TBL-INFRA-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002]
 
 | 생명선 | 약어 | 실체 | 종류 | 정의한 곳 |
 |:--|:--|:--|:--|:--|
-| 현업 사용자 | H | VODA에서 대시보드 3본과 C 리포트 단독 주소를 여는 담당자. 읽기만 한다 | 액터 | [[TBL-UC-002#UC-H2]] |
-| 관리자 | ADM | 운영 개발자(적재·배치·재생성)와 자사 DBA(매핑) | 액터 | [[TBL-UC-002#UC-A1]] |
+| 현업 사용자 | H | VODA에서 화면마다 하나인 서명 주소로 A1~A3와 C 리포트를 여는 담당자. 개인을 식별하지 않는다. 읽기만 한다 | 액터 | [[TBL-UC-002#UC-H2]] |
+| 관리자 | ADM | 운영 개발자(적재·배치·재생성·열람 주소)와 자사 DBA(매핑) | 액터 | [[TBL-UC-002#UC-A1]] |
 | 배치 스케줄러 | SCHED | 매일 02시에 배치를 깨운다. worker 컨테이너에서 한 번에 하나만 돈다 | 인프라 | [[TBL-INFRA-002#C8]] |
 | 열람·관리 API | API | FastAPI 라우터. 판단하지 않고 서비스로 넘긴다 | 인프라 | [[TBL-API-002]] 3장 |
 | 파일 볼륨 | VOL | 받은 파일 원본을 그대로 보관한다 | 인프라 | [[TBL-INFRA-002#C7]] |
@@ -61,6 +61,7 @@ upstream: [TBL-UC-002, TBL-INFRA-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002]
 | MarketService | MKT | 지표 하나의 시계열과 as-of 값을 읽어 준다 | 클래스 | [[TBL-DOM-005#MarketService]] |
 | BatchService | BAT | 배치 상태와 이력, 재실행, 게시 전환 | 클래스 | [[TBL-DOM-005#BatchService]] |
 | MasterService | MST | 매칭률, 미매핑, 크로스워크 업로드와 확정 | 클래스 | [[TBL-DOM-005#MasterService]] |
+| ExposureService | EXP | 화면 넷의 서명 주소를 발급·회전하고 요청의 주소가 여는 화면을 확인한다 | 클래스 | [[TBL-DOM-005#ExposureService]] |
 | HChatClient | HCC | 사내 게이트웨이 호출. 서술 계층만 쓴다 | 클래스 | [[TBL-DOM-005#HChatClient]] |
 | BriefingStoreReader | BSR | A 판정과 A 리포트 문서를 읽는다. 쓰기 메서드가 없다 | 클래스 | [[TBL-DOM-005#BriefingStoreReader]] |
 
@@ -70,7 +71,7 @@ A 리포트를 만드는 브리핑 갈래의 내부 순서는 그리지 않는�
 
 A 리포트에서 C 리포트로 가는 화면 흐름은 없다. 그래서 [[#SEQ-1]]과 [[#SEQ-2]]는 서로를 부르지 않고 각각 독립된 그림이다([[TBL-UC-002#UC-H1]] [[TBL-PRD-002]] 6.17).
 
-포트 둘(`LlmPort` `BriefingStorePort`)은 생명선으로 세우지 않고 구현체([[TBL-DOM-005#HChatClient]] [[TBL-DOM-005#BriefingStoreReader]])로 그린다. `SchemaRegistry`와 `CrosswalkTable`은 클래스 스물여덟 밖의 값 객체라 그리지 않는다(7장).
+포트 둘(`LlmPort` `BriefingStorePort`)은 생명선으로 세우지 않고 구현체([[TBL-DOM-005#HChatClient]] [[TBL-DOM-005#BriefingStoreReader]])로 그린다. `SchemaRegistry`와 `CrosswalkTable`은 클래스 스물아홉 밖의 값 객체라 그리지 않는다(7장).
 
 ## 1. 열람 시퀀스
 
@@ -83,10 +84,16 @@ sequenceDiagram
   autonumber
   actor H as 현업 사용자
   participant API as 열람 API
+  participant EXP as ExposureService
   participant CRS as CReportService
   participant MKT as MarketService
   participant DB_PUB as pub 스키마
-  H->>API: GET /api/intel/creport/latest (VODA 서명 토큰)
+  H->>API: GET /api/intel/creport/latest (C 리포트 서명 주소의 token)
+  API->>EXP: verify(token). 켜진 화면의 서명값과 대조해 연 화면을 돌려준다
+  EXP->>DB_PUB: screen_exposure
+  opt 서명값이 없다(401), 맞지 않거나 C 리포트 화면이 아니다(403 invalid-token)
+    API-->>H: 리포트를 그리지 않고 안내만
+  end
   API->>CRS: get_latest()
   CRS->>DB_PUB: c_report 부분 인덱스로 최신 게시본 1건
   DB_PUB-->>CRS: reportId, baseDate, 소스별 최신일 셋과 dataLatestDate, settingVersion, degraded
@@ -114,11 +121,11 @@ sequenceDiagram
   opt 과거 버전을 연다
     H->>API: GET /api/intel/creport/version/{reportId}
     API->>CRS: get_by_id(reportId, viewer)
-    CRS->>CRS: assert_published_or_admin (get_by_id 안). 현업 토큰으로 미게시본을 부르면 404
+    CRS->>CRS: assert_published_or_admin (get_by_id 안). 현업 서명 주소로 미게시본을 부르면 404
   end
 ```
 
-**읽을 때 볼 것.** 화살표가 [[TBL-DOM-005#CReportService]]에서 `pub` 스키마로만 간다. `mart`로 가는 화살표가 하나도 없는 것이 [[TBL-INFRA-002#C10]]이고, 조회 결과에 조인이 없는 것이 [[TBL-PRD-002#N5]]의 2초다. 후보 목록과 기사가 첫 응답에 이미 들어 있어 근거 펼치기가 서버를 다시 부르지 않는다. 게시본 없음만 404이고 나머지 예외(변동 없음·강등·판정 미수신·배치 실패·지표 이월)는 200으로 내려가 `notices`에 담긴다([[TBL-API-002]] 2장, [[TBL-UI-002#UI-1]]). 시장지표 시계열도 [[TBL-DOM-006#market_series]]라는 게시 사본을 읽으므로 이 경로가 `pub` 밖으로 나가는 자리가 없다. 데이터 최신일은 완성차·뉴스·시장 셋을 각각 내려보내고, 한 줄로 줄일 때만 셋 중 가장 늦은 `dataLatestDate`를 쓴다.
+**읽을 때 볼 것.** 화살표가 [[TBL-DOM-005#CReportService]]에서 `pub` 스키마로만 간다. `mart`로 가는 화살표가 하나도 없는 것이 [[TBL-INFRA-002#C10]]이고, 조회 결과에 조인이 없는 것이 [[TBL-PRD-002#N5]]의 2초다. 후보 목록과 기사가 첫 응답에 이미 들어 있어 근거 펼치기가 서버를 다시 부르지 않는다. 게시본 없음만 404이고 나머지 예외(변동 없음·강등·판정 미수신·배치 실패·지표 이월)는 200으로 내려가 `notices`에 담긴다([[TBL-API-002]] 2장, [[TBL-UI-002#UI-1]]). 시장지표 시계열도 [[TBL-DOM-006#market_series]]라는 게시 사본을 읽고, 서명 주소 확인도 [[TBL-DOM-006#screen_exposure]]라는 `pub` 표를 읽으므로 이 경로가 `pub` 밖으로 나가는 자리가 없다. 데이터 최신일은 완성차·뉴스·시장 셋을 각각 내려보내고, 한 줄로 줄일 때만 셋 중 가장 늦은 `dataLatestDate`를 쓴다.
 
 #### SEQ-2 A 리포트 열람
 
@@ -129,9 +136,15 @@ sequenceDiagram
   autonumber
   actor H as 현업 사용자
   participant API as 열람 API
+  participant EXP as ExposureService
   participant DRS as DomainReportService
   participant DB_PUB as pub 스키마
-  H->>API: GET /api/intel/areport/domain/{domain}
+  H->>API: GET /api/intel/areport/domain/{domain} (그 리포트 서명 주소의 token)
+  API->>EXP: verify(token). A1·A2·A3 중 그 도메인의 화면인지 본다
+  EXP->>DB_PUB: screen_exposure
+  opt 서명값이 없다(401), 맞지 않거나 다른 화면이다(403 invalid-token)
+    API-->>H: 리포트를 그리지 않고 안내만
+  end
   API->>DRS: get_latest_by_domain(domain)
   DRS->>DB_PUB: a_report_snapshot 최신 1건 (domain, base_date, published_version)
   DB_PUB-->>DRS: 요약, 해설, 고정 문구, 트래킹 지표, 분해, 못 만드는 지표, published_at
@@ -152,9 +165,16 @@ sequenceDiagram
     H->>API: GET /api/intel/areport/version/{domainReportId}
     API->>DRS: get_by_id(domainReportId). 사본의 published_version으로 고른다
   end
+  opt 내려받기
+    H->>API: GET /api/intel/areport/pdf/{domainReportId}?token=
+    API->>EXP: verify(token). 그 버전 도메인의 화면인지 본다
+    API->>DRS: get_by_id(domainReportId)
+    API->>DRS: render_pdf(report). 사본 글자를 화면 순서대로 HTML로, WeasyPrint가 PDF로. 저장하지 않는다
+    API-->>H: application/pdf 첨부
+  end
 ```
 
-**읽을 때 볼 것.** 이 그림에 [[TBL-DOM-005#CReportService]]도 [[TBL-DOM-005#CandidateSearcher]]도 없다. A 리포트는 자기 대시보드 데이터 안에서만 말하고, 외부 원인은 C 리포트의 일이다([[TBL-PRD-002#R1]]). 화살표가 [[TBL-DOM-006#a_report_snapshot]]과 [[TBL-DOM-006#a_report_evidence]]로만 가는 것이 [[TBL-INFRA-002#C10]]과 [[TBL-PRD-002#R2]]다. 열람 경로는 게시 스키마 밖으로 나가지 않고, 이 시스템은 A 리포트 문장을 새로 쓰지 않는다. 버전 알약과 사이드 버전 목록의 번호는 사본의 `published_version`, 곧 브리핑 갈래가 매긴 번호 그대로다. 사본이 없을 때 404가 아니라 판정값과 차트만 내려가는 것이 [[TBL-UC-002#UC-H1]] 4a다. 빈 자리를 추정값으로 채우지 않고 `missingMetrics`에 이유를 적는 것이 이 화면([[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]])의 인수 기준이다.
+**읽을 때 볼 것.** 이 그림에 [[TBL-DOM-005#CReportService]]도 [[TBL-DOM-005#CandidateSearcher]]도 없다. A 리포트는 자기 대시보드 데이터 안에서만 말하고, 외부 원인은 C 리포트의 일이다([[TBL-PRD-002#R1]]). 화살표가 [[TBL-DOM-006#a_report_snapshot]]과 [[TBL-DOM-006#a_report_evidence]]로만 가는 것이 [[TBL-INFRA-002#C10]]과 [[TBL-PRD-002#R2]]다. 열람 경로는 게시 스키마 밖으로 나가지 않고, 이 시스템은 A 리포트 문장을 새로 쓰지 않는다. 버전 알약과 사이드 버전 목록의 번호는 사본의 `published_version`, 곧 브리핑 갈래가 매긴 번호 그대로다. 사본이 없을 때 404가 아니라 판정값과 차트만 내려가는 것이 [[TBL-UC-002#UC-H1]] 4a다. 빈 자리를 추정값으로 채우지 않고 `missingMetrics`에 이유를 적는 것이 이 화면([[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]])의 인수 기준이다. 내려받기 PDF도 같은 사본을 옮길 뿐이라 화살표가 `pub` 밖으로 나가지 않고 LLM이 없다.
 
 ## 2. 배치 전체
 
@@ -871,12 +891,43 @@ sequenceDiagram
 
 **읽을 때 볼 것.** 첫 화살표가 [[TBL-DOM-005#TrafficLightJudge]]에서 나온다. 워치리스트를 만드는 것과 어제와 비교하는 것을 서로 다른 단계에 둔 것이 이 그림의 계약이다. 만들기가 5단계에 있어야 LLM 상태와 무관하고, 비교는 게시 시점에만 뜻이 있어 8단계에 있다. 채널 발송이 `opt`인 것은 1차에 어댑터가 없기 때문이며, 없다고 이 경로가 실패하지 않는다([[TBL-PRD-002#R24]]). 마지막 세 화살표는 [[#SEQ-1]]의 한 조각이다. 배지는 별도 호출이 아니라 리포트 응답에 실려 온다.
 
+#### SEQ-15 열람 주소 발급·회전
+
+근거는 [[TBL-UC-002#UC-A4]]다. 관리자가 화면 넷의 서명 주소를 켜고 바꾼다. 현업 쪽 확인은 [[#SEQ-1]] [[#SEQ-2]]의 `verify` 화살표다.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor ADM as 관리자
+  participant API as 관리 API
+  participant EXP as ExposureService
+  participant DB_PUB as pub 스키마
+  ADM->>API: GET /api/admin/exposure/summary (관리 세션)
+  API->>EXP: summary()
+  EXP->>DB_PUB: screen_exposure 네 행
+  EXP-->>API: 화면 넷. 행이 없으면 꺼짐, 주소 없음
+  API-->>ADM: 제공 여부와 서명 주소 완성본
+  ADM->>API: POST /api/admin/exposure/switch/{screen} (enabled, rotateToken)
+  API->>EXP: switch(screen, enabled, rotate_token, admin_id)
+  alt 처음 켜는 화면이거나 rotateToken이 참이다
+    EXP->>EXP: 무작위 32바이트 서명값
+    EXP->>DB_PUB: upsert. 이전 서명값은 덮여 바로 무효
+  else 켜고 끄기만 한다
+    EXP->>DB_PUB: enabled만 바꾼다. 주소는 그대로
+  end
+  EXP-->>API: 그 화면 한 줄
+  API-->>ADM: 새 주소. VODA 쪽 주소를 바꾸는 것은 관리자가 한다
+  Note over EXP,DB_PUB: 자동 회전이 없다. 서명값은 로그와 오류 문장에 남기지 않는다
+```
+
+**읽을 때 볼 것.** 서명값은 계산식이 아니라 표에 둔 무작위 값이라 회전이 곧 무효화다. 발급과 확인이 같은 표 하나로 끝나고 VODA를 부르지 않는다. 개인을 식별하지 않으므로 이 그림에 현업 사용자의 신원이 나오지 않는다(유저 결정 2026-09-30, 같은 발주처 브리핑 갈래의 방식).
+
 ## 6. 대응표
 
 | 시퀀스 | 배치 단계 | 유스케이스 | API 또는 화면 | 주 클래스 |
 |:--|:--|:--|:--|:--|
-| [[#SEQ-1]] | 없음 | [[TBL-UC-002#UC-H2]] [[TBL-UC-002#UC-H3]] | [[TBL-API-002#GET/api/intel/creport/latest]] [[TBL-API-002#GET/api/intel/creport/version/{reportId}]] [[TBL-API-002#GET/api/intel/market/series/{indicatorId}]] [[TBL-UI-002#UI-1]] | [[TBL-DOM-005#CReportService]] [[TBL-DOM-005#MarketService]] |
-| [[#SEQ-2]] | 없음 | [[TBL-UC-002#UC-H1]] | [[TBL-API-002#GET/api/intel/areport/domain/{domain}]] [[TBL-API-002#GET/api/intel/areport/version/{domainReportId}]] [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] | [[TBL-DOM-005#DomainReportService]] |
+| [[#SEQ-1]] | 없음 | [[TBL-UC-002#UC-H2]] [[TBL-UC-002#UC-H3]] | [[TBL-API-002#GET/api/intel/creport/latest]] [[TBL-API-002#GET/api/intel/creport/version/{reportId}]] [[TBL-API-002#GET/api/intel/market/series/{indicatorId}]] [[TBL-UI-002#UI-1]] | [[TBL-DOM-005#CReportService]] [[TBL-DOM-005#MarketService]] [[TBL-DOM-005#ExposureService]] |
+| [[#SEQ-2]] | 없음 | [[TBL-UC-002#UC-H1]] | [[TBL-API-002#GET/api/intel/areport/domain/{domain}]] [[TBL-API-002#GET/api/intel/areport/version/{domainReportId}]] [[TBL-API-002#GET/api/intel/areport/pdf/{domainReportId}]] [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] | [[TBL-DOM-005#DomainReportService]] [[TBL-DOM-005#ExposureService]] |
 | [[#SEQ-3]] | 1~8 전부 | [[TBL-UC-002#UC-S1]] | [[TBL-API-002#GET/api/admin/batch/status]] | [[TBL-DOM-005#PipelineRunner]] |
 | [[#SEQ-4]] | 1 | [[TBL-UC-002#UC-A1]] [[TBL-UC-002#UC-S10]] | [[TBL-API-002#POST/api/admin/ingest/preflight]] [[TBL-API-002#POST/api/admin/ingest/commit]] [[TBL-API-002#POST/api/admin/ingest/unblock/{ingestFileId}]] [[TBL-UI-002#UI-5]] | [[TBL-DOM-005#IngestService]] [[TBL-DOM-005#FormDetector]] [[TBL-DOM-005#FormALedgerParser]] [[TBL-DOM-005#FormBPivotParser]] [[TBL-DOM-005#RecordStandardizer]] [[TBL-DOM-005#RegressionChecker]] |
 | [[#SEQ-5]] | 2 | [[TBL-UC-002#UC-S2]] | 없음 | [[TBL-DOM-005#AJudgmentReader]] [[TBL-DOM-005#BriefingStoreReader]] |
@@ -889,8 +940,9 @@ sequenceDiagram
 | [[#SEQ-12]] | 1~8 재실행 | [[TBL-UC-002#UC-A3]] | [[TBL-API-002#POST/api/admin/batch/rerun]] [[TBL-API-002#POST/api/admin/batch/publish/{reportId}]] [[TBL-API-002#GET/api/admin/batch/history]] [[TBL-API-002#GET/api/admin/batch/run/{batchRunId}]] [[TBL-UI-002#UI-6]] | [[TBL-DOM-005#BatchService]] [[TBL-DOM-005#PipelineRunner]] |
 | [[#SEQ-13]] | 없음 | [[TBL-UC-002#UC-A2]] | [[TBL-API-002#GET/api/admin/master/summary]] [[TBL-API-002#GET/api/admin/master/unmapped]] [[TBL-API-002#POST/api/admin/master/crosswalk]] [[TBL-API-002#POST/api/admin/master/confirm/{crosswalkUploadId}]] [[TBL-UI-002#UI-7]] | [[TBL-DOM-005#MasterService]] |
 | [[#SEQ-14]] | 8 게시 직후 | [[TBL-UC-002#UC-S9]] | 없음 | [[TBL-DOM-005#TrafficLightJudge]] [[TBL-DOM-005#ReportPublisher]] |
+| [[#SEQ-15]] | 없음 | [[TBL-UC-002#UC-A4]] | [[TBL-API-002#GET/api/admin/exposure/summary]] [[TBL-API-002#POST/api/admin/exposure/switch/{screen}]] [[TBL-UI-002#UI-8]] | [[TBL-DOM-005#ExposureService]] |
 
-시퀀스 열넷에서 [[TBL-DOM-005#HChatClient]] 생명선이 서는 것은 [[#SEQ-9]] [[#SEQ-10]] [[#SEQ-11]] 셋뿐이고, 그 셋이 모두 [[TBL-DOM-005#DegradeHandler]]로 가는 화살표를 갖는다. 판정 다섯([[#SEQ-4]]~[[#SEQ-8]])에는 그 생명선이 없다. 이 대조가 [[TBL-INFRA-002#C19]]가 시퀀스에서 보이는 모습이다.
+시퀀스 열다섯에서 [[TBL-DOM-005#HChatClient]] 생명선이 서는 것은 [[#SEQ-9]] [[#SEQ-10]] [[#SEQ-11]] 셋뿐이고, 그 셋이 모두 [[TBL-DOM-005#DegradeHandler]]로 가는 화살표를 갖는다. 판정 다섯([[#SEQ-4]]~[[#SEQ-8]])에는 그 생명선이 없다. 이 대조가 [[TBL-INFRA-002#C19]]가 시퀀스에서 보이는 모습이다.
 
 [[TBL-API-002#GET/api/admin/ingest/history]]와 [[TBL-API-002#GET/api/admin/ingest/file/{ingestFileId}]]는 [[#SEQ-4]]의 결과를 되읽는 단순 조회라 따로 그리지 않았다. `IngestService.list_history`와 `get_file` 호출 한 번으로 끝난다.
 
@@ -898,7 +950,7 @@ sequenceDiagram
 
 | # | 어느 문서 | 무엇이 어긋났나 | 이 문서가 임시로 택한 것 |
 |:--|:--|:--|:--|
-| F1 | [[TBL-DOM-005]] | 생명선으로 세울 수 없는 타입 넷이 있다. `SchemaRegistry`, `CrosswalkTable`, `BriefingStorePort`, `LlmPort`다. 앞의 둘은 클래스 스물여덟 밖의 값 객체이고 뒤의 둘은 포트다 | 포트 둘은 구현체([[TBL-DOM-005#BriefingStoreReader]] [[TBL-DOM-005#HChatClient]])로 그렸고 앞의 둘은 그리지 않았다. 클래스 명세 `analysis/schemas.py`에 값 객체 자리가 있으니 그대로 두어도 된다 |
+| F1 | [[TBL-DOM-005]] | 생명선으로 세울 수 없는 타입 넷이 있다. `SchemaRegistry`, `CrosswalkTable`, `BriefingStorePort`, `LlmPort`다. 앞의 둘은 클래스 스물아홉 밖의 값 객체이고 뒤의 둘은 포트다 | 포트 둘은 구현체([[TBL-DOM-005#BriefingStoreReader]] [[TBL-DOM-005#HChatClient]])로 그렸고 앞의 둘은 그리지 않았다. 클래스 명세 `analysis/schemas.py`에 값 객체 자리가 있으니 그대로 두어도 된다 |
 | F2 | [[TBL-DOM-005#DegradeHandler]] · [[TBL-DOM-005#ReportPublisher]] | 강등 시 템플릿 문장을 누가 채우는가. 클래스 명세는 `DegradeHandler.fill_template`이고 옛 시퀀스는 게시기가 채웠다 | [[#SEQ-3]]과 [[#SEQ-11]]에서 `fill_template`은 [[TBL-DOM-005#DegradeHandler]]가 돌리고 게시기는 결과를 넣기만 하는 것으로 그렸다. 클래스 명세와 같다 |
 
 F3은 닫혔다. [[TBL-API-002#GET/api/admin/batch/status]] 응답에 `briefingStore`(`reachable` `checkedAt` `lastSnapshotId`)가 들어가 [[#SEQ-12]]의 `get_status` 화살표와 같아졌다. 닫힌 번호는 다시 쓰지 않는다. 옛 시퀀스 문서의 되먹임 여덟은 상류가 다시 쓰이면서 전부 닫혔다. 회귀 급변의 경로 둘은 [[TBL-INFRA-002#C20]]과 [[TBL-UC-002#UC-S10]] 4가, 1·3단계 멈춤은 [[TBL-INFRA-002#C20]]이, 열람 사본은 [[TBL-DOM-006#a_report_snapshot]] [[TBL-DOM-006#market_series]]가, 알림 유일성은 [[TBL-DOM-006#alert_event]]의 유일 제약이 정했다.
@@ -906,8 +958,8 @@ F3은 닫혔다. [[TBL-API-002#GET/api/admin/batch/status]] 응답에 `briefingS
 ## 8. 미결사항
 
 - [ ] [[#SEQ-5]]의 `read_judgments`와 [[#SEQ-11]]의 `read_report_document` 반환 모양. 브리핑 갈래가 무엇을 어떤 키로 내주는지 정해져야 `validate_shape`의 대조 목록과 loop 안 화살표, 그리고 사본 컬럼과의 1대1 대응이 확정된다
-- [ ] [[#SEQ-4]]에서 형태 A 파일을 아직 본 적이 없다. 실물이 들어오면 `check_columns` 화살표의 대조 목록이 바뀔 수 있다
-- [ ] [[#SEQ-8]]의 임계값 실제 수치. 최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준이 전부 현업 검토 대기이며 이 값이 정해져야 신호등 alt 세 갈래의 비율을 가늠할 수 있다
+- [x] [[#SEQ-4]]의 형태 A 실물. 실물 원장과 IF 레이아웃 정의가 같다(생산 16열, 판매·재고 22열, 2026-09-30). `check_columns` 화살표는 그대로다
+- [x] [[#SEQ-8]]의 임계값. 현업 검토 전 기본값을 설정 초기 행 v1로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣는다
 - [ ] [[#SEQ-9]]부터 [[#SEQ-11]]까지의 H-chat JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 회신은 받았으나 실호출 확인 범위가 좁다. 지원되지 않으면 세 시퀀스의 검증 화살표가 전부 늘어난다
 - [ ] [[#SEQ-12]]의 설정 변경 경로. 화면과 API가 없어 [[TBL-DOM-006#threshold_setting]] 새 버전 행을 SQL로 넣을지 CLI를 만들지가 정해지지 않았다. 정해지면 시퀀스가 하나 는다
 - [ ] [[#SEQ-13]] 확정 후 재계산 범위. 과거 기준일을 어디까지 다시 돌릴지가 정해지면 [[#SEQ-12]]와 잇는 화살표가 생긴다
