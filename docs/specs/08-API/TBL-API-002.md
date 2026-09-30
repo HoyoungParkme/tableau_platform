@@ -1060,7 +1060,7 @@ components:
 
 `autoRunBlocked`가 참이면 회귀 급변 때문이며 `blockedBy`가 어느 적재 건인지 가리킨다. 푸는 것은 [[#POST/api/admin/ingest/unblock/{ingestFileId}]]다.
 
-`briefingStore`는 브리핑 갈래 저장소에 지금 붙는지를 `BriefingStoreReader.ping`으로 확인한 결과다. 배치 2단계가 같은 확인을 먼저 하므로, 이 값이 거짓이면 다음 배치가 세 도메인 모두 보완 집계로 내려간다는 뜻이다. 판정을 한 건도 읽지 않는 가벼운 조회이고 실패해도 이 엔드포인트는 200이다.
+`briefingStore`는 worker가 30초마다 `BriefingStoreReader.ping`으로 확인해 [[TBL-DOM-006#briefing_store_check]]에 남긴 결과다. web은 브리핑 저장소에 붙지 않는다([[TBL-INFRA-002#C5]]). worker가 아직 한 번도 확인하지 않았으면 `checkedAt`이 비고 `reachable`은 거짓이다. 배치 2단계가 같은 확인을 먼저 하므로, 이 값이 거짓이면 다음 배치가 세 도메인 모두 보완 집계로 내려간다는 뜻이다. 판정을 한 건도 읽지 않는 가벼운 조회이고 실패해도 이 엔드포인트는 200이다.
 
 ```yaml
 /api/admin/batch/status:
@@ -1109,7 +1109,7 @@ components:
                   required: [reachable, checkedAt]
                   properties:
                     reachable: { type: boolean }
-                    checkedAt: { type: string, format: date-time }
+                    checkedAt: { type: string, format: date-time, nullable: true }
                     lastSnapshotId: { type: string, nullable: true, description: 마지막으로 읽은 A 판정 스냅샷 식별자 }
                 queued:
                   type: array
@@ -1180,7 +1180,7 @@ components:
 
 #### GET/api/admin/batch/run/{batchRunId} 배치 상세 조회
 
-8단계 결과와, 재생성이면 당시와의 비교 표를 준다.
+8단계 결과와, 재생성이면 당시와의 비교 표를 준다. 비교 표와 LLM 없는 실행 대조는 worker가 실행을 마칠 때 계산해 [[TBL-DOM-006#batch_run]]에 둔 값이다. 이 조회는 `mart`를 읽지 않는다([[TBL-INFRA-002#C10]]).
 
 화면 [[TBL-UI-002#UI-6]] · 유스케이스 [[TBL-UC-002#UC-A3]] 3단계 · 서비스 `BatchService.get_run`
 
@@ -1313,7 +1313,7 @@ components:
               compareWith:
                 type: string
                 nullable: true
-                description: 비교 표의 기준이 될 배치. 비우면 그 기준일의 게시본
+                description: 비교 표의 기준이자 당시 입력(설정 버전·A 판정 스냅샷)을 가져올 배치. 비우면 그 기준일 게시본을 만든 실행, 없으면 앞서 판정을 끝낸 가장 최근 실행. 요청 때 batch_run.baseline_batch_run_id에 고정해 게시본이 바뀌어도 비교 기준이 그대로다
     responses:
       '202':
         description: 실행 요청됨
