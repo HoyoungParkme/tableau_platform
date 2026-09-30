@@ -749,15 +749,15 @@ sequenceDiagram
   else 시작 단계가 1~8 밖
     BAT-->>ADM: 400 problems/stage-out-of-range
   else 실행 가능
-    BAT->>RUN: run(baseDate, trigger=rerun 또는 regenerate, startStage)
+    BAT->>DB_OPS: batch_run 대기 행(queued). 당시 설정 버전과 A 판정 스냅샷을 싣는다
+    BAT-->>ADM: 202 queued
+    RUN->>DB_OPS: worker가 대기 행을 들어온 순서대로 집는다(trigger=rerun 또는 regenerate)
     Note over RUN: 그 기준일의 데이터 스냅샷, 당시 A 판정 스냅샷, 당시 설정 버전으로 돈다
     opt backfillMode가 참
       RUN->>RUN: 5단계까지만 채우고 6~8단계를 건너뛴다. 게시하지 않는다
       Note over RUN: backfillMode는 API가 받는 값이고 llmEnabled는 재현성 시험용 내부 스위치다. 둘 다 남는다
     end
     RUN->>DB_PUB: 새 버전 생성. is_published는 false
-    RUN-->>BAT: batchRunId, 새 reportId
-    BAT-->>ADM: 202 queued 또는 running
   end
   ADM->>ADM: 변동, 후보, 근접도, 신호등, 도메인 상태를 당시와 대조한다. 같은 입력이면 같아야 한다
   Note over ADM: 설명과 문장은 새로 생성되므로 달라질 수 있다. 화면이 그것을 적는다
