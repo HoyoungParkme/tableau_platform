@@ -33,10 +33,10 @@ PostgreSQL 16 한 대에 스키마로 나눈다([[TBL-INFRA-002]] 6장).
 | `std` | 표준화한 완성차 긴 형태, 기사, 시장지표, OEM 판매 | 5 | worker·web | worker |
 | `master` | 크로스워크 이관본과 버전 | 8 | worker·web | worker·web |
 | `mart` | A 판정 사본·결합·변동·후보·근접도·신호등·연관 설명 | 10 | worker | worker |
-| `pub` | 게시된 C 리포트와 근거, A 리포트 게시 사본, 지표 시계열 사본 | 10 | worker·web(게시 전환) | web |
+| `pub` | 게시된 C 리포트와 근거, A 리포트 게시 사본, 지표 시계열 사본, 열람 화면의 서명 주소 | 11 | worker·web(게시 전환·열람 주소) | web |
 | `ops` | 적재·배치 이력, LLM 호출, 설정, 미매핑, 저장소 접속 확인 | 7 | worker·web | worker·web |
 
-계정 분리는 [[TBL-INFRA-002]] 5장을 따른다. `web`은 `pub` 읽기와 `raw`·`std`·`master`·`ops` 쓰기(수동 적재·크로스워크·배치 요청)를 가지고, 게시 전환에 쓰는 `pub` 칸(`c_report`의 게시 여부와 게시 시각, `alert_event`, `report_watch_item`·`report_anomaly`의 배지) 쓰기를 더 가진다. `mart`는 읽지 않는다([[TBL-INFRA-002#C10]]). 재실행 비교 표도 worker가 계산해 `ops`에 둔다. `worker`가 전 스키마에 쓴다.
+계정 분리는 [[TBL-INFRA-002]] 5장을 따른다. `web`은 `pub` 읽기와 `raw`·`std`·`master`·`ops` 쓰기(수동 적재·크로스워크·배치 요청)를 가지고, 게시 전환에 쓰는 `pub` 칸(`c_report`의 게시 여부와 게시 시각, `alert_event`, `report_watch_item`·`report_anomaly`의 배지)과 열람 주소([[#screen_exposure]]) 쓰기를 더 가진다. `mart`는 읽지 않는다([[TBL-INFRA-002#C10]]). 재실행 비교 표도 worker가 계산해 `ops`에 둔다. `worker`가 전 스키마에 쓴다.
 
 시간 두 칸. 아래 테이블은 `period_type`과 `file_base_date`를 반드시 함께 가진다. 하나만 두면 일 단위 값과 누계 값이 같은 컬럼에 섞여 구분되지 않는다. [[#vehicle_measure]] [[#a_judgment]] [[#country_period_fact]] [[#sales_stage_flow]] [[#model_exposure]] [[#anomaly]] 여섯이다. `period_type`은 `day` `month` `cumulative` `year` 넷이다. 형태 A(IF 원장)로 들어온 행은 `period_type = 'day'`이고 `file_base_date`가 그 행의 기준일자와 같다. 형태 B(피벗 리포트)는 헤더에서 온 기간 구분과 파일이 붙여 준 날이다.
 
@@ -390,6 +390,12 @@ erDiagram
     numeric value
     boolean is_carried_over
   }
+  screen_exposure {
+    text screen PK
+    boolean enabled
+    text signed_token
+    timestamptz updated_at
+  }
   c_report ||--o{ report_anomaly : "국가 카드"
   c_report ||--o{ report_watch_item : "워치리스트"
   c_report ||--o{ report_claim : "문장"
@@ -400,7 +406,7 @@ erDiagram
   a_report_snapshot ||--o{ a_report_evidence : "각주 근거"
 ```
 
-`report_anomaly`가 후보 목록을 `jsonb`로 안고 있는 것이 이 스키마의 절충이다. 이유는 3.1절에 적었다. [[#a_report_snapshot]]과 [[#a_report_evidence]]는 C 리포트에 매달리지 않는다. A 리포트는 도메인과 기준일과 버전으로 서고 C와 다른 주기로 게시되기 때문이다. [[#market_series]]도 지표별 시계열 한 벌이라 리포트에 매달리지 않는다.
+`report_anomaly`가 후보 목록을 `jsonb`로 안고 있는 것이 이 스키마의 절충이다. 이유는 3.1절에 적었다. [[#a_report_snapshot]]과 [[#a_report_evidence]]는 C 리포트에 매달리지 않는다. A 리포트는 도메인과 기준일과 버전으로 서고 C와 다른 주기로 게시되기 때문이다. [[#market_series]]도 지표별 시계열 한 벌이라 리포트에 매달리지 않는다. [[#screen_exposure]]는 열람 화면 넷의 서명 주소 한 벌이고 리포트와 무관하다.
 
 ### 1.7 ops 스키마
 
@@ -469,7 +475,7 @@ erDiagram
 
 클래스: 없음 (보조 테이블. [[TBL-DOM-005#IngestService]]의 `store_original`이 쓴다)
 
-스키마 `raw`. IF 원장(생산 17열, 판매·재고 23열)의 한 행을 그대로 담는다.
+스키마 `raw`. IF 원장(생산 16열, 판매·재고 22열)의 한 행을 그대로 담는다. 열 구성은 현대차 전송 데이터 항목(IF 레이아웃)과 실물 원장(현대차 데이터_0910.xlsx)이 같다. 레이아웃 파일의 `→ 측정값(실적)` 칸은 구분 표시라 열 수에 넣지 않는다.
 
 | 컬럼 | 타입 | 널 | 설명 |
 |:--|:--|:--|:--|
@@ -925,11 +931,11 @@ erDiagram
 
 기본키 `stage_flow_id`. 유일 제약 `(batch_run_id, country_code, period_type, file_base_date)`.
 
-부호는 앞 단계에서 뒤 단계를 뺀 값이다. 미주 누계 실측으로 법인 구간 `entity_stage_gap`은 679,551 빼기 677,201로 2,350이고, 딜러 구간 `dealer_stage_gap`은 677,201 빼기 643,097로 34,104이며 비율이 0.050이다([[TBL-API-002]] 1.4절). 컬럼 이름은 API 응답 필드 이름을 그대로 따르고 지표 이름과 일대일로 맞선다. 같은 값이 두 이름으로 불리면 API 지표 목록과 화면 문구가 어긋난다([[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]]).
+부호는 앞 단계에서 뒤 단계를 뺀 값이다. 미주 누계 실측(CDO 인입 샘플 CSV 추출본(미주 30개국 629행)의 상세 행 합)으로 법인 구간 `entity_stage_gap`은 679,551 빼기 677,201로 2,350이고, 딜러 구간 `dealer_stage_gap`은 677,201 빼기 643,097로 34,104이며 비율이 0.050이다([[TBL-API-002]] 1.4절). 컬럼 이름은 API 응답 필드 이름을 그대로 따르고 지표 이름과 일대일로 맞선다. 같은 값이 두 이름으로 불리면 API 지표 목록과 화면 문구가 어긋난다([[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]]).
 
 음수에 `CHECK`를 걸지 않는다. 소매가 도매를 넘는 국가는 이전에 쌓인 물량을 덜어내는 중이고 그 자체가 읽을 값이다. 실측에서 푸에르토리코 -0.137, 콜롬비아 -0.105다([[TBL-PRD-002#R9]]).
 
-`wholesale_basis`를 행마다 남기는 이유. 도매가 두 기준으로 들어오고 미주 누계 상세 행 기준으로 실 도매 664,269와 도매(공식) 677,201이 12,932대 차이가 난다. 도매(공식) 대비 1.9%다. 같은 파일의 전체 총계 행은 실 도매 1,692,227과 도매(공식) 1,706,430이고 차이가 14,203대지만, 총계 행은 상세 행과 범위가 다르므로 상세 행 합과 더하지 않고 대조에만 쓴다([[TBL-RFQ-002]] 4.2절). 어느 기준으로 계산했는지가 행에 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라진다.
+`wholesale_basis`를 행마다 남기는 이유. 도매가 두 기준으로 들어오고 미주 누계 상세 행 기준(같은 CSV 추출본)으로 실 도매 664,269와 도매(공식) 677,201이 12,932대 차이가 난다. 도매(공식) 대비 1.9%다. 같은 파일의 전체 총계 행은 실 도매 1,692,227과 도매(공식) 1,706,430이고 차이가 14,203대지만, 총계 행은 상세 행과 범위가 다르므로 상세 행 합과 더하지 않고 대조에만 쓴다([[TBL-RFQ-002]] 4.2절). 범위가 다른 것은 미주만 남긴 이 CSV 추출본에 전 권역 총계 행이 그대로 남은 탓이다. 엑셀 표본(CDO 판매 인입 데이터 샘플)의 전 권역 시트는 총계 행과 상세 행 합이 같다(선적 1,710,715). 어느 기준으로 계산했는지가 행에 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라진다.
 
 #### model_exposure 차종 노출
 
@@ -1375,6 +1381,26 @@ erDiagram
 
 이월 여부를 행이 들고 있는 이유. 이월된 값을 그냥 두면 화면이 그날 관측된 값으로 읽는다. `is_carried_over`가 참이면 화면이 기준일 자리에 이월 표시를 붙인다([[TBL-PRD-002#R27]]). 리포트에 매달지 않는 이유. 시계열은 지표마다 한 벌이고 리포트가 바뀔 때마다 같은 값을 다시 복사할 이유가 없다.
 
+#### screen_exposure 열람 주소
+
+클래스: 없음 (보조 테이블. [[TBL-DOM-005#ExposureService]]가 쓰고 읽는다)
+
+스키마 `pub`. 열람 화면 넷(C 리포트, A1 생산, A2 재고, A3 판매)의 서명 주소 한 벌이다. VODA는 화면마다 이 주소 하나를 연다. 개인을 식별하지 않는다([[TBL-INFRA-002#C12]]). 같은 발주처의 브리핑 갈래가 대시보드 단위 서명 주소로 정한 방식을 따른다(유저 결정 2026-09-30).
+
+| 컬럼 | 타입 | 널 | 설명 |
+|:--|:--|:--|:--|
+| `screen` | text | N | `creport` `areportProduction` `areportInventory` `areportSales`. 화면 하나 |
+| `enabled` | boolean | N | 제공 여부. 거짓이면 그 화면의 주소를 거부한다 |
+| `signed_token` | text | N | 서명 주소의 서명값. URL에 실을 수 있는 무작위 32바이트이며 계산이 아니라 대조로 확인한다. 회전하면 이전 값은 그 자리에서 무효다 |
+| `updated_by` | text | N | 마지막으로 바꾼 관리자 사번 |
+| `updated_at` | timestamptz | N | 마지막으로 바꾼 시각 |
+
+기본키 `screen`.
+
+행이 없는 화면은 제공하지 않는 것과 같다. 관리자가 처음 켤 때 행이 생기고 서명값이 발급된다. 자동 회전은 없다. VODA에 걸린 주소를 예고 없이 깨뜨리기 때문이다. 주소가 새면 관리자가 회전하고 VODA 쪽 주소를 바꾼다. 서명값은 로그와 오류 문장에 남기지 않는다.
+
+`pub`에 두는 이유. 열람 요청마다 이 표를 먼저 읽는데 열람 경로는 `pub` 밖을 보지 않는다([[TBL-INFRA-002#C10]]). web이 이 표에 쓰는 것은 관리자의 제공 전환과 회전뿐이다.
+
 ### 2.6 ops 스키마
 
 #### ingest_file 적재 파일
@@ -1525,6 +1551,25 @@ erDiagram
 
 기본키 `version`.
 
+초기 행은 `v1` 하나다(유저 결정 2026-09-30). 현업 검토 전 기본값이며 첫 마이그레이션이 넣는다. 검토 값이 오면 이 행을 고치지 않고 새 버전 행을 넣는다. 그러면 재실행 비교 표가 그 차이를 설정 원인으로 보여 준다([[TBL-API-002#GET/api/admin/batch/run/{batchRunId}]]).
+
+| 컬럼 | 초기 행 `v1` |
+|:--|:--|
+| `version` | `v1` |
+| `change_threshold` | 0.1 |
+| `stay_threshold` | 0.05 |
+| `event_window_days` | 7 |
+| `candidate_limit` | 5 |
+| `min_article_count` | 3 |
+| `min_source_count` | 2 |
+| `cbu_share_threshold` | 0.5 |
+| `plan_source` | `businessPlan` |
+| `wholesale_basis` | `officialWholesale` |
+| `detection_unit` | `modelGroup` |
+| `regression_tolerance` | 0.3 |
+| `applied_at` | `now()` 마이그레이션 시각 |
+| `note` | 현업 검토 전 기본값(유저 결정 2026-09-30) |
+
 정본 선택 셋이 여기 있는 것이 재현의 핵심이다. 계획이 두 종류이고 도매가 두 기준이며 차종 감지 단위가 둘이다. 어느 쪽을 골랐는지가 계획 대비 달성률과 체류율과 변동 건수를 통째로 바꾼다. 코드에 상수로 박으면 바뀔 때 과거 판정과의 차이를 설명할 수 없다([[TBL-INFRA-002#C18]]).
 
 #### briefing_store_check 브리핑 저장소 접속 확인
@@ -1569,7 +1614,7 @@ erDiagram
 
 ### 3.1 열람 경로
 
-C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트 지면이 뒤 세 조회를 쓴다. 열람은 `pub`만 읽고 집계·조인·LLM을 하지 않는다([[TBL-INFRA-002#C9]] [[TBL-INFRA-002#C10]]).
+C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트 지면이 그다음 세 조회를 쓴다. 마지막 줄은 두 화면이 요청마다 먼저 하는 서명 주소 확인이다. 열람은 `pub`만 읽고 집계·조인·LLM을 하지 않는다([[TBL-INFRA-002#C9]] [[TBL-INFRA-002#C10]]).
 
 | 패턴 | 인덱스 |
 |:--|:--|
@@ -1584,6 +1629,7 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 | 도메인의 최신 A 리포트 한 본과 버전 목록 | `pub.a_report_snapshot (domain, base_date DESC, published_version DESC)` |
 | 그 지면의 각주 근거 | `pub.a_report_evidence` 기본키 `(a_report_snapshot_id, number)` |
 | 지표 하나의 최근 구간 | `pub.market_series` 기본키 `(indicator_id, period_key)` |
+| 요청의 서명 주소 확인 | `pub.screen_exposure` 기본키 `screen`. 네 행이라 서명값에 인덱스를 두지 않는다 |
 
 부분 인덱스가 최신 게시본 조회의 전부다. 기준일마다 버전이 여럿이고 게시본은 하나이므로, `WHERE is_published`를 인덱스에 넣으면 한 번의 인덱스 탐색으로 끝난다. 같은 조건이 부분 유일 제약으로도 걸려 있어 인덱스가 두 번 서지 않게 제약 쪽을 그대로 쓴다. `report_anomaly`의 `candidates`가 `jsonb`라서 후보에 인덱스를 걸지 않는다. 게시본에서 후보를 조건으로 검색하는 화면이 없다.
 
@@ -1662,7 +1708,7 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 - [ ] `raw` 보관 2년, 나머지 무기한이라는 방침의 실제 용량. 폐쇄망 디스크가 확정되면 [[#raw_pivot_cell]]부터 다시 본다
 - [ ] [[#ingest_file]]의 `ingest_seq`를 몇 회차까지 남길지. 원본 파일 보존과 별개로 파생 행의 회차 보관 범위다
 - [ ] [[#llm_call]]에 프롬프트를 남길지. 남기려면 마스킹 규칙부터 정한다([[TBL-INFRA-002#C3]])
-- [ ] 신호등 기준값의 초기 행. [[#threshold_setting]]의 `min_article_count` `min_source_count` `event_window_days` `cbu_share_threshold`는 현업 검토 전까지 값이 없다
+- [x] 신호등 기준값의 초기 행. 현업 검토 전 기본값을 [[#threshold_setting]] 초기 행 `v1`로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣고, 값이 오면 새 버전 행을 넣는다
 - [ ] [[#country_period_fact]]를 매핑된 국가 전부에 만들지, 데이터 있는 국가만 만들지. 지금은 데이터 있는 국가만으로 둔다
 - [ ] [[#event]]의 `status` 전환 기준. 시간창을 넘긴 사건을 `closed`로 바꾸는 것까지만 정해졌고 다시 여는 규칙은 없다
 - [ ] [[#market_series]]의 보관 구간. 스파크라인이 30일이면 그 밖 구간을 언제까지 게시본에 남길지 실측으로 본다
