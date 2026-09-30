@@ -703,19 +703,19 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 #### CandidateSearcher.search 원인 후보 검색
 
-**시그니처** `search(anomaly: Anomaly) -> tuple[list[CauseCandidate], int]`
+**시그니처** `search(anomaly: Anomaly) -> tuple[list[CauseCandidate], int, list[CauseCandidate]]`
 
 **처리**
-1. `anomaly.axis_type != 'country'`이면 → 빈 목록과 0을 돌려준다. **생산이 여기서 빠진다.**
+1. `anomaly.axis_type != 'country'`이면 → 빈 목록 둘과 0을 돌려준다. **생산이 여기서 빠진다.**
 2. [[#CandidateSearcher.search_events]] + [[#CandidateSearcher.search_market]] + [[#CandidateSearcher.search_cross_domain]]을 합친다.
 3. 후보마다 [[#CandidateSearcher.resolve_country_match]]로 국가 일치 방식을 정한다.
 4. [[#ProximityCalculator.calculate]] → [[#ProximityCalculator.sort]].
-5. [[#CandidateSearcher.apply_limit]]으로 상한을 적용하고 잘린 건수를 받는다.
+5. 상한을 적용하기 전 정렬 목록을 사본으로 남기고 [[#CandidateSearcher.apply_limit]]으로 상한을 적용해 잘린 건수를 받는다.
 6. [[TBL-DOM-006#cause_candidate]]에 `sort_order`와 근접도 값 넷을 넣는다. 유일 제약은 `(anomaly_id, sort_order)`.
 
-**출력** `(후보 목록, 잘린 건수)`. **후보가 0건인 변동도 목록에 남는다.**
+**출력** `(후보 목록, 잘린 건수, 상한 전 정렬 목록)`. **후보가 0건인 변동도 목록에 남는다.** 신호등은 셋째 값으로 판정한다([[#TrafficLightJudge.judge]]). 저장과 화면은 상한까지만이다.
 
-**테스트 관점** 같은 기준일을 두 번 돌려 후보 구성과 순서가 같은지. `axis_type=plant`인 변동의 후보가 전건 0인지. 후보 0건 변동이 "원인 미확인"으로 화면에 남는지.
+**테스트 관점** 같은 기준일을 두 번 돌려 후보 구성과 순서가 같은지. `axis_type=plant`인 변동의 후보가 전건 0인지. 후보 0건 변동이 "원인 미확인"으로 화면에 남는지. 상한 밖으로 밀린 사건도 신호등 판정에 드는지.
 
 근거: [[TBL-SEQ-002#SEQ-8]] · [[TBL-PRD-002#R10]]
 
@@ -846,7 +846,7 @@ key = (day_diff 오름차순, source_count 내림차순, article_count 내림차
 
 **시그니처** `judge(anomaly: Anomaly, candidates: list[CauseCandidate]) -> TrafficLight`
 
-**입력** 변동 한 건, 정렬된 후보 목록, 인스턴스의 `setting`. **LLM 클라이언트를 인자로도 속성으로도 받지 않는다. 이 함수가 사는 `judgment/traffic_light.py`는 `adapters/`를 import 하지 않는다.**
+**입력** 변동 한 건, 상한을 적용하기 전의 정렬된 후보 목록([[#CandidateSearcher.search]]의 셋째 값), 인스턴스의 `setting`. 기준을 채우는 사건이 날짜 차이 때문에 상한 밖으로 밀려도 신호등이 본다. 그 사건은 저장된 후보 목록(화면)에 없을 수 있고 근거 수치(`basis`)가 판정 이유를 적는다. **LLM 클라이언트를 인자로도 속성으로도 받지 않는다. 이 함수가 사는 `judgment/traffic_light.py`는 `adapters/`를 import 하지 않는다.**
 
 **처리**
 1. `anomaly.axis_type != 'country'`이면 → `level=notApplicable`, `label='판정 대상 아님'`, `basis=None`. 생산은 여기서 빠진다. **`none`('원인 미확인')으로 적지 않는다.** 후보를 찾지 못한 것과 처음부터 판정 대상이 아닌 것은 다른 사실이다.
