@@ -529,6 +529,7 @@ sequenceDiagram
   else 하나라도 못 채웠다
     TLJ->>DB_MART: traffic_light=none. 목록에는 남는다
   end
+  CS->>DB_MART: 신호등을 정한 사건이 상한 밖이면 cause_candidate 끝에 더하고 anomaly의 잘린 건수를 하나 줄인다
   TLJ->>TLJ: build_watch_items(anomalies). 신호등 순 정렬. 법인 매핑 없으면 entity_tag 미매핑
   TLJ->>DB_MART: watch_item
   TLJ->>TLJ: build_domain_status(domain, anomalies). 도메인 안 변동 신호등의 최댓값
@@ -735,11 +736,11 @@ sequenceDiagram
   participant DB_PUB as pub 스키마
   ADM->>API: GET /api/admin/batch/status
   API->>BAT: get_status()
-  BAT->>DB_OPS: batch_run 최근, auto_run_blocked가 선 ingest_file
+  BAT->>DB_OPS: batch_run 최근, auto_run_blocked가 선 ingest_file, worker가 남긴 briefing_store_check
   BAT-->>ADM: 실행 중 여부, 자동 실행을 막고 있는 것, briefingStore.reachable
   ADM->>API: GET /api/admin/batch/run/{batchRunId}
   API->>BAT: get_run(batchRunId)
-  BAT->>DB_OPS: batch_stage_result 여덟 행, llm_call
+  BAT->>DB_OPS: batch_stage_result 여덟 행, llm_call, worker가 계산해 둔 비교 표
   BAT-->>ADM: 단계 이름 여덟과 상태. 이름은 stage_names()가 준다
   ADM->>API: POST /api/admin/batch/rerun (baseDate, startStage, backfillMode, compareWith)
   API->>BAT: request_rerun(baseDate, startStage, options)
@@ -749,7 +750,7 @@ sequenceDiagram
   else 시작 단계가 1~8 밖
     BAT-->>ADM: 400 problems/stage-out-of-range
   else 실행 가능
-    BAT->>DB_OPS: batch_run 대기 행(queued). 당시 설정 버전과 A 판정 스냅샷을 싣는다
+    BAT->>DB_OPS: batch_run 대기 행(queued). 당시 설정 버전·A 판정 스냅샷과 비교 기준 실행을 싣는다
     BAT-->>ADM: 202 queued
     RUN->>DB_OPS: worker가 대기 행을 들어온 순서대로 집는다(trigger=rerun 또는 regenerate)
     Note over RUN: 그 기준일의 데이터 스냅샷, 당시 A 판정 스냅샷, 당시 설정 버전으로 돈다
@@ -758,6 +759,7 @@ sequenceDiagram
       Note over RUN: backfillMode는 API가 받는 값이고 llmEnabled는 재현성 시험용 내부 스위치다. 둘 다 남는다
     end
     RUN->>DB_PUB: 새 버전 생성. is_published는 false
+    RUN->>DB_OPS: 실행을 마치면 비교 표와 LLM 없는 실행 대조를 계산해 batch_run에 적는다
   end
   ADM->>ADM: 변동, 후보, 근접도, 신호등, 도메인 상태를 당시와 대조한다. 같은 입력이면 같아야 한다
   Note over ADM: 설명과 문장은 새로 생성되므로 달라질 수 있다. 화면이 그것을 적는다
