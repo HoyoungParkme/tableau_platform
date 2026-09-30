@@ -372,6 +372,8 @@ A1 생산·A2 재고·A3 판매 중 한 도메인의 최신 게시 리포트를 
 
 **`missingMetrics`가 못 만드는 지표 목록의 정본이고 `constraintWarnings`는 그 목록을 화면 문구로 보여 주는 표시용이다.** 두 배열의 `code`는 4.13절 `MissingMetric.code`의 같은 값을 쓴다. A1의 목적지 국가 부재는 `destinationCountry`, 파워트레인 분해 부재는 `powertrainBreakdown` 하나로 적는다.
 
+**그 도메인 사본이 없으면 404가 아니라 200이다.** `documentReceived`가 거짓이고 요약·해설·근거·버전이 비며, 트래킹 지표 셋은 이름만, 못 만드는 지표는 고정 배정대로 내려간다([[TBL-UC-002#UC-H1]] 4a). 그때 판정값과 차트를 어디서 읽을지는 미결이라 비워 둔다.
+
 `domainExtra`가 도메인별로 담는 것은 아래와 같다.
 
 | domain | domainExtra |
@@ -393,12 +395,12 @@ A1 생산·A2 재고·A3 판매 중 한 도메인의 최신 게시 리포트를 
         schema: { type: string, enum: [production, inventory, sales] }
     responses:
       '200':
-        description: A 리포트 한 본
+        description: A 리포트 한 본. 사본이 없으면 documentReceived가 거짓인 한 본
         content:
           application/json:
             schema: { $ref: '#/components/schemas/DomainReport' }
-      '404':
-        description: 그 도메인의 게시본이 아직 없음
+      '400':
+        description: 도메인 값이 production·inventory·sales 밖
         content:
           application/problem+json:
             schema: { $ref: '#/components/schemas/Problem' }
@@ -406,20 +408,22 @@ components:
   schemas:
     DomainReport:
       type: object
-      required: [domainReportId, domain, domainLabel, version, source,
+      required: [domain, domainLabel, source, documentReceived,
                  trackingMetrics, breakdownDimensions, missingMetrics, versions,
                  summary, commentary, evidence, fixedNote, judgments, domainExtra]
       properties:
-        domainReportId: { type: string }
+        documentReceived: { type: boolean, description: 게시 사본이 있는가. 거짓이면 화면이 "리포트 문장 미수신"을 적고 domainReportId·version·title·publishedAt·scopeNote와 source의 스냅샷 칸이 null이다 }
+        domainReportId: { type: string, nullable: true, description: 사본이 없으면 비어 있다 }
         domain: { type: string, enum: [production, inventory, sales] }
         domainLabel: { type: string, example: A1 생산 리포트 }
         title: { type: string, example: 생산 실적 일일 인사이트 }
-        version: { type: integer }
+        version: { type: integer, nullable: true }
         publishedAt: { type: string, format: date-time }
         scopeNote: { type: string, example: 28개 법인 · 누적 기준 }
         source:
           type: object
-          required: [dashboardName, snapshotAt, dataForm]
+          required: [dashboardName]
+          description: 사본이 없으면 대시보드 이름만 채운다
           properties:
             dashboardName: { type: string, example: 완성차 생산 대시보드 }
             dashboardId: { type: string }
@@ -469,6 +473,7 @@ components:
             properties:
               domainReportId: { type: string }
               version: { type: integer }
+              baseDate: { type: string, format: date }
               publishedAt: { type: string, format: date-time }
               current: { type: boolean }
         summary: { $ref: '#/components/schemas/Claim' }
@@ -1160,12 +1165,14 @@ components:
                     properties:
                       batchRunId: { type: string }
                       baseDate: { type: string, format: date }
-                      trigger: { type: string, enum: [schedule, rerun] }
+                      trigger: { type: string, enum: [schedule, rerun], description: 저장 값 scheduled는 schedule, rerun과 regenerate는 rerun으로 낸다 }
+                      startStage: { type: integer, minimum: 1, maximum: 8, description: 1이면 재생성, 6이면 서술만 다시 돈 것 }
                       startedAt: { type: string, format: date-time }
                       durationSec: { type: integer, nullable: true }
                       status: { type: string, enum: [success, failed, degraded, running, queued] }
                       failedStage: { type: integer, nullable: true, minimum: 1, maximum: 8 }
                       backfillMode: { type: boolean }
+                      llmEnabled: { type: boolean, description: 거짓이면 LLM 없는 실행(회귀 대조용) }
                       published: { type: boolean }
                       reportId: { type: string, nullable: true }
                 nextCursor: { type: string, nullable: true }
@@ -1179,7 +1186,7 @@ components:
 
 **단계 이름은 인프라 확정 이름 그대로 내려간다**([[TBL-INFRA-002#C19]]). 적재 / A 판정 읽기 / 사건 묶음 / 결합 / 원인 후보·근접도·신호등 / 사건 명명 / 연관 설명 / 서술·검증·게시. `executor`가 1~5는 `code`, 6~8은 `llm`이며 강등은 6~8에만 생긴다.
 
-비교 표의 `reproducibilityViolation`은 변동·후보·근접도·신호등이 달라졌을 때만 참이다. 참이면 그 자체가 재현성 위반이며 `cause`를 반드시 채운다([[TBL-PRD-002#N3]]). 설명과 문장이 달라진 것은 위반이 아니다.
+비교 표의 `reproducibilityViolation`은 변동·후보·근접도·신호등이 달라졌을 때만 참이다. 참이면 그 자체가 재현성 위반이며 `cause`에 기준 실행이 끝난 뒤 바뀐 입력을 적는다([[TBL-PRD-002#N3]]). 바뀐 입력을 찾지 못해 `cause`가 비면 입력이 같은데 결과가 달라진 것이라 조사할 결함이다. 설명과 문장이 달라진 것은 위반이 아니다.
 
 ```yaml
 /api/admin/batch/run/{batchRunId}:
@@ -1203,9 +1210,10 @@ components:
               properties:
                 batchRunId: { type: string }
                 baseDate: { type: string, format: date }
-                trigger: { type: string, enum: [schedule, rerun] }
+                trigger: { type: string, enum: [schedule, rerun], description: 저장 값 scheduled는 schedule, rerun과 regenerate는 rerun으로 낸다 }
                 startStage: { type: integer, minimum: 1, maximum: 8 }
                 backfillMode: { type: boolean }
+                llmEnabled: { type: boolean }
                 status: { type: string, enum: [success, failed, degraded, running, queued] }
                 failedStage: { type: integer, nullable: true }
                 startedAt: { type: string, format: date-time }
@@ -1253,7 +1261,9 @@ components:
                           after: { type: string, nullable: true }
                           cause:
                             type: string
+                            nullable: true
                             enum: [mapping, setting, lateData, aJudgment, llmRegeneration]
+                            description: 여럿이면 매핑·설정·늦게 온 데이터·A 판정 순으로 하나. 바뀐 입력이 없으면 비운다
                           reproducibilityViolation: { type: boolean }
                 llmFreeComparison:
                   type: object
@@ -1281,7 +1291,7 @@ components:
 
 `backfillMode`가 참이면 LLM 세 역할을 생략하고 5단계까지만 채운다. 신호등과 후보 순서가 정상 실행과 같은지 대조하는 용도다([[TBL-UI-002#UI-6]] S-2).
 
-같은 기준일 배치가 돌고 있으면 409다. 재생성 중 정기 배치 시각이 오면 정기 배치가 대기한다([[TBL-UC-002#UC-A3]] 2a).
+같은 기준일 배치가 대기 중이거나 돌고 있으면 409다. **요청은 실행이 아니라 대기 행이다.** web이 [[TBL-DOM-006#batch_run]]에 `queued` 행을 남기고 worker가 들어온 순서대로 집어 돈다([[TBL-INFRA-002]] 4장). 당시 입력(설정 버전과 A 판정 스냅샷)은 대기 행에 실린다. 정기 배치도 같은 대기열을 거치므로 재생성 중 정기 배치 시각이 오면 그 뒤에서 기다린다([[TBL-UC-002#UC-A3]] 2a).
 
 ```yaml
 /api/admin/batch/rerun:
@@ -1315,7 +1325,7 @@ components:
                 batchRunId: { type: string }
                 baseDate: { type: string, format: date }
                 startStage: { type: integer }
-                status: { type: string, enum: [queued, running] }
+                status: { type: string, enum: [queued], description: 요청은 대기 행으로 남는다. 진행은 GET /api/admin/batch/status로 본다 }
                 queuedBehind: { type: string, nullable: true }
       '400':
         description: 시작 단계가 1~8 밖
@@ -1693,10 +1703,8 @@ Anomaly:
     plantName: { type: string, nullable: true }
     metric:
       type: string
-      enum: [planAchievementRate, cbuShare, exportShare,
-             distributionStay, entityStageStay, inventoryTurnMos,
-             localInventorySnapshot, planProgressRate, yoyChange]
-      description: distributionStay는 도매 대비 소매(딜러 구간), entityStageStay는 선적 대비 도매(법인 구간)
+      description: 열거로 묶지 않는다. 트래킹 지표 코드(planAchievementRate cbuShare exportShare distributionStay entityStageStay inventoryTurnMos localInventorySnapshot planProgressRate yoyChange) 밖에 보완 집계의 계열 이름(officialWholesale 등)과 A 판정이 준 지표 이름이 그대로 온다. distributionStay는 도매 대비 소매(딜러 구간), entityStageStay는 선적 대비 도매(법인 구간)
+      example: distributionStay
     metricLabel: { type: string, example: 유통 체류 }
     periodKey: { $ref: '#/components/schemas/PeriodKey' }
     comparePeriod: { type: string, nullable: true, example: 2025 누계 }
@@ -1762,6 +1770,10 @@ Anomaly:
     causeLink:
       $ref: '#/components/schemas/CauseLink'
       nullable: true
+    claim:
+      $ref: '#/components/schemas/Claim'
+      nullable: true
+      description: 카드 설명 문단(UI-1 18번). 강등이면 템플릿 한 줄이다
     settingVersion: { type: string }
     batchRunId: { type: string }
 ```
@@ -2034,7 +2046,8 @@ Evidence:
     footnote: { type: integer }
     kind:
       type: string
-      enum: [candidate, causeLink, anomaly, contribution, marketMetric, article, aJudgment]
+      enum: [candidate, causeLink, anomaly, contribution, marketMetric, article, aJudgment, metric]
+      description: metric은 A 리포트 근거 전용이다(DOM a_report_evidence). C 리포트 근거에는 오지 않는다
     sourceId: { type: string }
     displayValue: { type: string, description: 표시용 값 사본 }
     url: { type: string, nullable: true, description: 기사 원문. 새 창으로만 연다 }
