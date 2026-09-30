@@ -10,9 +10,9 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 
 ## 0. 이 문서가 다루는 것
 
-[[TBL-MS-002]]의 함수 106개를 어떤 순서로 어떤 묶음으로 만들고, 묶음마다 무엇으로 끝났다고 볼지를 정한다. 묶음을 슬라이스라 부른다. 슬라이스 하나는 시나리오 하나 또는 배치 단계 하나가 끝에서 끝까지 도는 단위이고, 카드의 구현 함수 칸이 [[TBL-MS-002]] 항목을 빠짐없이 가리킨다. 함수 하나가 두 슬라이스에 걸리지 않는다.
+[[TBL-MS-002]]의 함수 110개를 어떤 순서로 어떤 묶음으로 만들고, 묶음마다 무엇으로 끝났다고 볼지를 정한다. 묶음을 슬라이스라 부른다. 슬라이스 하나는 시나리오 하나 또는 배치 단계 하나가 끝에서 끝까지 도는 단위이고, 카드의 구현 함수 칸이 [[TBL-MS-002]] 항목을 빠짐없이 가리킨다. 함수 하나가 두 슬라이스에 걸리지 않는다.
 
-슬라이스는 열넷이다. A 기반 하나, B 적재·마스터 둘, C 판정 다섯, D 서술 셋, E 열람·관리 셋이다. 순서가 곧 의존이다. 판정 다섯(C1~C5)이 서술 셋(D1~D3)보다 먼저 끝나고, C5가 끝나면 LLM 없이 배치 1~5단계가 돌아 판정이 전부 나온다. 이것이 [[TBL-INFRA-002#C19]]를 구현 순서로 옮긴 것이다. 서술 슬라이스는 그 위에 얹히고, 셋을 전부 빼도 C5까지의 산출물이 그대로 게시되도록 D3가 만든다.
+슬라이스는 열다섯이다. A 기반 하나, B 적재·마스터 둘, C 판정 다섯, D 서술 셋, E 열람·관리 넷이다. 순서가 곧 의존이다. 판정 다섯(C1~C5)이 서술 셋(D1~D3)보다 먼저 끝나고, C5가 끝나면 LLM 없이 배치 1~5단계가 돌아 판정이 전부 나온다. 이것이 [[TBL-INFRA-002#C19]]를 구현 순서로 옮긴 것이다. 서술 슬라이스는 그 위에 얹히고, 셋을 전부 빼도 C5까지의 산출물이 그대로 게시되도록 D3가 만든다.
 
 코드 구조는 [[TBL-DOM-005]] 1장 폴더 구조를 그대로 따른다. 호출 방향은 `router → service → crud`, 화면은 `pages → api → 서버` 한 방향이다. 커밋과 PR에 에이전트 표시를 남기지 않는다(공통 규약 1.10). 커밋 메시지의 첫 줄에 슬라이스 ID를 적는다(`B1: 형태 판별과 적재`).
 
@@ -28,7 +28,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 구현 | 저장소 뼈대(`backend/app/{core,domains,infra,shared}`, `frontend/src/{pages,components,api}`) · `.env.example`(이름만, [[TBL-INFRA-002]] 4.1절의 열넷) · Docker Compose 4컨테이너(web·worker·db·proxy) · PostgreSQL 스키마 여섯과 테이블 42개의 alembic 첫 마이그레이션([[TBL-DOM-006]] 2장 그대로. 부분 유일 제약 `c_report(base_date) WHERE is_published`와 3장 인덱스 포함) · 계정 분리(web은 pub 읽기와 raw·std·ops 쓰기, worker는 전 스키마) · VODA 서명 토큰 검증과 관리 세션(`core/auth`) · problem+json 에러 응답([[TBL-API-002]] 2장 열넷) · `PeriodKey` 값 객체와 부호 계산 유틸(`shared/`) · `ports.py`의 `LlmPort`·`BriefingStorePort` 인터페이스 · 금지 이름 회귀 검사(`tools/check_forbidden_names.py`. `score` `grade` `relevance` `rank` `confidence` 계열을 코드·컬럼·응답 스키마에서 찾는다. 예외는 `a_contribution.rank` 한 곳) · 테스트 뼈대(`backend/tests/`가 `app/`을 거울로) |
 | 테스트 | 빈 DB에 마이그레이션이 한 번에 올라가고 42 테이블이 생기는지 · 열람 계정으로 `mart`를 읽으면 권한 오류인지 · 잘못된 토큰이 401 problem+json인지 · 금지 이름 검사가 CI에서 도는지 · `judgment/` 아래 파일이 `adapters/hchat_client.py`를 import 하지 않는지(import 검사) |
 | 선행 | 없음 |
-| 완료 | 저장소 `glovis_intelligence`(로컬, 원격 없음) 커밋 b8dc97b..e652c04 · PR 없음 · 2026-09-29. PostgreSQL 16 컨테이너에서 테스트 14건 통과(테이블 42, 컬럼 502, CHECK 55, FK 22, 인덱스 25). 금지 이름·계층 경계 검사 통과 |
+| 완료 | 저장소 `glovis_intelligence`(로컬, 원격 없음) 커밋 b8dc97b..e652c04 · PR 없음 · 2026-09-29. PostgreSQL 16 컨테이너에서 테스트 14건 통과(테이블 42, 컬럼 502, CHECK 55, FK 22, 인덱스 25). 금지 이름·계층 경계 검사 통과 **2026-09-30 유저 결정 반영(커밋 8d5f7f4).** 첫 마이그레이션이 설정 초기 행 v1을 넣는다(DOM-006 초기 행 표를 생성기가 INSERT로 옮긴다). 코드의 설정 기본값을 없앴다. 열람 인증은 VODA 토큰(사번·만료) 가정에서 화면 단위 서명 주소로 바뀌었다(E4). 테이블 44, 컬럼 514, CHECK 56, FK 22, 인덱스 25, 초기 행 1 |
 
 #### B1 적재. 형태 판별·표준화·회귀 검사
 
@@ -38,9 +38,9 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 구현 함수 | [[TBL-MS-002#IngestService.preflight]] · [[TBL-MS-002#IngestService.commit]] · [[TBL-MS-002#IngestService.unblock_regression]] · [[TBL-MS-002#IngestService.list_history]] · [[TBL-MS-002#IngestService.get_file]] · [[TBL-MS-002#FormDetector.detect]] · [[TBL-MS-002#FormDetector.explain_mismatch]] · [[TBL-MS-002#FormALedgerParser.parse]] · [[TBL-MS-002#FormALedgerParser.check_columns]] · [[TBL-MS-002#FormALedgerParser.base_date_range]] · [[TBL-MS-002#FormBPivotParser.parse]] · [[TBL-MS-002#FormBPivotParser.expand_merged_header]] · [[TBL-MS-002#FormBPivotParser.split_period_and_measure]] · [[TBL-MS-002#FormBPivotParser.split_total_rows]] · [[TBL-MS-002#FormBPivotParser.detect_file_base_date]] · [[TBL-MS-002#RecordStandardizer.standardize]] · [[TBL-MS-002#RecordStandardizer.map_country]] · [[TBL-MS-002#RecordStandardizer.build_period_key]] · [[TBL-MS-002#RecordStandardizer.collect_unmapped]] · [[TBL-MS-002#RegressionChecker.check]] · [[TBL-MS-002#RegressionChecker.is_abrupt]] · [[TBL-MS-002#RegressionChecker.abrupt_reasons]] |
 | API | [[TBL-API-002#POST/api/admin/ingest/preflight]] [[TBL-API-002#POST/api/admin/ingest/commit]] [[TBL-API-002#POST/api/admin/ingest/unblock/{ingestFileId}]] [[TBL-API-002#GET/api/admin/ingest/history]] [[TBL-API-002#GET/api/admin/ingest/file/{ingestFileId}]] |
 | 화면 | [[TBL-UI-002#UI-5]] |
-| 테스트 | 구현 함수의 테스트 관점 전부 + S5·S6 E2E. 인입 샘플 6개 파일이 전부 형태 B로 판별되고 같은 파일을 두 번 넣어도 `vehicle_measure` 행수가 같은지. 총계 행이 `is_total_row=true`로 분리되고 상세 행 합과의 차이가 경고로만 나가는지(판매 샘플 선적 679,551 대 총계 1,710,715). 결측 `-`가 NULL인지. 수동 급변이 적재는 완료하고 `auto_run_blocked`만 세우는지 |
+| 테스트 | 구현 함수의 테스트 관점 전부 + S5·S6 E2E. 인입 샘플 6개 파일이 전부 형태 B로 판별되고 같은 파일을 두 번 넣어도 `vehicle_measure` 행수가 같은지. 총계 행이 `is_total_row=true`로 분리되고 상세 행 합과의 차이가 경고로만 나가는지(판매 샘플 선적 679,551 대 총계 1,710,715. CDO 인입 샘플 CSV 추출본의 값이다). 결측 `-`가 NULL인지. 수동 급변이 적재는 완료하고 `auto_run_blocked`만 세우는지 |
 | 선행 | A |
-| 완료 | 커밋 a9f030e · PR 없음 · 2026-09-29. 함수 22개, API 5, UI-5. PostgreSQL 16 컨테이너에서 36건 통과. 픽스처는 인입 샘플 엑셀(판매진도율·생산진도율·재고현황·현대차 데이터_0910 원장·뉴스·Marklines)에서 뽑았다. 실측 확인: 전체 시트에서는 총계 행 = 상세 행 합(1,710,715), 미주만 남긴 추출본에서만 어긋난다 |
+| 완료 | 커밋 a9f030e · PR 없음 · 2026-09-29. 함수 22개, API 5, UI-5. PostgreSQL 16 컨테이너에서 36건 통과. 픽스처는 인입 샘플 엑셀(판매진도율·생산진도율·재고현황·현대차 데이터_0910 원장·뉴스·Marklines)에서 뽑았다. 실측 확인: 전체 시트에서는 총계 행 = 상세 행 합(1,710,715), 미주만 남긴 추출본에서만 어긋난다 **2026-09-30.** 형태 A 열 수는 실물과 IF 레이아웃 모두 16·22열이다. 명세의 17·23열은 레이아웃 파일의 구분 칸(`→ 측정값(실적)`)을 센 것이었고 명세를 고쳤다. 코드는 처음부터 실물 기준이라 바뀌지 않았다(주석만 정정, 커밋 8d5f7f4) |
 
 #### B2 마스터·크로스워크
 
@@ -86,7 +86,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 구현 함수 | [[TBL-MS-002#MarketService.as_of]] · [[TBL-MS-002#MarketService.is_carried_over]] · [[TBL-MS-002#FactJoiner.join]] · [[TBL-MS-002#FactJoiner.resolve_exposure]] · [[TBL-MS-002#FactJoiner.attach_market_asof]] · [[TBL-MS-002#FactJoiner.count_events]] · [[TBL-MS-002#StageFlowCalculator.calculate]] · [[TBL-MS-002#StageFlowCalculator.entity_stage_gap]] · [[TBL-MS-002#StageFlowCalculator.dealer_stage_gap]] · [[TBL-MS-002#StageFlowCalculator.gap_rate]] · [[TBL-MS-002#StageFlowCalculator.alternative_diff]] · [[TBL-MS-002#AnomalyDetector.detect]] · [[TBL-MS-002#AnomalyDetector.from_a_judgment]] · [[TBL-MS-002#AnomalyDetector.from_stage_flow]] · [[TBL-MS-002#AnomalyDetector.from_supplementary]] · [[TBL-MS-002#AnomalyDetector.progress_rate]] |
 | API | 없음 |
 | 화면 | 없음 |
-| 테스트 | 구현 함수의 테스트 관점 전부. 실측 회귀 고정값: 미주 누계 상세 행 합 선적 679,551 · 도매(공식) 677,201 · 소매 643,097에서 `entity_stage_gap=2,350` `dealer_stage_gap=34,104` 비율 0.050 · 실 도매 664,269와의 차이 12,932 · 칠레 0.252, 페루 0.212, 푸에르토리코 -0.137, 콜롬비아 -0.105, 캐나다 법인 구간 0.083 · 생산 달성률 1,739,722 ÷ 2,020,531 = 0.861 · 2025년 11월 세부 차종 셋(팰리세이드 LX2 2,282→0, 넥쏘 FE 111→0, 니로 DE PBV 1→0)이 변동으로 잡히지 않고 팰리세이드 그룹 20,967→55,291이 급증으로 잡히는지 · 생산 행이 `country_period_fact`에 0건인지 |
+| 테스트 | 구현 함수의 테스트 관점 전부. 실측 회귀 고정값(CDO 인입 샘플 CSV 추출본 기준. 저장소 시험은 엑셀 표본의 미주 부분집합 값을 쓴다, 완료 칸): 미주 누계 상세 행 합 선적 679,551 · 도매(공식) 677,201 · 소매 643,097에서 `entity_stage_gap=2,350` `dealer_stage_gap=34,104` 비율 0.050 · 실 도매 664,269와의 차이 12,932 · 칠레 0.252, 페루 0.212, 푸에르토리코 -0.137, 콜롬비아 -0.105, 캐나다 법인 구간 0.083 · 생산 달성률 1,739,722 ÷ 2,020,531 = 0.861 · 2025년 11월 세부 차종 셋(팰리세이드 LX2 2,282→0, 넥쏘 FE 111→0, 니로 DE PBV 1→0)이 변동으로 잡히지 않고 팰리세이드 그룹 20,967→55,291이 급증으로 잡히는지 · 생산 행이 `country_period_fact`에 0건인지 |
 | 선행 | C1 · C2 |
 | 완료 | 커밋 165abc3 · PR 없음 · 2026-09-30. 함수 16. 결합 행의 대표 지표는 도매 정본 계열이고 계획도 그 계열의 정본(사업계획)이다. 비교는 계획, 전년 파일, 직전 파일 순. derived 변동의 `compare_basis`는 CHECK에 맞는 값이 없어 `mom`(직전 파일 구간값)으로 두었다(되먹임 후보). 시장지표 이월 한도는 7일 상수(미결). 실측 고정값은 미주 xlsx 상세 행 합 기준(선적 681,761 · 도매(공식) 679,411 · 소매 644,519 · 법인 구간 2,350 · 딜러 구간 34,892). 적재 crud의 executemany 키 누락 결함을 함께 고쳤다. PostgreSQL 16 컨테이너에서 62건 통과(전체) |
 
@@ -187,6 +187,18 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 완료 | 커밋 62f3793 · PR 없음 · 2026-09-30. 함수 5(+assert_not_running) + API 다섯 + 화면(BatchPage·batchView·api/batch). 재실행은 web이 대기 행(`queued`)을 남기고 worker가 30초 주기로 집어 돈다(DOM-005의 "호출이 아니라 상태 전달", INFRA 4장의 worker 단일 실행). 정기 배치도 대기 행을 거쳐 재생성 뒤에 선다(UC-A3 2a). 당시 입력은 대기 행에 싣는다(기준 실행의 설정 버전과 A 판정 스냅샷). worker는 `SnapshotStore`로 mart 사본을 다시 읽어 원본이 바뀌어도 당시 판정으로 돈다. 시작 단계 3~5는 앞 단계 산출물을 다시 싣는다(5는 4단계 변동을 새 식별자로 옮김). 재생성 대조에서 C4 후보 정렬 넷째 열쇠가 다른 도메인 변동 후보에서 실행마다 흔들리는 결함을 찾아 고쳤다(대상 변동의 자연 열쇠로). 게시 전환은 지우지 않고 내리며 알림을 다시 계산한다(사라진 국가 알림은 지운다). LLM 없는 실행 대조는 같은 입력(설정·스냅샷)의 실행과만 한다. 되먹임 후보: 이력·상세에 `llmEnabled`, 이력에 `startStage` 추가, `trigger`는 두 값(schedule·rerun)으로 내보냄, `compareWith`를 담을 칸이 없어 비교 기준을 조회 때 다시 찾음, 원인 열거에 "알 수 없음"이 없음, web에 `BRIEFING_DB_URL`이 없으면 저장소 확인이 늘 거짓이고 게시 전환은 web의 pub 쓰기를 전제함. Edge로 목록·타임라인·재실행 대기·같은 기준일 409 안내·판정 동일 비교·게시 버튼 상태를 확인, 외부 요청 0건. **대기열은 worker 프로세스(`python -m app.infra.scheduler`)가 떠 있어야 돈다.** 코드가 생긴 것이지 운영에서 도는 것을 확인한 것은 아니다. PostgreSQL 16 컨테이너에서 전체 125건 통과, 화면 보기 논리 Node 시험 24건 통과 **2026-09-30 되먹임 결정 반영(커밋 490816d).** 비교 기준 실행을 요청 때 `baseline_batch_run_id`에 고정한다. 비교 표와 LLM 없는 실행 대조는 worker가 실행을 마칠 때 계산해 `batch_run.comparison` `llm_free_comparison`에 두고 web은 그 칸만 읽는다(C10 유지, web은 mart를 보지 않는다). 브리핑 저장소 확인은 worker가 `ops.briefing_store_check`에 남긴다. `roles.sql`에 web의 게시 전환 칸 쓰기와 명세대로 master 쓰기를 넣었고, intel_web 역할로 관리·열람 경로가 돌고 mart가 막히는지 시험한다. 전체 129건 통과 |
 
 
+#### E4 열람 주소와 A 리포트 PDF
+
+| 항목 | 내용 |
+|---|---|
+| 근거 | 유저 결정(2026-09-30, 같은 발주처 브리핑 갈래 방식에 맞춤) · [[TBL-UC-002#UC-A4]] [[TBL-UC-002#UC-H1]] 6 · [[TBL-SEQ-002#SEQ-15]] [[TBL-SEQ-002#SEQ-1]] [[TBL-SEQ-002#SEQ-2]] · [[TBL-INFRA-002]] 5장 · [[TBL-PRD-002#R29]] |
+| 구현 함수 | [[TBL-MS-002#ExposureService.summary]] · [[TBL-MS-002#ExposureService.switch]] · [[TBL-MS-002#ExposureService.verify]] · [[TBL-MS-002#DomainReportService.render_pdf]] · `core/auth`의 화면 대조 · `pages/ExposurePage.tsx`와 `api/exposure.ts` · A 리포트 내려받기 링크 |
+| API | [[TBL-API-002#GET/api/admin/exposure/summary]] [[TBL-API-002#POST/api/admin/exposure/switch/{screen}]] [[TBL-API-002#GET/api/intel/areport/pdf/{domainReportId}]] |
+| 화면 | [[TBL-UI-002#UI-8]] · [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] 내려받기 |
+| 테스트 | 구현 함수의 테스트 관점 전부. 열람 API 여섯이 그 화면의 주소로만 열리는지. 회전·끄기가 바로 반영되는지. PDF가 사본 글자를 그대로 싣고 외부 주소가 없는지. 실제 PDF 렌더(이미지 안). web 계정의 열람 주소 쓰기와 지우기 금지 |
+| 선행 | E1 · E2 |
+| 완료 | 커밋 8d5f7f4 · PR 없음 · 2026-09-30. 함수 4 + API 셋 + 화면(ExposurePage·exposureView·api/exposure, A 리포트 내려받기 링크). 서명값은 무작위 32바이트이고 `pub.screen_exposure`와 대조한다(열람 경로가 `pub` 밖으로 나가지 않는다, C10). 화면마다 주소가 다르고 다른 화면의 주소는 403 `invalid-token`이다. 회전하면 이전 주소가 바로 막히고, 끄면 막히며 다시 켜면 같은 주소가 열린다. PDF는 WeasyPrint로 서버가 요청마다 만들고 저장하지 않는다. 이미지에 pango와 나눔고딕을 넣었다. 서명값이 로그에 남지 않게 web 접근 로그를 끄고 proxy는 쿼리를 뺀 접근 로그만 남긴다. 이미지에 `python-multipart`가 빠져 앱이 뜨지 않던 결함을 함께 고쳤다. Edge로 UI-8에서 주소를 켜고 받은 주소로 A1을 열어 PDF(두 쪽, 한글)를 받고, A1 주소로 A3가 막히고 회전한 이전 주소가 403인지 확인, 외부 요청 0건. 호스트 140건 통과(PDF 렌더 1건은 pango가 없어 skip), 이미지 안 138건 통과(Node 화면 시험 3건 skip, PDF 렌더 통과), 화면 보기 논리 Node 시험 28건 통과. **열람 주소는 관리자가 화면마다 켜야 생긴다. 운영 환경이 아직 없어 켜진 화면은 0/4이고, 켜기 전까지 현업 화면 넷은 열리지 않는다.** VODA 쪽 주소 등록은 VODA 담당 작업이다 |
+
 ### 1.1 순서
 
 ```mermaid
@@ -200,6 +212,8 @@ flowchart LR
   D3 --> E2
   D3 --> E3
   B1 --> E3
+  E1 --> E4
+  E2 --> E4
 ```
 
 C5가 끝난 시점이 첫 번째 확인 지점이다. LLM 없이 새벽 배치가 1~5단계를 돌고 `mart`에 변동·후보·근접도·신호등·도메인 상태가 생긴다. 발주자에게 판정 결과를 먼저 보여 줄 수 있는 것이 이 시점이고, 임계값 실제 수치를 현업과 맞추는 것도 이 시점에 한다. D3가 끝난 시점이 두 번째 확인 지점이다. 게시본이 생기고 E1이 그것을 읽는다.
@@ -215,7 +229,7 @@ E3의 선행이 D3와 B1 둘인 이유는 배치 상태 화면이 적재 차단(
 | [[TBL-SCN-002#S5]] 완성차 파일 적재 | B1 | 샘플 6개 파일이 전부 형태 B로 판별되고 같은 표준 테이블에 들어간다. 상세 행 합이 원본과 같고 총계 행은 분리돼 대조에만 쓰인다. 수동 급변은 적재 완료 후 자동 실행만 막힌다 |
 | [[TBL-SCN-002#S6]] 뉴스·블룸버그·Marklines 적재 | B1 | 가공본과 원본이 같은 `article` 테이블에 들어가고 `source_id`로 중복이 없다. 지표 4종 최신값이 조회된다 |
 | [[TBL-SCN-002#S8]] 미매핑 보강 | B2 | 미매핑 30건을 보강해 올리면 차이 표가 추가 30·변경 0·삭제 0이고, 확정 뒤 다음 배치의 매칭률이 오르며 과거 판정은 그대로다 |
-| [[TBL-SCN-002#S4]] 새벽 배치, 판정 구간 | C1~C5 | LLM을 끄고 1~5단계를 돌려 변동·후보·근접도·신호등·도메인 상태가 생긴다. 실측 고정값(딜러 구간 34,104 · 법인 구간 2,350 · 칠레 0.252 · 푸에르토리코 -0.137 · 달성률 0.861 · 모델 교체 오탐 0건)이 그대로 나온다 |
+| [[TBL-SCN-002#S4]] 새벽 배치, 판정 구간 | C1~C5 | LLM을 끄고 1~5단계를 돌려 변동·후보·근접도·신호등·도메인 상태가 생긴다. 실측 고정값(딜러 구간 34,104 · 법인 구간 2,350 · 칠레 0.252 · 푸에르토리코 -0.137 · 달성률 0.861 · 모델 교체 오탐 0건. CDO 인입 샘플 CSV 추출본 기준이며 저장소 시험의 엑셀 표본에서는 딜러 구간이 34,892다)이 그대로 나온다 |
 | [[TBL-SCN-002#S4]] 새벽 배치, 전체 | C5 · D1~D3 | 8단계가 4시간 창 안에 끝나고 게시본이 생긴다. 같은 기준일을 `llm_enabled=False`로 돌린 결과와 `watch_item.traffic_light`·`cause_candidate.sort_order`·도메인 상태 신호등이 전건 같다. LLM 호출 수가 후보 사건 수 + 변동 수 + 서술 섹션 수를 넘지 않는다 |
 | [[TBL-SCN-002#S4]] 변형, LLM 전부 실패 | D1~D3 | 게이트웨이를 막고 돌려도 게시되고 강등 표시가 붙으며 신호등·후보 순서·도메인 상태 신호등이 정상 배치와 같다 |
 | [[TBL-SCN-002#S4]] 변형, A 판정 미수신 | C1 · D3 | 브리핑 저장소를 막고 돌리면 세 도메인이 보완 집계로 내려가고 `notices`에 `aJudgmentNotReceived` 셋이 담긴다. 배치는 멈추지 않는다 |
@@ -223,6 +237,7 @@ E3의 선행이 D3와 B1 둘인 이유는 배치 상태 화면이 적재 차단(
 | [[TBL-SCN-002#S3]] 근거 확인 | E1 | 근거 펼치기에 추가 호출이 없다. 후보마다 근접도 값 넷이 그대로 있고 등급 표시가 없다. 정렬 규칙 문장이 앞의 셋만 적는다. 연관 설명의 인용이 전부 후보 안이다 |
 | [[TBL-SCN-002#S1]] A 리포트 열람 | E2 | 세 지면의 트래킹 지표와 분해 차원이 서로 다르다. 외부요인 인용 0건, C로 가는 링크 없음. 못 만드는 지표가 A1 둘·A2 넷·A3 하나다 |
 | [[TBL-SCN-002#S7]] 특정 일자 재생성 | E3 | 매핑을 바꾼 뒤 재생성하면 새 버전이 `is_published=false`로 생기고, 변동·후보·근접도·신호등 넷의 차이 필드가 표시된다. 게시 전환 뒤 같은 기준일 게시본이 하나다 |
+| [[TBL-UC-002#UC-A4]] 열람 주소(시나리오 없음) | E4 | 관리자가 켠 주소로 그 화면만 열리고 다른 화면의 주소는 403이다. 회전하면 이전 주소가 바로 막힌다. A1 지면 PDF가 한글로 나오고 외부 요청이 0건이다 |
 | [[TBL-SCN-002#S9]] 워치리스트 변화 | D3 · E3 | 어제 없던 국가가 `new`, 오른 국가가 `raised`로 `alert_event`에 남고 카드에 배지가 붙는다. 게시 전환에서 다시 돌아도 한 행이다. 채널 어댑터 없이 실패하지 않는다 |
 
 금지 이름 회귀 검사(A)와 `judgment/`의 import 검사(A)는 모든 슬라이스의 커밋 앞에서 돈다.
@@ -233,12 +248,13 @@ E3의 선행이 D3와 B1 둘인 이유는 배치 상태 화면이 적재 차단(
 
 ## 4. 미결사항
 
-- [ ] 임계값 실제 수치. C4가 끝난 뒤 현업과 맞춘다. 그 전까지 `threshold_setting` 첫 행은 가짜 값이다([[TBL-MS-002#TrafficLightJudge.judge]])
+- [x] 임계값 실제 수치. 현업 검토 전 기본값을 설정 초기 행 v1로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣고 값이 오면 새 버전 행을 넣는다([[TBL-MS-002#TrafficLightJudge.judge]])
 - [ ] A 판정 스냅샷과 A 리포트 문서의 실제 키·필드. C1의 `validate_shape` 대조 목록과 D3의 `publish_a_report` 컬럼 대응이 이것에 매인다([[TBL-MS-002#AJudgmentReader.validate_shape]] [[TBL-MS-002#BriefingStoreReader.read_report_document]])
-- [ ] 형태 A 실물 파일. B1의 `check_columns` 대조 목록이 IF 레이아웃 정의로만 검증된다([[TBL-MS-002#FormALedgerParser.check_columns]])
+- [x] 형태 A 실물 파일. 실물 원장과 IF 레이아웃 정의가 같다(생산 16열, 판매·재고 22열, 2026-09-30). B1은 실물 기준으로 등록돼 있다([[TBL-MS-002#FormALedgerParser.check_columns]])
 - [ ] H-chat JSON 모드. 지원되지 않으면 D1~D3의 검증 단계가 늘어난다([[TBL-MS-002#HChatClient.complete]])
 - [ ] E2에서 사본이 없을 때 판정값과 차트를 `pub` 어디서 읽는가. 판정 사본은 `mart`에만 있다([[TBL-SEQ-002]] 8장). 정해지면 D3와 E2가 같이 바뀐다
 - [ ] 설정 변경 경로(SQL 또는 CLI). 정해지면 슬라이스가 하나 는다
-- [ ] 현업 피드백([[TBL-PRD-002#R19]])과 상세 화면([[TBL-PRD-002#R28]])의 1차 포함 여부. 포함되면 E 슬라이스가 는다
+- [ ] 현업 피드백([[TBL-PRD-002#R19]])과 상세 화면([[TBL-PRD-002#R28]])의 1차 포함 여부. 포함되면 E 슬라이스가 는다. 피드백은 사번이 필요한데 열람은 화면 단위 서명 주소라 개인을 식별하지 않는다(2026-09-30)
 - [ ] 워치리스트 변화의 발송 채널. 1차는 기록과 배지까지다([[TBL-MS-002#ReportPublisher.diff_watchlist]])
 - [ ] 폐쇄망 반입 절차와 주기. A의 이미지 반입 시험은 절차가 정해진 뒤에 한다
+- [ ] 반입 이미지의 PDF 의존성(pango, 나눔고딕). 반입 시험 때 A 리포트 PDF 한 부를 실제로 받아 본다(E4)
