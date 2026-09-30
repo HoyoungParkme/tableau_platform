@@ -247,7 +247,7 @@ A 리포트는 태블로 대시보드에 붙어 있고 C 리포트는 별도 주
 | 컨테이너 | 하는 일 | 열린 포트 |
 |:--|:--|:--|
 | web | 열람 API와 관리 API, 정적 화면, 수동 적재 | 사내망 HTTPS |
-| worker | 스케줄러와 파이프라인 8단계 | 없음 |
+| worker | 스케줄러, 재실행 대기열, 파이프라인 8단계 | 없음 |
 | db | PostgreSQL | web·worker만 |
 | proxy | 리버스 프록시, 토큰 검증 앞단 | 사내망 |
 
@@ -255,7 +255,7 @@ A 리포트는 태블로 대시보드에 붙어 있고 C 리포트는 별도 주
 
 적재기는 형태 판별과 병합 헤더 펼치기와 총계 행 분리를 하는 모듈이며 web(관리 API의 수동 적재)과 worker(배치 1단계)가 같은 코드를 부른다([[#C6]]). 같은 파일을 어느 경로로 넣든 같은 표준 행이 나와야 하므로 모듈을 두 벌로 두지 않는다.
 
-worker는 한 번에 하나만 돈다. 정기 배치와 재실행이 겹치면 단일 프로세스 락으로 뒤엣것을 대기시킨다.
+worker는 한 번에 하나만 돈다. 관리 API의 재실행 요청은 web이 `ops.batch_run`에 대기 행(`queued`)으로 남기고, worker가 30초마다 들어온 순서대로 집어 돈다. 정기 배치도 같은 대기열을 거치므로 재실행과 겹치면 뒤엣것이 기다린다.
 
 ### 4.1 설정 파일이 읽는 것
 
@@ -266,10 +266,10 @@ worker는 한 번에 하나만 돈다. 정기 배치와 재실행이 겹치면 �
 | DATABASE_URL | web, worker | PostgreSQL 접속. 컨테이너별 계정 |
 | BRIEFING_DB_URL | worker | 브리핑 갈래 저장소 읽기 전용 접속([[#C5]]) |
 | LLM_BASE_URL | worker | H-chat 게이트웨이 주소. 외부 개발에서는 OpenAI 주소([[#C2]]) |
-| LLM_API_KEY | worker | 키 원문. 로그 금지([[#C3]]) |
+| LLM_API_KEY | worker | 키 원문. 로그 금지([[#C3]]). H-chat 게이트웨이(주소에 hchat)는 키를 접두 없이 보내고, 그 밖의 OpenAI 호환 서버는 Bearer를 붙인다 |
 | LLM_PROJECT_ID | worker | Project 키일 때만 |
 | LLM_MODEL | worker | 배포 모델 이름 |
-| LLM_DAILY_TOKEN_LIMIT | worker | 일 토큰 상한 |
+| LLM_DAILY_TOKEN_LIMIT | worker | 일 토큰 상한. 기본 0이고 0이면 LLM을 부르지 않아 6~8단계가 전부 강등된다. 운영에서는 반드시 넣는다 |
 | LLM_ENABLED | worker | 회귀 검사용 LLM 없는 실행 스위치([[#C19]]) |
 | BATCH_CRON | worker | 시작 시각. 기본 02:00 |
 | BATCH_WINDOW_HOURS | worker | 배치 창. 기본 4 |
