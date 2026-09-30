@@ -724,11 +724,11 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **시그니처** `search_events(anomaly: Anomaly) -> list[CauseCandidate]`
 
-**처리** 그 국가에 직접 걸린 사건과 [[TBL-DOM-006#strait_country]]로 귀속된 사건 중 `abs(event.last_seen − anomaly.file_base_date) ≤ setting.event_window_days`인 것을 찾는다. 라우팅 카테고리 표는 발주처가 줄 때까지 두지 않고 모든 카테고리를 후보로 본다(표가 오면 여기서 한 번 더 거른다). 사건마다 상위 기사 3건을 함께 담는다(화면이 최소 3건을 요구한다).
+**처리** 그 국가에 직접 걸린 사건과 [[TBL-DOM-006#strait_country]]로 귀속된 사건 중 `abs(event.last_seen − anomaly.file_base_date) ≤ setting.event_window_days`인 것을 찾는다. 그 가운데 변동의 도메인에 배정된 뉴스 카테고리([[TBL-DOM-006#category_route]])의 사건만 남긴다(자사 크로스워크 08 시트 이관본. FVL은 판매·재고 임시 배정, 유저 결정 2026-09-30, #27 재결정). 카테고리가 없는 사건은 남기지 않는다. 사건마다 상위 기사 3건을 함께 담는다(화면이 최소 3건을 요구한다).
 
-**테스트 관점** 호르무즈 사건이 오만·아랍에미리트 변동의 후보로 나오고 `countryMatch=straitAttributed`로 구분되는지. 해협 표가 비어 있으면 중동 변동의 후보가 통째로 비는지(그 사실이 화면에 드러나는지).
+**테스트 관점** 호르무즈 사건이 오만·아랍에미리트 변동의 후보로 나오고 `countryMatch=straitAttributed`로 구분되는지. 해협 표가 비어 있으면 중동 변동의 후보가 통째로 비는지(그 사실이 화면에 드러나는지). 재고 변동에 GEO 사건이 붙지 않고 MRT·FWD/KD·FVL 사건은 붙는지. 판매 변동에 FWD/KD 사건이 붙지 않는지. 카테고리가 없는 사건이 어디에도 붙지 않는지.
 
-근거: [[TBL-PRD-002#R10]] · [[TBL-DOM-006#strait_country]]
+근거: [[TBL-PRD-002#R10]] · [[TBL-PRD-002#R5]] · [[TBL-DOM-006#strait_country]] · [[TBL-DOM-006#category_route]]
 
 #### CandidateSearcher.search_market 시장지표 후보
 
@@ -1400,7 +1400,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `upload_crosswalk(upload: UploadFile) -> dict`
 
-**처리** [[TBL-DOM-006#crosswalk_upload]]에 저장하고 현재 버전과 **차이(추가·변경·삭제)를 미리 계산해** 돌려준다. 삭제로 미매핑이 될 건수를 함께 센다. 아직 적용하지 않는다.
+**처리** [[TBL-DOM-006#crosswalk_upload]]에 저장하고 현재 버전과 **차이(추가·변경·삭제)를 미리 계산해** 돌려준다. 삭제로 미매핑이 될 건수를 함께 센다. 아직 적용하지 않는다. 시트 `category_route`(domain·category·is_provisional·note)는 도메인 값이 `production` `inventory` `sales` 밖인 줄을 오류로 돌려준다.
 
 **출력** `{crosswalkUploadId, added, changed, removed, willBecomeUnmapped, affected}`.
 
@@ -1412,7 +1412,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `confirm_crosswalk(upload_id: str, confirm_removal: bool) -> dict`
 
-**처리** 삭제되는 매핑이 있는데 `confirm_removal`이 거짓이면 → `/problems/removal-not-confirmed` 409(`willBecomeUnmapped`) · 확정이면 → [[TBL-DOM-006#crosswalk_version]] 새 버전을 만들고 [[TBL-DOM-006#crosswalk_entry]]를 교체한다. **다음 배치부터 적용된다. 과거 판정을 바꾸려면 재생성이다.**
+**처리** 삭제되는 매핑이 있는데 `confirm_removal`이 거짓이면 → `/problems/removal-not-confirmed` 409(`willBecomeUnmapped`) · 확정이면 → [[TBL-DOM-006#crosswalk_version]] 새 버전을 만들고 [[TBL-DOM-006#crosswalk_entry]]를 교체한다. 올린 시트에 `category_route`가 있으면 [[TBL-DOM-006#category_route]]도 통째 바꾼다. 버전 이름은 확정 시각을 밀리초까지 쓴다(같은 초에 두 번 확정해도 겹치지 않는다). **다음 배치부터 적용된다. 과거 판정을 바꾸려면 재생성이다.**
 
 **출력** `{version, appliedAt}`.
 
