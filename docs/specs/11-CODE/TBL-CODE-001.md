@@ -112,7 +112,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 화면 | 없음 |
 | 테스트 | 구현 함수의 테스트 관점 전부 + S4 판정 구간 E2E. 1·3·4·5단계 실패에서 멈추고 `batch_stage_result`가 여덟 행(미실행 `pending`)인지. 2단계 실패는 계속되는지. `auto_run_blocked`가 서 있으면 시작을 거부하는지. 이 시점에는 6~8단계가 `skipped`로만 남고 게시는 D3가 붙기 전까지 비활성이다. `llm_enabled=False` 대조 시험의 뼈대(같은 기준일 두 번, `watch_item.traffic_light`와 `cause_candidate.sort_order` 전건 대조)를 여기서 만든다 |
 | 선행 | C4 |
-| 완료 | 아직 없음 |
+| 완료 | 커밋 70acdfb · PR 없음 · 2026-09-30. 함수 2 + 단계 함수 8 + 스케줄러. 1단계 도착 파일은 볼륨 `inbox/<sourceType>/`이고 파일 이름의 YYYY-MM-DD가 파일 기준일이다(명세에 도착 경로가 없어 코드가 정함). 2단계 예외는 미수신으로 두고 계속, 1·3·4·5 실패는 중단(나머지 `pending`), 6~8은 `skipped`(llmDisabled·backfillMode·notImplemented). 실행 상태는 failed / degraded(2단계 미수신 또는 LLM 강등) / success. 4시간 창 초과는 경고 로그만(기록 컬럼 없음). `llm_enabled` 참·거짓 두 실행의 신호등·후보 순서 전건 대조 뼈대를 테스트에 두었다. PostgreSQL 16 컨테이너에서 74건 통과(전체) |
 
 #### D1 H-chat 어댑터·강등·사건 명명 (6단계, LLM 역할 1)
 
