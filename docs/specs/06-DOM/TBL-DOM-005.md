@@ -14,7 +14,7 @@ upstream: [TBL-API-002, TBL-DOM-004, TBL-UI-002, TBL-INFRA-002, TBL-UC-002, TBL-
 
 여기서 정하지 않는 것이 둘이다. 테이블 이름의 컬럼 타입·길이·인덱스는 ERD 문서가 정한다. 2장의 `테이블:` 줄이 그 테이블을 가리키며, ERD가 아직 없으므로 저장 시점에는 미존재 참조로 남고 ERD가 생기면 풀린다. 호출 순서와 시점은 시퀀스 문서가, 함수 단위 입출력 계약은 모듈 명세가 정한다. 이 문서는 "무엇이 있고 무엇을 할 줄 아는가"까지다.
 
-설계 클래스는 스물여덟이다. 계층 다섯으로 나눈다. 적재, 판정, 서술, 게시·열람, 어댑터다. 여기에 여덟 단계를 진행시키는 뼈대 클래스 하나가 앞에 붙는다.
+설계 클래스는 스물아홉이다. 계층 다섯으로 나눈다. 적재, 판정, 서술, 게시·열람, 어댑터다. 여기에 여덟 단계를 진행시키는 뼈대 클래스 하나가 앞에 붙는다.
 
 이 문서의 핵심 제약은 계층 경계다. 판정 계층은 코드만 쓰고 배치 5단계에서 끝난다([[TBL-INFRA-002#C19]], [[TBL-PRD-002]] 6.18). 서술 계층은 LLM을 부르고 6~8단계에 있다. 서술 계층이 통째로 죽어도 변동·후보·근접도·신호등은 그대로 게시된다([[TBL-INFRA-002#C13]]). 변동별 신호등뿐 아니라 도메인 상태 3카드의 신호등도 판정 계층이 낸다. 이것이 성립하도록 클래스를 나눴고, 4.7절에 어느 클래스가 죽어도 되고 어느 클래스가 죽으면 안 되는지를 표로 적었다.
 
@@ -29,7 +29,7 @@ upstream: [TBL-API-002, TBL-DOM-004, TBL-UI-002, TBL-INFRA-002, TBL-UC-002, TBL-
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                     앱 조립·라우터 등록·스케줄러 기동
-│   │   ├── core/                       설정·DB 세션·problem+json 에러·인증(서명 토큰·세션)
+│   │   ├── core/                       설정·DB 세션·problem+json 에러·인증(화면 서명 주소·세션)
 │   │   ├── domains/
 │   │   │   ├── ingest/                 적재 계층. 관리 API와 배치 1단계가 같은 코드를 부른다
 │   │   │   │   ├── router.py schemas.py service.py crud.py models.py
@@ -57,10 +57,12 @@ upstream: [TBL-API-002, TBL-DOM-004, TBL-UI-002, TBL-INFRA-002, TBL-UC-002, TBL-
 │   │   │   │   ├── schemas.py          단계 사이에 오가는 값 객체(PeriodKey·Proximity·StageResult)
 │   │   │   │   └── crud.py models.py
 │   │   │   ├── intel/                  열람. CReportService · DomainReportService · MarketService
-│   │   │   │   └── router.py schemas.py service.py crud.py
+│   │   │   │   └── router.py schemas.py service.py crud.py pdf.py
 │   │   │   ├── batch/                  BatchService
 │   │   │   │   └── router.py schemas.py service.py crud.py models.py
-│   │   │   └── master/                 MasterService
+│   │   │   ├── master/                 MasterService
+│   │   │   │   └── router.py schemas.py service.py crud.py models.py
+│   │   │   └── exposure/               ExposureService. 열람 화면의 서명 주소
 │   │   │       └── router.py schemas.py service.py crud.py models.py
 │   │   ├── infra/                      DB 엔진·파일 볼륨 접근·스케줄러
 │   │   └── shared/                     기간 키·부호 계산·문제 응답 같은 순수 유틸
@@ -530,7 +532,7 @@ classDiagram
 
 `entity_stage_gap` 선적에서 도매 정본을 뺀 값(법인 구간, 화면 표기 법인 단계 체류). `dealer_stage_gap` 도매 정본에서 소매를 뺀 값(딜러 구간, 화면 표기 유통 체류).
 비율의 분모는 도매 정본이다. 부호는 양수가 체류, 음수가 덜어냄이며 음수를 예외로 두지 않는다.
-`wholesale_basis` actualWholesale·officialWholesale 중 계산에 쓴 것. 미주 누계 상세 행 기준 두 값의 차이가 12,932대라 행에 남긴다.
+`wholesale_basis` actualWholesale·officialWholesale 중 계산에 쓴 것. 미주 누계 상세 행 기준(CDO 인입 샘플 CSV 추출본) 두 값의 차이가 12,932대라 행에 남긴다.
 `derivation` derived·measured. 재고 원천이 없는 동안 derived다.
 
 #### ModelExposure 차종 노출
@@ -769,10 +771,11 @@ L5로 나가는 선의 출발지가 규칙이다. 판정 계층에서 바깥으�
 | 서술 | [[#DegradeHandler]] | 실패한 역할을 강등으로 기록한다 | 6~8 | 코드 |
 | 게시·열람 | [[#ReportPublisher]] | 근거 번호를 매기고 C 리포트 한 본과 A 리포트 사본을 게시한다 | 8 | 코드 |
 | 게시·열람 | [[#CReportService]] | C 리포트를 읽어 준다 | 없음 | 코드 |
-| 게시·열람 | [[#DomainReportService]] | A 리포트 사본을 읽어 준다 | 없음 | 코드 |
+| 게시·열람 | [[#DomainReportService]] | A 리포트 사본을 읽어 주고 PDF 지면으로 옮긴다 | 없음 | 코드 |
 | 게시·열람 | [[#MarketService]] | 시장지표 시계열을 읽어 준다 | 없음 | 코드 |
 | 게시·열람 | [[#BatchService]] | 배치를 보고 다시 돌리고 게시 전환한다 | 없음 | 코드 |
 | 게시·열람 | [[#MasterService]] | 크로스워크와 미매핑을 다룬다 | 없음 | 코드 |
+| 게시·열람 | [[#ExposureService]] | 열람 화면 넷의 서명 주소를 발급·회전하고 요청의 주소를 확인한다 | 없음 | 코드 |
 | 어댑터 | [[#HChatClient]] | 사내 게이트웨이에 LLM을 부른다 | 6~8 | 코드 |
 | 어댑터 | [[#BriefingStoreReader]] | 브리핑 갈래 저장소를 읽는다 | 2·8 | 코드 |
 
@@ -1283,7 +1286,7 @@ classDiagram
 
 #### FormALedgerParser 형태 A 파서
 
-IF 원장을 읽는다. 생산 17열, 판매·재고 23열이고 행마다 기준일자가 있다.
+IF 원장을 읽는다. 생산 16열, 판매·재고 22열이고 행마다 기준일자가 있다. 둘째 줄은 영문 코드 행이라 세어 두고 뺀다.
 
 ```mermaid
 classDiagram
@@ -1513,7 +1516,7 @@ classDiagram
 | `gap_rate(gap, denominator) -> float` | `calculate` 안에서 | [[TBL-UC-002#UC-S4]] 2 | 없음. 분모 0이면 `None` |
 | `alternative_diff(actual, official) -> float` | `calculate` 안에서 | [[TBL-UC-002#UC-S4]] 2 | 없음 |
 
-규칙. `wholesale_basis`는 도매 정본이며 기본값이 도매(공식)이다([[TBL-INFRA-002#C18]]). [[#SalesStageFlow]]를 만드는 유일한 클래스다. 부호 규약은 앞 단계에서 뒤 단계를 뺀 값이며 양수가 체류, 음수가 덜어냄이다([[TBL-API-002]] 1.4절). 음수를 예외로 처리하지 않는다. 푸에르토리코 -13.7%, 콜롬비아 -10.5%처럼 소매가 도매를 넘는 국가는 이전에 쌓인 물량을 덜어내는 중이고 그 자체가 읽을 값이다. 구간을 둘로 나눈 것은 실측 때문이다. 미주 누계 상세 행 합에서 선적 679,551, 도매(공식) 677,201, 소매 643,097이므로 법인 구간은 2,350, 딜러 구간은 34,104(5.0%)다. 국가별로는 칠레 25.2%, 페루 21.2%가 크고 앞 구간도 캐나다 8.3%처럼 벌어지는 국가가 있어 둘 다 저장한다([[TBL-PRD-002#R9]]). `wholesale_basis`를 행에 남기는 이유는 실 도매 664,269와 도매(공식) 677,201의 차이가 12,932(1.9%)라 어느 기준인지 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라지기 때문이다. 총계 행의 두 값(1,692,227과 1,706,430)은 상세 행과 범위가 달라 대조에만 쓴다([[TBL-RFQ-002]] 4.2절). 이 값은 재고가 아니라 재고의 대체물이다. `derivation`을 `derived`로 남기고 화면이 유도 표기를 붙인다([[TBL-INFRA-002#C17]] [[TBL-PRD-002#R14]]).
+규칙. `wholesale_basis`는 도매 정본이며 기본값이 도매(공식)이다([[TBL-INFRA-002#C18]]). [[#SalesStageFlow]]를 만드는 유일한 클래스다. 부호 규약은 앞 단계에서 뒤 단계를 뺀 값이며 양수가 체류, 음수가 덜어냄이다([[TBL-API-002]] 1.4절). 음수를 예외로 처리하지 않는다. 푸에르토리코 -13.7%, 콜롬비아 -10.5%처럼 소매가 도매를 넘는 국가는 이전에 쌓인 물량을 덜어내는 중이고 그 자체가 읽을 값이다. 구간을 둘로 나눈 것은 실측 때문이다. 미주 누계 상세 행 합(CDO 인입 샘플 CSV 추출본)에서 선적 679,551, 도매(공식) 677,201, 소매 643,097이므로 법인 구간은 2,350, 딜러 구간은 34,104(5.0%)다. 국가별로는 칠레 25.2%, 페루 21.2%가 크고 앞 구간도 캐나다 8.3%처럼 벌어지는 국가가 있어 둘 다 저장한다([[TBL-PRD-002#R9]]). `wholesale_basis`를 행에 남기는 이유는 실 도매 664,269와 도매(공식) 677,201의 차이가 12,932(1.9%)라 어느 기준인지 없으면 같은 국가의 체류율이 설정에 따라 조용히 달라지기 때문이다. 총계 행의 두 값(1,692,227과 1,706,430)은 상세 행과 범위가 달라 대조에만 쓴다([[TBL-RFQ-002]] 4.2절). 범위가 다른 것은 미주만 남긴 추출본에 전 권역 총계 행이 남은 탓이다. 이 값은 재고가 아니라 재고의 대체물이다. `derivation`을 `derived`로 남기고 화면이 유도 표기를 붙인다([[TBL-INFRA-002#C17]] [[TBL-PRD-002#R14]]).
 
 #### AnomalyDetector 변동 판정기
 
@@ -1847,6 +1850,7 @@ classDiagram
     +list_versions(domain) list
     +build_domain_extra(domain, report) dict
     +list_missing_metrics(domain) list
+    +render_pdf(report) tuple
   }
   ReportPublisher --> DomainReportService
 ```
@@ -1858,8 +1862,9 @@ classDiagram
 | `list_versions(domain) -> list` | `get_latest_by_domain` 안에서 | [[TBL-UC-002#UC-H1]] 5 | 없음 |
 | `build_domain_extra(domain, report) -> dict` | 두 get 안에서 | [[TBL-UC-002#UC-H1]] 1~2 | 없음 |
 | `list_missing_metrics(domain) -> list` | 두 get 안에서 | [[TBL-UC-002#UC-H1]] 3 | 없음 |
+| `render_pdf(report) -> tuple` | [[TBL-API-002#GET/api/intel/areport/pdf/{domainReportId}]] | [[TBL-UC-002#UC-H1]] 6 | 없음 |
 
-규칙. [[#ReportPublisher]]가 올린 게시 사본을 읽기만 한다. 브리핑 갈래 저장소를 직접 보지 않으므로 열람 경로가 게시 스키마 밖으로 나가지 않는다([[TBL-INFRA-002#C10]] [[TBL-PRD-002#R2]]). 사본이 없으면 판정값과 차트만 내려가고 "리포트 문장 미수신"이 붙는다([[TBL-UC-002#UC-H1]] 4a). 응답 어디에도 뉴스·시장지표 인용이 없다. 이것이 인수 기준이다([[TBL-PRD-002#R1]]). C 리포트로 가는 링크 필드도 두지 않는다. A에서 C로 가는 화면 흐름이 없기 때문이다([[TBL-PRD-002]] 6.17). `build_domain_extra`는 도메인마다 다른 덩어리를 만든다. A1은 달성률과 완성차·수출 비중, A2는 유도 체류와 회전, A3는 단계 격차와 진도율이다([[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]]). `list_missing_metrics`는 항해중·선적대기 재고, 목적지 국가, 파워트레인 분해를 이유와 함께 돌려준다([[TBL-API-002]] 4.13절).
+규칙. [[#ReportPublisher]]가 올린 게시 사본을 읽기만 한다. 브리핑 갈래 저장소를 직접 보지 않으므로 열람 경로가 게시 스키마 밖으로 나가지 않는다([[TBL-INFRA-002#C10]] [[TBL-PRD-002#R2]]). 사본이 없으면 판정값과 차트만 내려가고 "리포트 문장 미수신"이 붙는다([[TBL-UC-002#UC-H1]] 4a). 응답 어디에도 뉴스·시장지표 인용이 없다. 이것이 인수 기준이다([[TBL-PRD-002#R1]]). C 리포트로 가는 링크 필드도 두지 않는다. A에서 C로 가는 화면 흐름이 없기 때문이다([[TBL-PRD-002]] 6.17). `build_domain_extra`는 도메인마다 다른 덩어리를 만든다. A1은 달성률과 완성차·수출 비중, A2는 유도 체류와 회전, A3는 단계 격차와 진도율이다([[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]]). `list_missing_metrics`는 항해중·선적대기 재고, 목적지 국가, 파워트레인 분해를 이유와 함께 돌려준다([[TBL-API-002]] 4.13절). `render_pdf`는 보고 있는 버전 한 본을 화면과 같은 순서의 PDF 지면으로 옮긴다. 서버가 요청마다 만들고 저장하지 않으며 LLM을 부르지 않는다. WeasyPrint로 HTML을 PDF로 만들고 막대는 서버가 SVG로 그린다(같은 발주처 브리핑 갈래의 방식, 유저 결정 2026-09-30).
 
 #### MarketService 시장지표 시계열 조회
 
@@ -1940,6 +1945,28 @@ classDiagram
 | `diff_against_current(upload) -> dict` | `upload_crosswalk` 안에서만 | [[TBL-UC-002#UC-A2]] 3 | 없음 |
 
 규칙. 넷이 [[TBL-API-002]]의 마스터 엔드포인트 넷과 1:1이고 마스터 화면([[TBL-UI-002#UI-7]])이 부른다. `get_summary`는 매칭률 셋(판매→국가, 생산→국가, 뉴스→국가)과 버전 이력을 돌려준다. `upload_crosswalk`는 같은 값이 두 국가로 갈리면 올리기를 막고 충돌 행을 돌려준다. `diff_against_current`는 확정하면 무엇이 지워지는지 미리 보여 준다. `confirm_crosswalk`는 지워지는 매핑이 있으면 확인 없이는 409를 낸다. 확정 전에 지워지는 매핑을 보여 주는 이유는 크로스워크가 통째 교체이기 때문이다. 한 줄 빠진 파일을 올리면 그 국가의 과거 매핑이 조용히 사라진다([[TBL-PRD-002#N8]]). 확정은 새 버전으로 갱신되고 다음 배치부터 적용되며 과거 판정은 바뀌지 않는다. [[#Country]] [[#Strait]] [[#GlovisEntity]]를 관리한다. 글로비스 법인 매핑은 아직 비어 있다. 발주자에게 받아야 채워지고, 빈 동안에는 법인 미매핑으로 표시하며 오류로 보지 않는다([[TBL-PRD-002#R17]]).
+
+#### ExposureService 열람 주소
+
+열람 화면 넷(C 리포트, A1, A2, A3)의 서명 주소를 발급·회전하고, 열람 요청의 주소가 어느 화면을 여는지 확인한다.
+
+```mermaid
+classDiagram
+  class ExposureService {
+    <<stateless>>
+    +summary() list
+    +switch(screen, enabled, rotate_token, admin_id) dict
+    +verify(token) str
+  }
+```
+
+| 메서드 | 부르는 곳 | 유스케이스 | 던지는 에러 |
+|---|---|---|---|
+| `summary() -> list` | [[TBL-API-002#GET/api/admin/exposure/summary]] | [[TBL-UC-002#UC-A4]] 1 | `unauthenticated` `forbidden` |
+| `switch(screen, enabled, rotate_token, admin_id) -> dict` | [[TBL-API-002#POST/api/admin/exposure/switch/{screen}]] | [[TBL-UC-002#UC-A4]] 2·2a·2b | `validation-failed` |
+| `verify(token) -> str` | 열람 API 여섯의 인증 의존성(`core/auth`) | [[TBL-UC-002#UC-H1]] 1c, [[TBL-UC-002#UC-H2]] 1e | `unauthenticated` `invalid-token`(의존성이 낸다) |
+
+규칙. 서명값은 URL에 실을 수 있는 무작위 32바이트이고 계산이 아니라 [[TBL-DOM-006#screen_exposure]]와 대조해 확인한다. 회전하면 이전 값은 그 자리에서 무효다. 자동 회전은 없다. 개인을 식별하지 않는다. 서명값은 로그와 오류 문장에 남기지 않는다. 같은 발주처의 브리핑 갈래가 정한 방식(대시보드 단위 서명 주소)을 따른다(유저 결정 2026-09-30). 열람 요청이 이 표를 먼저 읽으므로 표는 `pub`에 둔다([[TBL-INFRA-002#C10]]).
 
 ### 4.6 어댑터
 
@@ -2029,7 +2056,7 @@ LLM이 꺼져도 같아야 하는 것 다섯. 변동 목록, 원인 후보 목�
 
 ## 5. 미결사항
 
-- [ ] [[#FormALedgerParser]]가 대조할 실제 컬럼 목록. IF 레이아웃 정의만 있고 실물 파일을 본 적이 없다([[TBL-RFQ-002]] 4.2절)
+- [x] [[#FormALedgerParser]]가 대조할 실제 컬럼 목록. 실물 원장(현대차 데이터_0910.xlsx)과 IF 레이아웃 정의가 같다. 생산 16열, 판매·재고 22열이다(2026-09-30)
 - [ ] [[#FormBPivotParser]]의 `detect_file_base_date`가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다([[TBL-INFRA-002#C15]])
 - [ ] 피벗 리포트 총계 행이 무엇의 합인지. [[#FormBPivotParser]]는 분리 보관과 대조까지만 한다
 - [ ] [[#AJudgmentReader]]가 읽을 스냅샷의 실제 키와 필드. 이것이 정해져야 `validate_shape`의 대조 목록과 [[#DomainJudgment]]·[[#Contribution]]의 속성이 확정된다
@@ -2037,10 +2064,10 @@ LLM이 꺼져도 같아야 하는 것 다섯. 변동 목록, 원인 후보 목�
 - [ ] [[#BriefingStoreReader]]의 `read_report_document`가 읽을 A 리포트 문서의 실제 키와 필드. [[#DomainReport]] 사본 속성과 1:1로 맞춰야 한다
 - [ ] [[#HChatClient]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 회신은 받았으나 실호출 확인 범위가 좁다
 - [ ] [[#ProximityCalculator]]의 `day_diff`를 기간 구분에 따라 보정할지. 누계·년 변동은 후보가 구조적으로 멀어 보인다. 지금은 보정하지 않고 화면에 기간 구분을 적는 것으로 둔다
-- [ ] [[#TrafficLightJudge]]의 임계값 실제 수치. 최소 기사 수, 최소 출처 수, 시간창, CBU 비중 기준이 전부 현업 검토 대기다
+- [x] [[#TrafficLightJudge]]의 임계값. 현업 검토 전 기본값을 설정 초기 행 v1로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣는다
 - [ ] [[#CReportService]]의 응답 크기. 후보와 근거를 한 번에 담으면 국가가 늘었을 때 커진다. 근거 패널을 별도 호출로 나눌지([[TBL-API-002]] 5장)
 - [ ] [[#MasterService]]의 크로스워크 확정 후 재계산 범위. 과거 기준일을 어디까지 다시 돌릴지
 - [ ] 설정 변경을 SQL로 할지 CLI를 만들지. 화면이 없으므로 [[#ThresholdSetting]] 새 버전 행을 넣는 방법이 정해져야 한다
 - [ ] [[#CReportService]] [[#DomainReportService]] [[#MarketService]] 셋을 `intel` 도메인의 `service.py` 하나에 둘지 셋으로 나눌지. 구현 시 판단한다
 - [ ] 2장의 `json` 속성(`domain_status` `notices` `stage_results` `market_asof` 등)을 ERD가 별도 테이블로 펼칠지 JSON 컬럼으로 둘지. 열람 시 조인이 늘지 않는 쪽으로 정한다
-- [ ] 현업 피드백([[TBL-PRD-002#R19]])과 상세 화면([[TBL-PRD-002#R28]])의 1차 포함 여부. 정해지면 클래스가 늘 수 있다
+- [ ] 현업 피드백([[TBL-PRD-002#R19]])과 상세 화면([[TBL-PRD-002#R28]])의 1차 포함 여부. 정해지면 클래스가 늘 수 있다. 피드백은 사번이 필요한데 열람은 화면 단위 서명 주소라 개인을 식별하지 않는다(2026-09-30)
