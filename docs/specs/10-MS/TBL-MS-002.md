@@ -79,14 +79,14 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 #### PipelineRunner.run 배치 실행
 
-**시그니처** `run(base_date: date, trigger: str, start_stage: int = 1) -> BatchRun`
+**시그니처** `run(base_date: date, trigger: str, start_stage: int = 1, batch_run_id: str | None = None) -> BatchRun`
 
-**입력** `trigger`는 `schedule` 또는 `rerun`. `start_stage`는 1~8. 인스턴스 속성 `llm_enabled` `backfill_mode`가 실행 모드를 정한다.
+**입력** `trigger`는 `scheduled` `rerun` `regenerate`(시작 단계 1인 재실행) 중 하나. `start_stage`는 1~8. `batch_run_id`는 [[#BatchService.request_rerun]]이 남긴 대기 행이다. 인스턴스 속성 `llm_enabled` `backfill_mode`가 실행 모드를 정하고, 재실행이면 생성자가 받은 당시 설정과 당시 A 판정 스냅샷 저장소를 쓴다.
 
 **처리**
-1. [[TBL-DOM-006#threshold_setting]] 최신 `version`을 한 번 읽어 `self.setting`에 고정한다. 실행 도중 다시 읽지 않는다.
-2. [[TBL-DOM-006#batch_run]] 한 행 생성(`status=running`, `llm_enabled`, `backfill_mode`, `setting_version`).
-3. `start_stage`부터 8까지 순서대로 돌리고 단계마다 [[TBL-DOM-006#batch_stage_result]] 한 행을 남긴다.
+1. 설정을 한 번 정해 `self.setting`에 고정한다. 재실행이면 대기 행의 `setting_version`(당시 설정), 아니면 [[TBL-DOM-006#threshold_setting]] 최신이다. 실행 도중 다시 읽지 않는다.
+2. [[TBL-DOM-006#batch_run]] 한 행 생성(`status=running`, `llm_enabled`, `backfill_mode`, `setting_version`). 대기 행을 받으면 새로 만들지 않고 그 행을 `running`으로 바꾼다.
+3. `start_stage`부터 8까지 순서대로 돌리고 단계마다 [[TBL-DOM-006#batch_stage_result]] 한 행을 남긴다. 시작 단계가 3~5면 건너뛴 2단계의 산출물(A 판정 사본·보완 집계·판정 출처)을 시작 단계 안에서 다시 싣는다. 5면 그 기준일에 4단계를 끝낸 가장 최근 실행의 변동을 새 식별자로 옮기고, 그런 실행이 없으면 5단계가 멈춘다. 6 이상이면 그 기준일에 5단계를 끝낸 가장 최근 실행의 변동·후보를 읽는다.
 4. 1·3·4·5단계 실패 → `status=failed`, `failed_stage` 기록, 중단. 이전 게시본을 그대로 둔다.
 5. 2단계 실패 → 멈추지 않는다. [[#AJudgmentReader.fallback_to_supplementary]]로 내려가고 계속한다.
 6. 6~8단계 실패 → [[#DegradeHandler.degrade]]를 부르고 계속한다. 8단계의 게시는 언제나 수행한다.
@@ -530,7 +530,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 2. **`country_code`가 `NULL`인 행을 뺀다. 생산이 여기서 빠진다.**
 3. 국가 × 기간 키로 모아 `shipment` `actual_wholesale` `official_wholesale` `retail`을 채운다. **재고 원천이 없는 동안 `inventory_source`는 `derived`로 고정하고 재고 네 칸은 전부 `NULL`로 둔다.** 0으로 채우지 않는다. 실측 원천이 들어오면 네 칸을 채우고 `inventory_source`를 `measured`로 바꾼다.
 4. 설정의 계획 정본(`self.setting.plan_source`, `operationPlan` 또는 `businessPlan`)으로 고른 계획 값을 `plan_value`에 채우고, 고른 이름을 `plan_source`에, 고르지 않은 계획과의 차이를 `plan_alt_diff`에 남긴다. 계획이 한 종류만 들어온 행의 `plan_alt_diff`는 `NULL`이다.
-5. 비교 대상을 같은 행에 굳힌다. `plan_value`가 있으면 → `compare_value=plan_value`, `compare_basis=plan` · 없고 전년 동월 값이 있으면 → 그 값과 `yoy` · 둘 다 없으면 → 전월 값과 `mom`. **계획이 있으면 계획 대비를 먼저 본다는 규칙이 보완 집계 경로에서도 서게 하는 칸이다**([[TBL-PRD-002#R13]], [[TBL-PRD-002]] 6.4). [[#AnomalyDetector.from_supplementary]]는 여기서 채운 칸을 읽을 뿐 다시 고르지 않는다.
+5. 비교 대상을 같은 행에 굳힌다. `plan_value`가 있으면 → `compare_value=plan_value`, `compare_basis=plan` · 없고 전년 동월 값이 있으면 → 그 값과 `yoy` · 둘 다 없으면 → 전월 값과 `mom`. **계획이 있으면 계획 대비를 먼저 본다는 규칙이 보완 집계 경로에서도 서게 하는 칸이다**([[TBL-PRD-002#R13]], [[TBL-PRD-002]] 6.4). [[#AnomalyDetector.from_supplementary]]는 여기서 채운 칸을 읽을 뿐 다시 고르지 않는다. 비교에 쓰는 계열은 도매 정본(`official_wholesale`)이고 계획도 그 계열의 계획이다. 전년 값은 같은 기간 구분에서 1년 전 월말 이하 가장 최근 파일, 전월 값은 같은 기간 구분의 직전 파일에서 읽는다.
 6. [[#FactJoiner.resolve_exposure]] [[#FactJoiner.attach_market_asof]] [[#FactJoiner.count_events]]를 붙인다.
 7. [[TBL-DOM-006#country_period_fact]]에 넣는다. 유일 제약은 `(batch_run_id, country_code, period_type, file_base_date)`.
 
@@ -817,10 +817,10 @@ day_diff = abs((후보 관측일 − anomaly.file_base_date).days)
 **처리** 정렬 열쇠는 아래 한 줄이다.
 
 ```
-key = (day_diff 오름차순, source_count 내림차순, article_count 내림차순, candidate_id 사전순)
+key = (day_diff 오름차순, source_count 내림차순, article_count 내림차순, 동률 열쇠 사전순)
 ```
 
-**네 열쇠 모두가 계약이다.** 앞의 셋은 화면이 문장으로 밝히는 규칙이고, 마지막 `candidate_id` 사전순은 셋이 모두 같을 때 순서를 끝까지 깨는 열쇠다. 이 열쇠가 없으면 같은 입력에서도 `sort_order`가 흔들려 재현이 깨지므로 구현에서 뺄 수 없다([[TBL-PRD-002#N3]]). 정렬 결과의 자리 번호가 `sort_order`가 되며 이것은 관련도 순위가 아니다.
+**네 열쇠 모두가 계약이다.** 앞의 셋은 화면이 문장으로 밝히는 규칙이고, 마지막 동률 열쇠는 셋이 모두 같을 때 순서를 끝까지 깨는 열쇠다. 동률 열쇠는 `{candidate_type}:{대상}`이다. 대상은 사건·기사·시장지표면 그 식별자이고, 다른 도메인 변동이면 그 변동의 `도메인:지표:기간 구분:비교 기준`이다. `candidate_id`를 쓰지 않는 이유는 그 안의 변동 식별자가 실행마다 새로 매겨져 재생성마다 순서가 흔들리기 때문이다(재생성 대조에서 확인). 이 열쇠가 없으면 같은 입력에서도 `sort_order`가 흔들려 재현이 깨지므로 구현에서 뺄 수 없다([[TBL-PRD-002#N3]]). 정렬 결과의 자리 번호가 `sort_order`가 되며 이것은 관련도 순위가 아니다.
 
 **출력** 정렬된 목록. 화면은 다시 정렬하지 않는다.
 
@@ -1127,7 +1127,7 @@ batchFailed           직전 배치가 1·3·4·5단계에서 멈춰 이전 게�
 marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지표 바)
 ```
 
-각 건은 `code` `domain` `message` `lastSuccessDate` 네 칸이다. 입력은 [[#AJudgmentReader.read]]의 미수신 목록, [[#DegradeHandler.degraded_roles]], [[#MarketService.is_carried_over]] 결과, 직전 배치 실패 이력 넷이다. `domain`은 `aJudgmentNotReceived`에만, `lastSuccessDate`는 `batchFailed`에만 채운다. 변동이 있으면 `noAnomaly`를 넣지 않는다. 첫 배치 전(게시본 없음)은 조회 0건으로 화면이 판단하므로 대응 코드가 없다.
+각 건은 `code` `domain` `message` `lastSuccessDate` 네 칸이다. 입력은 [[#AJudgmentReader.read]]의 미수신 목록, [[#DegradeHandler.degraded_roles]], [[#MarketService.is_carried_over]] 결과 셋이다. `batchFailed`는 게시 때 넣지 않는다. 정기 배치가 1·3·4·5단계에서 멈추면 러너가 그때 보이는 게시본의 안내에 `batchFailed` 한 줄을 붙이고(같은 줄은 바꿔 넣는다), 새 게시본이 나오면 그 게시본이 대신 보인다. `domain`은 `aJudgmentNotReceived`에만, `lastSuccessDate`는 `batchFailed`에만 채운다. 변동이 있으면 `noAnomaly`를 넣지 않는다. 첫 배치 전(게시본 없음)은 조회 0건으로 화면이 판단하므로 대응 코드가 없다.
 7. `is_degraded` `degraded_roles` `candidate_sort_rule` `setting_version` `a_snapshot_id`를 채운다. `candidate_sort_rule`은 [[#ProximityCalculator.sort_rule_text]]가 준 한 문장이고 **리포트에 한 칸뿐이다.** 변동 카드마다 같은 문장을 되풀이해 싣지 않는다.
 8. `market_bar` 네 칸을 채운다. **지표가 이월됐어도 네 칸을 다 내려보내고 칸을 비우지 않는다.** 이월 사실은 `notices`의 `marketCarriedOver`가 말한다.
 9. 지표 시계열을 [[TBL-DOM-006#market_series]]에 사본으로 올리고, [[#BriefingStoreReader.read_report_document]]로 도메인 셋의 A 리포트를 읽어 [[#ReportPublisher.publish_a_report]]로 올린다. **열람 경로가 `mart`를 보지 않게 하는 마지막 단계다**([[TBL-INFRA-002#C10]]). 한 도메인을 못 읽어도 배치를 이어 가고 그 도메인 화면은 옛 사본을 계속 보여 준다.
@@ -1322,7 +1322,9 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `get_run(batch_run_id: str) -> BatchRun`
 
-**처리** [[TBL-DOM-006#batch_stage_result]] **여덟 행**과 [[TBL-DOM-006#llm_call]] 집계를 함께 돌려준다. 단계 이름은 [[#PipelineRunner.stage_names]]가 준 것을 쓴다.
+**처리** [[TBL-DOM-006#batch_stage_result]] **여덟 행**과 [[TBL-DOM-006#llm_call]] 집계를 함께 돌려준다. 단계 이름은 [[#PipelineRunner.stage_names]]가 준 것을 쓴다. 대기 중이라 단계 행이 아직 없으면 시작 단계 앞은 `skipped`, 나머지는 `pending`으로 채운다.
+
+재실행·재생성이면 당시와의 비교 표를 붙인다. 비교 기준은 그 기준일 게시본을 만든 실행이고, 없거나 이 실행 자신이면 이 실행보다 앞서 판정을 끝낸 가장 최근 실행이다. 판정을 직접 만들지 않은 실행(시작 단계 6 이상)은 앞서 5단계를 끝낸 실행의 판정을 쓴 것으로 본다. 실행마다 식별자가 달라 자연 열쇠로 맞춘다. 변동은 `도메인 국가(또는 공장) 지표 기간 비교기준`, 후보는 `종류:대상`이고 다른 도메인 변동 후보의 대상은 그 변동의 열쇠로 바꾼다. 원인은 기준 실행이 끝난 뒤 바뀐 입력으로 정하고 매핑, 설정, 늦게 온 데이터, A 판정 순이다. 문장은 두 실행의 게시 사본(헤드라인, 변동별 연관 설명)만 비교하고 위반이 아니다. LLM 없는 실행 대조는 같은 기준일·같은 설정 버전·같은 A 판정 스냅샷의 반대쪽 실행과만 한다.
 
 **테스트 관점** 단계가 언제나 여덟인지. 6~8단계에만 `degrade_reason`이 붙는지.
 
@@ -1333,14 +1335,15 @@ A3 판매  globalCountryByModel                                                 
 **시그니처** `request_rerun(base_date: date, start_stage: int, options: dict) -> BatchRun`
 
 **처리**
-1. 같은 기준일 배치가 돌고 있으면 → `/problems/batch-in-progress` 409.
-2. `start_stage`가 1~8 밖이면 → `/problems/stage-out-of-range` 400.
-3. [[#PipelineRunner.run]](`trigger=rerun`)을 부른다. **그 기준일의 데이터 스냅샷, 당시 A 판정 스냅샷, 당시 설정 버전으로 돈다.**
-4. `options.backfillMode`가 참이면 5단계까지만 채우고 LLM 세 역할을 생략하며 게시하지 않는다.
-5. 결과는 **새 버전이고 `is_published=false`**다.
-6. 정기 배치와 겹치면 worker 단일 락으로 뒤엣것을 대기시킨다.
+1. `start_stage`가 1~8 밖이면 → `/problems/stage-out-of-range` 400. 자동 실행이 막혀 있으면 → `/problems/regression-blocked` 409. 같은 기준일 배치가 대기 중이거나 돌고 있으면 → `/problems/batch-in-progress` 409.
+2. **실행하지 않고 대기 행을 남긴다.** [[TBL-DOM-006#batch_run]]에 `status=queued` 행을 넣는다. `trigger`는 시작 단계 1이면 `regenerate`, 아니면 `rerun`이다. web에는 LLM 키와 브리핑 저장소 접속이 없고 worker는 한 번에 하나만 돌기 때문이다([[TBL-INFRA-002]] 4장).
+3. **당시 입력을 대기 행에 싣는다.** 기준 실행(`compareWith`, 없으면 그 기준일 게시본을 만든 실행, 없으면 그 기준일의 가장 최근 끝난 실행)의 `setting_version`과 `a_snapshot_id`를 옮겨 적는다. 기준이 없으면 최신 설정이고 저장소를 새로 읽는다.
+4. worker가 대기 행을 들어온 순서대로 집어 [[#PipelineRunner.run]]을 부른다. 설정은 대기 행의 버전으로 고정하고, A 판정은 그 스냅샷을 복사해 둔 mart 사본을 브리핑 저장소와 같은 모양으로 다시 읽는다. **그 기준일의 데이터 스냅샷, 당시 A 판정 스냅샷, 당시 설정 버전으로 돈다.** 시작을 거부당한 대기 행은 `failed`로 닫는다.
+5. `options.backfillMode`가 참이면 5단계까지만 채우고 LLM 세 역할을 생략하며 게시하지 않는다.
+6. 결과는 **새 버전이고 `is_published=false`**다.
+7. 정기 배치도 같은 대기열을 거친다. 재생성이 돌고 있으면 정기 배치는 그 뒤에서 기다린다([[TBL-UC-002#UC-A3]] 2a).
 
-**출력** `202 queued` 또는 `running`과 배치 실행 식별자.
+**출력** `202 queued`와 배치 실행 식별자, 앞에서 기다리는 실행(`queuedBehind`).
 
 **테스트 관점** 시작 단계 1(재생성)과 6(서술만)이 같은 호출로 갈리는지. 재실행 결과의 변동·후보·근접도·신호등이 당시와 전건 같고 설명·문장만 달라지는지. 재실행이 게시본을 덮지 않는지.
 
