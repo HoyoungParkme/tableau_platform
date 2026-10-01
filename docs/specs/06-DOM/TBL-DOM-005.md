@@ -488,7 +488,7 @@ classDiagram
 | [[#IngestFile]] | [[#IngestService]] | [[#RegressionChecker]] [[#BatchService]] |
 | [[#BatchRun]] | [[#PipelineRunner]] | [[#BatchService]] |
 
-"밖에서 온다"가 셋이고, 그것을 받는 경로가 둘이다. A 리포트와 그 판정과 기여는 브리핑 갈래가 소유하고 이 시스템은 읽어서 복사만 한다([[TBL-INFRA-002#C5]]). C 생성 경로는 [[#AJudgmentReader]]가 2단계에서 판정과 기여를 읽어 사본으로 둔다. 이 사본에 A가 쓴 문장은 담기지 않는다. A 리포트 열람 경로는 [[#BriefingStoreReader]]의 `read_report_document`가 문장·각주 근거·버전을 그대로 읽고 [[#ReportPublisher]]의 `publish_a_report`가 게시 사본으로 올린다. [[#DomainReportService]]는 그 사본만 읽는다([[TBL-INFRA-002#C10]] [[TBL-PRD-002#R2]]). 두 경로 모두 쓰기가 없다.
+"밖에서 온다"가 셋이고, 그것을 받는 경로가 둘이다. A 리포트의 글(요약·해설)과 트래킹 지표 판정·근거는 브리핑 갈래가 소유하고 이 시스템은 뷰 둘로 읽어서 복사만 한다([[TBL-INFRA-002#C5]]). 분해 블록·고정 문구·못 만드는 지표는 이 시스템이 만든다(유저 결정 2026-10-01). C 생성 경로는 [[#AJudgmentReader]]가 2단계에서 판정과 기여를 읽어 사본으로 둔다. 이 사본에 A가 쓴 문장은 담기지 않는다. A 리포트 열람 경로는 [[#BriefingStoreReader]]의 `read_report_document`가 문장·각주 근거·버전을 그대로 읽고 [[#ReportPublisher]]의 `publish_a_report`가 게시 사본으로 올린다. [[#DomainReportService]]는 그 사본만 읽는다([[TBL-INFRA-002#C10]] [[TBL-PRD-002#R2]]). 두 경로 모두 쓰기가 없다.
 
 [[#Evidence]]를 [[#ReportPublisher]]가 만들고 [[#ClaimWriter]]가 읽는 방향에 주의한다. 각주 번호를 코드가 먼저 매기고 모델이 그것을 받아 쓴다. 반대로 하면 없는 각주가 생긴다([[TBL-PRD-002#N4]]).
 
@@ -1427,7 +1427,7 @@ classDiagram
 | `validate_shape(payload) -> list` | `read` 안에서 | [[TBL-UC-002#UC-S2]] 2 | 없음 |
 | `fallback_to_supplementary(domain, base_date) -> list` | `read` 실패 시, 도메인별 | [[TBL-UC-002#UC-S2]] 1a·2a·5 | 없음 |
 
-규칙. `store`는 읽기 전용 포트다([[TBL-INFRA-002#C5]]). `read`는 도메인·국가·기간 키로 [[#DomainJudgment]]와 [[#Contribution]]을 읽고 A 리포트가 쓴 문장은 읽지 않는다. `copy_snapshot`은 읽은 것을 그대로 복사하고 스냅샷 식별자를 [[#BatchRun]]의 `a_snapshot_id`에 남긴다. 값을 다시 계산하지 않는다. C의 수치가 대시보드와 어긋나면 현업이 둘 다 믿지 않게 된다([[TBL-PRD-002#R2]]). 스냅샷을 복사해 두는 것은 재현 때문이다([[TBL-INFRA-002#C11]] [[TBL-PRD-002#N3]]). 읽기 실패가 배치를 멈추지 않는 유일한 코드 단계다. 보완 집계로 내려가고 리포트 `notices`에 판정 미수신을 적는다([[TBL-API-002#GET/api/intel/creport/latest]]). A1은 목적지 국가가 없어 보완으로도 국가 축을 만들 수 없으므로 공장 단위로 남는다([[TBL-UC-002#UC-S2]] 5a).
+규칙. `store`는 읽기 전용 포트다([[TBL-INFRA-002#C5]]). `read`는 뷰 `tbl_a_judgment`에서 도메인·국가·기간 키로 [[#DomainJudgment]]와 [[#Contribution]]을 읽고 A 리포트가 쓴 문장은 읽지 않는다. 브리핑 갈래가 축 판정을 만들기 전에는 이 뷰에 행이 없어 도메인 셋이 보완 집계로 간다(유저 결정 2026-10-01, 선택 항목). `copy_snapshot`은 읽은 것을 그대로 복사하고 스냅샷 식별자를 [[#BatchRun]]의 `a_snapshot_id`에 남긴다. 값을 다시 계산하지 않는다. C의 수치가 대시보드와 어긋나면 현업이 둘 다 믿지 않게 된다([[TBL-PRD-002#R2]]). 스냅샷을 복사해 두는 것은 재현 때문이다([[TBL-INFRA-002#C11]] [[TBL-PRD-002#N3]]). 읽기 실패가 배치를 멈추지 않는 유일한 코드 단계다. 보완 집계로 내려가고 리포트 `notices`에 판정 미수신을 적는다([[TBL-API-002#GET/api/intel/creport/latest]]). A1은 목적지 국가가 없어 보완으로도 국가 축을 만들 수 없으므로 공장 단위로 남는다([[TBL-UC-002#UC-S2]] 5a).
 
 #### EventClusterer 사건 묶음기
 
@@ -1790,6 +1790,7 @@ classDiagram
     +number_evidence(anomalies, candidates) list
     +publish(batch_run, base_date) CReport
     +publish_a_report(domain, document) str
+    +build_domain_blocks(domain, base_date) dict
     +diff_watchlist(current, previous) list
     +copy_display_values(evidence) None
     -next_version(base_date) int
@@ -1808,11 +1809,12 @@ classDiagram
 | `number_evidence(anomalies, candidates) -> list` | [[#PipelineRunner]] 8단계 맨 앞 | [[TBL-UC-002#UC-S8]] 1 | `stage-failed` |
 | `publish(batch_run, base_date) -> CReport` | [[#PipelineRunner]] 8단계 끝 | [[TBL-UC-002#UC-S8]] 4, [[TBL-UC-002#UC-S1]] 8 | `stage-failed` |
 | `publish_a_report(domain, document) -> str` | [[#PipelineRunner]] 8단계 끝, 도메인 셋 | [[TBL-UC-002#UC-S1]] 8·8b | 없음. 실패면 사본만 미수신 |
+| `build_domain_blocks(domain, base_date) -> dict` | `publish_a_report` 안에서 | [[TBL-UC-002#UC-H1]] 2 | 없음. 못 만든 블록은 빈 칸 |
 | `diff_watchlist(current, previous) -> list` | `publish` 안에서, [[#BatchService]] `publish_version` | [[TBL-UC-002#UC-S9]] 1~2·1a·1b | 없음 |
 | `copy_display_values(evidence) -> None` | `number_evidence` 안에서 | [[TBL-UC-002#UC-H3]] 3 | 없음 |
 | `next_version(base_date) -> int` | `publish` 안에서만 | [[TBL-UC-002#UC-A3]] 4 | 없음 |
 
-규칙. `number_evidence`는 8단계 맨 앞에서 돌아 [[#Evidence]] 번호를 먼저 매긴다. 번호 매기기가 문장 쓰기보다 먼저 도는 순서가 이 클래스의 계약이다. `publish`는 [[#CReport]] 한 버전을 만든다. 도메인 상태 3카드를 채우는 것도 이 메서드이며 값은 [[#TrafficLightJudge]]의 `build_domain_status` 산출물을 그대로 옮기고 문장만 [[#ClaimWriter]]에게서 받는다. 소스별 최신일 셋과 `notices`와 `candidate_sort_rule`도 여기서 채운다. `publish_a_report`는 브리핑 갈래가 게시한 A 리포트를 문장·각주 근거·버전까지 받아 [[#DomainReport]] 사본으로 올린다. 열람 경로는 게시 스키마만 보므로([[TBL-INFRA-002#C10]]) 사본이 있어야 A 리포트 화면이 원본 저장소를 보지 않는다. 이 사본은 C 생성에 쓰지 않는다. `diff_watchlist`는 직전 게시본과 국가별 신호등을 비교해 [[#AlertEvent]]를 만들고 변화 배지를 붙인다. 첫 게시면 전부 신규, 같으면 남기지 않는다([[TBL-PRD-002#R24]]). `copy_display_values`는 표시용 값을 근거 행에 복사해 열람 시 조인을 없앤다([[TBL-PRD-002#N5]] [[TBL-INFRA-002#C9]]). 재생성이 기존 게시본을 덮지 않는다. 항상 새 버전이고 게시 전환은 사람이 누른다([[TBL-PRD-002#R18]]). 백필 모드면 이 클래스를 부르지 않는다.
+규칙. `number_evidence`는 8단계 맨 앞에서 돌아 [[#Evidence]] 번호를 먼저 매긴다. 번호 매기기가 문장 쓰기보다 먼저 도는 순서가 이 클래스의 계약이다. `publish`는 [[#CReport]] 한 버전을 만든다. 도메인 상태 3카드를 채우는 것도 이 메서드이며 값은 [[#TrafficLightJudge]]의 `build_domain_status` 산출물을 그대로 옮기고 문장만 [[#ClaimWriter]]에게서 받는다. 소스별 최신일 셋과 `notices`와 `candidate_sort_rule`도 여기서 채운다. `publish_a_report`는 브리핑 갈래가 게시한 A 리포트(뷰 `tbl_a_report`)의 글·트래킹 지표·판정·근거·버전에, `build_domain_blocks`가 이 시스템 데이터로 만든 분해 블록과 고정 문구·못 만드는 지표·제약 경고를 더해 [[#DomainReport]] 사본으로 올린다. `build_domain_blocks`는 `mart`의 단계 흐름·결합 행과 `std`의 표준 행으로 도메인 블록(법인별 달성률, 단계별 흐름, 국가별 체류, 차종 분해, 구성 비율)을 만든다. C 리포트가 쓰는 것과 같은 계산이고 LLM이 없다(유저 결정 2026-10-01). 열람 경로는 게시 스키마만 보므로([[TBL-INFRA-002#C10]]) 사본이 있어야 A 리포트 화면이 원본 저장소를 보지 않는다. 이 사본은 C 생성에 쓰지 않는다. `diff_watchlist`는 직전 게시본과 국가별 신호등을 비교해 [[#AlertEvent]]를 만들고 변화 배지를 붙인다. 첫 게시면 전부 신규, 같으면 남기지 않는다([[TBL-PRD-002#R24]]). `copy_display_values`는 표시용 값을 근거 행에 복사해 열람 시 조인을 없앤다([[TBL-PRD-002#N5]] [[TBL-INFRA-002#C9]]). 재생성이 기존 게시본을 덮지 않는다. 항상 새 버전이고 게시 전환은 사람이 누른다([[TBL-PRD-002#R18]]). 백필 모드면 이 클래스를 부르지 않는다.
 
 #### CReportService C 리포트 조회
 
@@ -2023,7 +2025,7 @@ classDiagram
 | `snapshot_id(base_date) -> str` | [[#AJudgmentReader]] `copy_snapshot` | [[TBL-UC-002#UC-S2]] 6 | `store-unreachable` |
 | `ping() -> bool` | [[#PipelineRunner]] 2단계 앞, [[TBL-API-002#GET/api/admin/batch/status]] | [[TBL-UC-002#UC-S2]] 1·1a | 없음 |
 
-규칙. `BriefingStorePort`의 구현체이고 `dsn`은 읽기 전용 계정의 접속 문자열이다. 쓰기 메서드를 두지 않는다. 계정 권한으로도 막지만 클래스에도 쓰기 메서드가 없어야 실수할 자리가 없다([[TBL-INFRA-002#C5]]). 판정 읽기와 본문 읽기를 메서드로 갈라 둔 이유는 두 경로의 쓰임이 다르기 때문이다. 판정은 C의 변동 판정에 들어가고 문장이 섞이면 안 된다. 본문은 A 리포트 화면에 그대로 나가야 하므로 문장까지 필요하다. 한 메서드로 합치면 C 생성 쪽이 문장을 받게 되고, 그것을 쓰지 않는다는 규칙이 코드에서 보이지 않는다. 접근 방식이 아직 정해지지 않았다. 같은 DB인지 별도 인스턴스인지, 읽기 계정을 어떻게 받는지가 미결이다. 그래서 포트로 감싸 두고 실패하면 보완 집계로 내려가는 경로를 [[#AJudgmentReader]]에 두었다.
+규칙. `BriefingStorePort`의 구현체이고 `dsn`은 읽기 전용 계정의 접속 문자열이다. 쓰기 메서드를 두지 않는다. 계정 권한으로도 막지만 클래스에도 쓰기 메서드가 없어야 실수할 자리가 없다([[TBL-INFRA-002#C5]]). 판정 읽기와 본문 읽기를 메서드로 갈라 둔 이유는 두 경로의 쓰임이 다르기 때문이다. 판정은 C의 변동 판정에 들어가고 문장이 섞이면 안 된다. 본문은 A 리포트 화면에 그대로 나가야 하므로 문장까지 필요하다. 한 메서드로 합치면 C 생성 쪽이 문장을 받게 되고, 그것을 쓰지 않는다는 규칙이 코드에서 보이지 않는다. 접근 방식은 정해졌다(유저 결정 2026-10-01). 브리핑 갈래의 PostgreSQL(별도 인스턴스)에 읽기 전용 계정 `intel_reader`로 붙어 뷰 둘(`tbl_a_judgment` `tbl_a_report`)만 읽는다. 뷰 모양은 design/briefing_interface.md다. 포트로 감싸 두고 실패하면 보완 집계로 내려가는 경로는 그대로 [[#AJudgmentReader]]에 둔다.
 
 ### 4.7 계층 경계
 
@@ -2059,9 +2061,9 @@ LLM이 꺼져도 같아야 하는 것 다섯. 변동 목록, 원인 후보 목�
 - [x] [[#FormALedgerParser]]가 대조할 실제 컬럼 목록. 실물 원장(현대차 데이터_0910.xlsx)과 IF 레이아웃 정의가 같다. 생산 16열, 판매·재고 22열이다(2026-09-30)
 - [ ] [[#FormBPivotParser]]의 `detect_file_base_date`가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다([[TBL-INFRA-002#C15]])
 - [ ] 피벗 리포트 총계 행이 무엇의 합인지. [[#FormBPivotParser]]는 분리 보관과 대조까지만 한다
-- [ ] [[#AJudgmentReader]]가 읽을 스냅샷의 실제 키와 필드. 이것이 정해져야 `validate_shape`의 대조 목록과 [[#DomainJudgment]]·[[#Contribution]]의 속성이 확정된다
-- [ ] [[#BriefingStoreReader]]의 접속 방식. 같은 DB인지 별도 인스턴스인지, 읽기 계정을 어떻게 받는지
-- [ ] [[#BriefingStoreReader]]의 `read_report_document`가 읽을 A 리포트 문서의 실제 키와 필드. [[#DomainReport]] 사본 속성과 1:1로 맞춰야 한다
+- [x] [[#AJudgmentReader]]가 읽을 스냅샷의 실제 키와 필드. 뷰 `tbl_a_judgment`의 칸으로 정했다(유저 결정 2026-10-01). 속성은 그대로이고 브리핑 갈래가 축 판정을 만들기 전에는 0행이다
+- [x] [[#BriefingStoreReader]]의 접속 방식. 별도 인스턴스, 읽기 전용 계정 `intel_reader`, 뷰 둘(유저 결정 2026-10-01)
+- [x] [[#BriefingStoreReader]]의 `read_report_document`가 읽을 A 리포트 문서의 실제 키와 필드. 뷰 `tbl_a_report`의 칸으로 정했다. 글·트래킹 지표·판정·근거·버전은 뷰에서, 분해 블록과 고정 문구·못 만드는 지표·제약 경고·데이터 형태는 [[#ReportPublisher]]가 채운다(유저 결정 2026-10-01)
 - [ ] [[#HChatClient]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 회신은 받았으나 실호출 확인 범위가 좁다
 - [ ] [[#ProximityCalculator]]의 `day_diff`를 기간 구분에 따라 보정할지. 누계·년 변동은 후보가 구조적으로 멀어 보인다. 지금은 보정하지 않고 화면에 기간 구분을 적는 것으로 둔다
 - [x] [[#TrafficLightJudge]]의 임계값. 현업 검토 전 기본값을 설정 초기 행 v1로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣는다
