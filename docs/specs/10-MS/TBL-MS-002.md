@@ -28,7 +28,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 ## 1. 함수 목록
 
-함수는 110개이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-005]] 1장을 그대로 따른다.
+함수는 111개이고 이 문서의 항목 수와 같다. 계층 다섯과 단계 여덟은 [[TBL-DOM-005]] 1장을 그대로 따른다.
 
 | 계층 | 클래스 | 함수 | 단계 |
 |:--|:--|:--|:--|
@@ -52,7 +52,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 | 서술 | [[TBL-DOM-005#ClaimWriter]] | `write_headline` `write_domain_status` `write_card` | 8 |
 | 서술 | [[TBL-DOM-005#CitationVerifier]] | `verify_cause_link` `verify_claim` `out_of_scope_ids` `has_forbidden_words` | 7~8 |
 | 서술 | [[TBL-DOM-005#DegradeHandler]] | `degrade` `fill_template` `degraded_roles` | 6~8 |
-| 게시 | [[TBL-DOM-005#ReportPublisher]] | `number_evidence` `publish` `publish_a_report` `diff_watchlist` `copy_display_values` | 8 |
+| 게시 | [[TBL-DOM-005#ReportPublisher]] | `number_evidence` `publish` `publish_a_report` `build_domain_blocks` `diff_watchlist` `copy_display_values` | 8 |
 | 열람 | [[TBL-DOM-005#CReportService]] | `get_latest` `get_by_id` | 없음 |
 | 열람 | [[TBL-DOM-005#DomainReportService]] | `get_latest_by_domain` `get_by_id` `list_versions` `build_domain_extra` `list_missing_metrics` `render_pdf` | 없음 |
 | 열람 | [[TBL-DOM-005#MarketService]] | `get_series` `as_of` `is_carried_over` | 4에서도 쓴다 |
@@ -412,7 +412,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **처리**
 1. [[#BriefingStoreReader.ping]]으로 저장소에 붙는지 먼저 본다. 거짓이면 셋 모두 [[#AJudgmentReader.fallback_to_supplementary]]로 내려가고 여기서 끝낸다.
-2. [[#BriefingStoreReader.read_judgments]]로 `production` `inventory` `sales` 셋을 차례로 읽는다. 읽는 중에 접속이 끊겨도 같은 자리로 내려간다.
+2. [[#BriefingStoreReader.read_judgments]]로 `production` `inventory` `sales` 셋을 차례로 읽는다. 읽는 중에 접속이 끊겨도 같은 자리로 내려간다. 뷰 `tbl_a_judgment`에 그 도메인 행이 없으면(브리핑 갈래가 축 판정을 만들기 전) 미수신으로 보고 보완 집계로 간다(유저 결정 2026-10-01).
 3. 읽은 payload마다 [[#AJudgmentReader.validate_shape]]. 어긋나면 그 도메인만 보완 집계로 내려간다.
 4. 정상이면 [[#BriefingStoreReader.read_contributions]]로 기여 상위 항목을 함께 읽는다. **A 리포트가 쓴 문장은 읽지 않는다.**
 5. [[#AJudgmentReader.copy_snapshot]].
@@ -440,7 +440,7 @@ upstream: [TBL-SEQ-002, TBL-DOM-005, TBL-DOM-006, TBL-API-002, TBL-INFRA-002, TB
 
 **시그니처** `validate_shape(payload: dict) -> list[str]`
 
-**처리** 기대한 키와 필드가 있는지 보고 **어긋난 목록**을 돌려준다. 빈 목록이면 통과다. 예외를 던지지 않는다. 대조 목록은 브리핑 갈래가 무엇을 어떤 키로 내주는지가 정해져야 확정된다(미결).
+**처리** 기대한 키와 필드가 있는지 보고 **어긋난 목록**을 돌려준다. 빈 목록이면 통과다. 예외를 던지지 않는다. 대조 목록은 뷰 `tbl_a_judgment`의 칸이다(design/briefing_interface.md). 필수 `judgment_id` `domain` `axis_type` `country_or_plant` `metric` `period_type` `file_base_date` `current_value` `compare_basis` `is_anomaly`, 열거 `axis_type`(country·plant) `period_type`(day·month·cumulative·year) `compare_basis`(plan·yoy·mom), 생산은 `plant` 축만.
 
 **테스트 관점** 키 하나를 지운 payload에서 그 키 이름이 목록에 나오는지. 목록이 비지 않으면 그 도메인만 보완 집계로 내려가고 나머지 둘은 정상 경로로 가는지.
 
@@ -1145,13 +1145,13 @@ marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지�
 
 **시그니처** `publish_a_report(domain: str, document: dict) -> str`
 
-**입력** [[#BriefingStoreReader.read_report_document]]가 통째로 읽어 온 A 리포트 한 건. 제목·범위·출처 표기·대시보드 식별자·출처 스냅샷 시각·데이터 형태·요약·해설·고정 문구·트래킹 지표·판정 목록·분해·못 만드는 지표·제약 안내·각주 근거·버전 번호·게시 시각이 다 들어 있다. 판정 목록이 비면 빈 배열로 넣는다. 이 칸의 정본은 `mart`의 판정과 기여이고 여기 담기는 것은 A 리포트 화면이 읽는 사본이다. **C 생성은 이 칸을 읽지 않는다.**
+**입력** [[#BriefingStoreReader.read_report_document]]가 뷰 `tbl_a_report`에서 읽어 온 A 리포트 한 건(대시보드 식별자·이름, 스냅샷 식별자, 요약, 해설, 트래킹 지표, 판정 목록, 각주 근거, 버전 번호, 게시 시각, 강등 여부)과 [[#ReportPublisher.build_domain_blocks]]가 만든 분해 블록. 고정 문구·못 만드는 지표·제약 경고·데이터 형태는 이 시스템의 고정표와 적재 이력에서 채운다(유저 결정 2026-10-01). 판정 목록이 비면 빈 배열로 넣는다. 이 칸의 정본은 `mart`의 판정과 기여이고 여기 담기는 것은 A 리포트 화면이 읽는 사본이다. **C 생성은 이 칸을 읽지 않는다.**
 
 **처리**
 1. [[TBL-DOM-006#a_report_snapshot]]에 한 행을 넣는다. 유일 제약이 `(domain, base_date, published_version)`이라 같은 버전을 두 번 받아도 한 행이다.
 2. 각주 근거를 [[TBL-DOM-006#a_report_evidence]]에 `number` 순으로 넣는다. 근거가 0건이어도 스냅샷은 성립한다.
 3. `base_date` `batch_run_id` `copied_at`을 남긴다. 원본이 나중에 바뀌어도 그날 화면은 이 사본을 읽는다.
-4. **문장을 새로 쓰거나 고치지 않는다. 받은 글자를 그대로 옮긴다.**
+4. **문장을 새로 쓰거나 고치지 않는다. 받은 글자를 그대로 옮긴다.** 고정 문구는 LLM 없는 고정표에 설정 값을 채운 이 시스템의 글이다.
 
 **출력** `a_report_snapshot_id`. 읽어 온 문서가 없으면 아무것도 넣지 않고 빈 문자열을 돌려준다.
 
@@ -1159,9 +1159,27 @@ marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지�
 
 **이 사본은 [[#AJudgmentReader.copy_snapshot]]이 만드는 판정 사본과 다른 테이블이다.** 판정 사본([[TBL-DOM-006#a_judgment]] [[TBL-DOM-006#a_contribution]])은 C 리포트를 만들려고 두는 것이라 문장을 담지 않는다. 이 사본은 A 리포트 화면이 그대로 다시 뿌리려고 두는 것이라 문장을 담는다. 두 길은 섞이지 않는다.
 
-**테스트 관점** 사본의 요약·해설 글자가 브리핑 갈래 원본과 한 글자도 다르지 않은지. 같은 버전을 두 번 올려도 행이 하나인지. [[TBL-DOM-006#a_judgment]]에 문장 컬럼이 0개인지. 사본이 있는 도메인의 화면 조회에 `mart` 접근이 0회인지.
+**테스트 관점** 사본의 요약·해설 글자가 브리핑 갈래 원본과 한 글자도 다르지 않은지. 분해 블록 값이 같은 기준일 C 리포트의 단계 흐름·달성률과 같은지. 같은 버전을 두 번 올려도 행이 하나인지. [[TBL-DOM-006#a_judgment]]에 문장 컬럼이 0개인지. 사본이 있는 도메인의 화면 조회에 `mart` 접근이 0회인지.
 
 근거: [[TBL-INFRA-002#C10]] · [[TBL-UI-002#UI-2]] · [[TBL-SEQ-002#SEQ-2]]
+
+#### ReportPublisher.build_domain_blocks 도메인 분해 블록
+
+**시그니처** `build_domain_blocks(domain: str, base_date: date) -> dict`
+
+**처리** A 리포트 화면의 표와 막대를 이 시스템 데이터로 만든다(유저 결정 2026-10-01). 브리핑 갈래에는 차원별 값이 없다. 값은 그 기준일을 판정한 실행의 `mart`와 `std`에서 꺼내며 C 리포트가 쓰는 것과 같은 계산이다. LLM을 부르지 않는다.
+- `production`: 누적 사업계획·실적·달성률(계획 정본은 설정), 다른 계획과의 차이(`planAlternativeDiff`), 법인별 달성률([[#FactJoiner.join]]의 공장 축 집계와 같은 집계), 완성차·반조립 비중과 내수·수출 비중(표준 행의 구분 칸 합).
+- `inventory`: 미주 도매 누계·소매 누계·격차·격차율([[TBL-DOM-006#sales_stage_flow]] 합), `derivationType`(흐름 행의 `derivation`), 국가별 체류(딜러 구간 비율 내림차순), 재고 회전 상태는 원천이 없어 `unstable`, 자리 지표는 고정표.
+- `sales`: 단계별 흐름(네 계열과 두 구간의 합, 도매 정본과 대체 차이), 국가별 흐름(`countryFlows`. 열람이 부호로 쌓이는 쪽과 덜어내는 쪽으로 나눈다), 격차가 가장 큰 국가의 차종그룹 분해(표준 행을 차종그룹으로 집계한 도매·소매·격차 상위).
+블록 키 이름은 [[TBL-API-002]] 4장 ProductionExtra·InventoryExtra·SalesExtra를 그대로 쓴다. 재료가 없는 블록은 빈 칸으로 두고 예외를 내지 않는다.
+
+**출력** `{blocks, dimensions, measureComposition}`. `dimensions`는 분해 차원과 값 개수(표준 행에서 센다), `measureComposition`은 적재 이력의 형태와 기간 구분으로 만든 글이다.
+
+**예외** 없다. 판정 실행이 없으면 빈 dict다.
+
+**테스트 관점** 같은 기준일 C 리포트의 단계 흐름·법인별 달성률과 블록 값이 소수점까지 같은지. 재료가 없는 도메인에서 예외 없이 빈 블록이 나오는지. 이 함수가 H-chat을 부르지 않는지. 브리핑 갈래 문서가 없을 때는 불리지 않는지(사본이 없으면 블록도 없다).
+
+근거: [[TBL-PRD-002#R1]] · [[TBL-UC-002#UC-H1]] 2 · [[TBL-SEQ-002#SEQ-11]] · [[TBL-API-002]] 4장
 
 #### ReportPublisher.diff_watchlist 워치리스트 변화 비교
 
@@ -1243,7 +1261,7 @@ marketCarriedOver     is_carried_over가 참인 지표마다 한 건 (시장지�
 
 **처리** 도메인마다 다른 블록을 만든다. A1은 법인·공장·차종 분해, A2는 단계별 흐름 유도값과 유도 표기, A3는 단계별 흐름과 계획 대비 진도율·전년 동월 대비다. **값은 전부 [[TBL-DOM-006#a_report_snapshot]]의 `breakdowns` 사본에서 꺼낸다. `mart`와 `std`를 한 번도 읽지 않는다**([[TBL-INFRA-002#C10]]). [[#DomainReportService.get_latest_by_domain]]과 같은 계약이다.
 
-단계 흐름 값이 사본에 실려 있어야 하므로 브리핑 갈래가 내주는 `breakdowns`에는 네 계열(선적·실 도매·도매(공식)·소매)과 두 구간(`entityStageGap` 법인 구간 · `dealerStageGap` 딜러 구간)이 들어온다. 이 시스템은 그 값을 그대로 옮기고 여기서 다시 빼거나 더하지 않는다.
+단계 흐름 값이 사본에 실려 있어야 하므로 [[#ReportPublisher.build_domain_blocks]]가 게시 때 네 계열(선적·실 도매·도매(공식)·소매)과 두 구간(`entityStageGap` 법인 구간 · `dealerStageGap` 딜러 구간)을 `blocks`에 넣는다. 열람은 그 값을 그대로 옮기고 여기서 다시 빼거나 더하지 않는다(유저 결정 2026-10-01).
 
 **테스트 관점** A2 응답에 유도값임이 표시되는지. A3의 트래킹 지표 셋이 A1과 다른지. 이 함수가 도는 동안 `mart`·`std` 조회가 0회인지. 사본의 `breakdowns`에 네 계열과 두 구간이 다 들어 있는지(하나라도 비면 단계별 흐름 블록이 빈 칸으로 나간다).
 
@@ -1488,7 +1506,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `read_judgments(base_date: date, domain: str) -> list[dict]`
 
-**처리** 읽기 전용 계정으로 도메인·국가·기간 키 판정을 읽는다. **쓰기 메서드를 두지 않는다.** 접속 실패면 예외를 올리고 [[#AJudgmentReader.read]]가 보완 집계로 내려간다. 반환 모양은 브리핑 갈래가 정하며 아직 미결이다.
+**처리** 읽기 전용 계정 `intel_reader`로 뷰 `tbl_a_judgment`에서 그 기준일·도메인의 최신 게시 버전 행을 읽는다. 기여는 행의 `contributions` jsonb에 실려 온다. **쓰기 메서드를 두지 않는다.** 접속 실패면 예외를 올리고 [[#AJudgmentReader.read]]가 보완 집계로 내려간다. 반환 모양은 뷰 칸 그대로다(design/briefing_interface.md). 브리핑 갈래가 축 판정을 만들기 전에는 빈 목록이다.
 
 **테스트 관점** 클래스에 쓰기 계열 메서드가 없는지(코드 검사). 계정 권한으로도 막혀 있는지.
 
@@ -1498,7 +1516,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `read_contributions(judgment_id: str) -> list[dict]`
 
-**처리** 그 판정의 기여 상위 항목(차원, 항목명, 기여값, 자리)을 읽는다. **A 리포트가 쓴 문장은 읽지 않는다.**
+**처리** 그 판정 행의 `contributions`(차원, 항목명, 항목 코드, 기여값, 비중, 자리)를 돌려준다. 별도 조회가 아니라 [[#BriefingStoreReader.read_judgments]]가 읽은 행에서 꺼낸다. **A 리포트가 쓴 문장은 읽지 않는다.**
 
 **테스트 관점** 반환에 문장 필드가 섞이지 않는지. 기여 자리 번호가 기여값 내림차순이 낳은 것인지.
 
@@ -1508,15 +1526,15 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `read_report_document(base_date: date, domain: str) -> dict | None`
 
-**처리** 브리핑 갈래가 게시한 A 리포트 한 건을 **문장·각주 근거·버전 번호·게시 시각까지 통째로** 읽는다. 읽기 전용 계정이고 쓰기 메서드를 두지 않는다. 그 기준일 게시본이 없으면 `None`.
+**처리** 뷰 `tbl_a_report`에서 그 기준일·도메인의 최신 게시 버전 한 건을 **요약·해설·트래킹 지표·판정·각주 근거·버전 번호·게시 시각까지 통째로** 읽는다. 읽기 전용 계정이고 쓰기 메서드를 두지 않는다. 그 기준일 게시본이 없으면 `None`.
 
-**출력** 반환 키는 [[TBL-DOM-006#a_report_snapshot]]과 [[TBL-DOM-006#a_report_evidence]]의 컬럼과 1대1이다. 제목·범위 표기·출처 표기·대시보드 식별자·출처 스냅샷 시각·데이터 형태(`A` 또는 `B`)·요약·해설·고정 문구·트래킹 지표·판정 목록·분해·못 만드는 지표·제약 안내·강등 여부·버전 번호·게시 시각, 그리고 각주 근거 목록(`number` `kind` `source_id` `display_value`). 판정 목록(`judgments`)은 NOT NULL이라 비어도 키가 빠지지 않고 빈 배열로 온다. 제약 안내(`constraint_warnings`)는 코드와 문구 쌍이고 없으면 `None`이다. 대시보드 식별자·데이터 형태·제약 안내는 값이 없을 수 있으나 키는 늘 있다.
+**출력** 반환 키는 뷰 `tbl_a_report`의 칸이다(design/briefing_interface.md). `snapshot_id` `domain` `dashboard_id` `dashboard_name` `base_date` `published_version` `published_at` `is_degraded` `summary` `commentary` `tracking_metrics` `judgments` `evidence`. 판정 목록은 비어도 빈 배열이고, 각주 근거는 `number` `kind` `source_id` `display_value`다. 제목·범위 표기·고정 문구·못 만드는 지표·제약 안내·데이터 형태·분해 블록은 뷰에 없고 [[#ReportPublisher.publish_a_report]]가 이 시스템 쪽에서 채운다(유저 결정 2026-10-01).
 
 **이 함수와 [[#BriefingStoreReader.read_judgments]]는 쓰임이 다르다.** 판정 읽기는 C 리포트를 만들려고 **판정만** 가져오는 길이라 A가 쓴 문장을 읽지 않는다. 이 함수는 A 리포트 화면에 그대로 다시 뿌리려고 사본을 뜨는 길이라 문장을 가져온다. **가져온 문장은 C의 서술에 쓰지 않는다.**
 
 **예외** 접속 실패면 예외를 올린다. [[#ReportPublisher.publish]]는 그 도메인 사본만 건너뛰고 배치를 이어 간다.
 
-**테스트 관점** 반환 키가 [[TBL-DOM-006#a_report_snapshot]] 컬럼과 빠짐없이 맞는지(하나만 어긋나도 사본이 빈 칸으로 게시된다). `dashboard_id` `data_form` `tracking_metrics` `constraint_warnings`가 반환에 다 있는지. C 리포트 문장에 이 함수가 가져온 문장이 인용으로 들어가지 않는지(문자열 대조, 동일 비율 0%). 클래스에 쓰기 계열 메서드가 없는지.
+**테스트 관점** 반환 키가 뷰 칸과 빠짐없이 맞는지(하나만 어긋나도 사본이 빈 칸으로 게시된다). `dashboard_id` `tracking_metrics` `judgments` `evidence`가 반환에 다 있는지. C 리포트 문장에 이 함수가 가져온 문장이 인용으로 들어가지 않는지(문자열 대조, 동일 비율 0%). 클래스에 쓰기 계열 메서드가 없는지.
 
 근거: [[TBL-INFRA-002#C5]] · [[TBL-INFRA-002#C10]] · [[TBL-SEQ-002#SEQ-2]] · [[TBL-UI-002#UI-2]]
 
@@ -1524,7 +1542,7 @@ A3 판매  globalCountryByModel                                                 
 
 **시그니처** `snapshot_id(base_date: date) -> str`
 
-**처리** 그 기준일 스냅샷의 식별자를 돌려준다. 재생성 때 같은 입력을 다시 쓰기 위한 열쇠다.
+**처리** 그 기준일 도메인 셋의 `snapshot_id`(`{view_luid}:{generation}`)를 도메인 순으로 `|`로 이어 돌려준다. 한 도메인이 없으면 그 자리는 비운다. 재생성 때 같은 입력을 다시 쓰기 위한 열쇠다.
 
 **테스트 관점** 같은 기준일을 두 번 불러 같은 값이 나오는지. 이 값이 [[TBL-DOM-006#anomaly]]와 [[TBL-DOM-006#batch_run]]에 남는지.
 
@@ -1551,10 +1569,10 @@ A3 판매  globalCountryByModel                                                 
 - [x] [[#TrafficLightJudge.judge]]의 임계값. 현업 검토 전 기본값을 설정 초기 행 v1로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣는다
 - [ ] [[#TrafficLightJudge.build_watch_items]]의 2차·3차 정렬 열쇠. 이 문서는 `대표 후보 날짜 차이 → 국가 코드`로 두었으나 상위 문서에 확정 문장이 없다
 - [ ] [[#ProximityCalculator.day_diff]]를 기간 구분에 따라 보정할지. 누계·년 변동은 후보가 구조적으로 멀어 보인다. 지금은 보정하지 않고 화면에 기간 구분을 적는 것으로 둔다
-- [ ] [[#BriefingStoreReader.read_judgments]]의 반환 키와 필드. 정해져야 [[#AJudgmentReader.validate_shape]]의 대조 목록이 확정된다
+- [x] [[#BriefingStoreReader.read_judgments]]의 반환 키와 필드. 뷰 `tbl_a_judgment`의 칸으로 정했고 [[#AJudgmentReader.validate_shape]]의 대조 목록을 적었다(유저 결정 2026-10-01)
 - [x] [[#FormALedgerParser.check_columns]]가 대조할 실제 컬럼 목록. 실물 원장과 IF 레이아웃 정의가 같다(생산 16열, 판매·재고 22열, 2026-09-30)
 - [ ] [[#FormBPivotParser.detect_file_base_date]]가 파일 안에서 기준일을 읽을 수 있는지. 못 읽으면 관리자 입력이 필수가 된다
 - [ ] [[#HChatClient.complete]]의 JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 것은 가정이며 실호출 확인 범위가 좁다. 지원되지 않으면 세 역할의 검증 단계가 늘어난다
-- [ ] [[#DomainReportService.get_latest_by_domain]]에서 사본이 없을 때 판정값과 차트를 `pub` 어디서 읽는가. 판정 사본은 `mart`에만 있다([[TBL-SEQ-002]] 8장)
+- [x] [[#DomainReportService.get_latest_by_domain]]에서 사본이 없을 때 판정값과 차트를 어디서 읽는가. 읽지 않는다. 문장 미수신만 보인다. 분해 블록은 게시 때 사본에 함께 넣으므로 사본이 있으면 늘 있다(유저 결정 2026-10-01)
 - [ ] 설정 변경 경로. [[TBL-DOM-006#threshold_setting]] 새 버전 행을 SQL로 넣을지 CLI를 만들지. 정해지면 함수가 하나 는다
 - [ ] 현업 피드백("맞다·아니다·모르겠다") 저장 함수. 화면에 넣을지가 미결이라 이 문서에도 두지 않았다([[TBL-PRD-002#R19]]). 피드백은 사번이 필요한데 열람은 화면 단위 서명 주소라 개인을 식별하지 않는다(2026-09-30)
