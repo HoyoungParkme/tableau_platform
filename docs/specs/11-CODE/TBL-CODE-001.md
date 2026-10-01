@@ -12,7 +12,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 
 [[TBL-MS-002]]의 함수 111개를 어떤 순서로 어떤 묶음으로 만들고, 묶음마다 무엇으로 끝났다고 볼지를 정한다. 묶음을 슬라이스라 부른다. 슬라이스 하나는 시나리오 하나 또는 배치 단계 하나가 끝에서 끝까지 도는 단위이고, 카드의 구현 함수 칸이 [[TBL-MS-002]] 항목을 빠짐없이 가리킨다. 함수 하나가 두 슬라이스에 걸리지 않는다.
 
-슬라이스는 열여섯이다. A 기반 하나, B 적재·마스터 둘, C 판정 다섯, D 서술 셋, E 열람·관리 다섯이다. 순서가 곧 의존이다. 판정 다섯(C1~C5)이 서술 셋(D1~D3)보다 먼저 끝나고, C5가 끝나면 LLM 없이 배치 1~5단계가 돌아 판정이 전부 나온다. 이것이 [[TBL-INFRA-002#C19]]를 구현 순서로 옮긴 것이다. 서술 슬라이스는 그 위에 얹히고, 셋을 전부 빼도 C5까지의 산출물이 그대로 게시되도록 D3가 만든다.
+슬라이스는 열아홉이다. A 기반 하나, B 적재·마스터 둘, C 판정 다섯, D 서술 셋, E 열람·관리 다섯, F Nabi Agent 이식 셋이다. 순서가 곧 의존이다. 판정 다섯(C1~C5)이 서술 셋(D1~D3)보다 먼저 끝나고, C5가 끝나면 LLM 없이 배치 1~5단계가 돌아 판정이 전부 나온다. 이것이 [[TBL-INFRA-002#C19]]를 구현 순서로 옮긴 것이다. 서술 슬라이스는 그 위에 얹히고, 셋을 전부 빼도 C5까지의 산출물이 그대로 게시되도록 D3가 만든다.
 
 코드 구조는 [[TBL-DOM-005]] 1장 폴더 구조를 그대로 따른다. 호출 방향은 `router → service → crud`, 화면은 `pages → api → 서버` 한 방향이다. 커밋과 PR에 에이전트 표시를 남기지 않는다(공통 규약 1.10). 커밋 메시지의 첫 줄에 슬라이스 ID를 적는다(`B1: 형태 판별과 적재`).
 
@@ -221,7 +221,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 화면 | 없음 |
 | 테스트 | 허용 목록 밖 404 · 세션 없음 401 · 관리 경로 일반 사용자 403 · 쿼리 `token`은 세션 없이 통과 · 발급한 `X-Admin-Session`을 이 시스템 `require_admin`이 받는지(같은 비밀로 복호화) · PDF 응답 머리글(content-disposition·cache-control) 보존 · 접속점 비면 503 |
 | 선행 | E4 · E5 |
-| 완료 | 아직 없음 |
+| 완료 | 커밋 822c8f2(게이트웨이) · edd6314(이 시스템 열람 의존성) · PR 없음 · 2026-10-01. Nabi Agent `domains/intel_gateway/{service,router}.py`: 허용 목록(`intel/` `admin/`) → 세션 분기 → `X-Admin-Session` 발급(itsdangerous, salt `admin-session`, sub=로그인 사용자) → httpx 대리 호출 → 응답 머리글 셋(content-type·content-disposition·cache-control) 보존. 설정 `INTEL_BASE_URL` `INTEL_ADMIN_SESSION_SECRET`(비면 503). 시험 8건(MockTransport). **"이 시스템 코드 변경 없음"은 지키지 못했다.** 실행 점검에서 로그인 사용자의 열람 호출이 전부 401이었다. 이 시스템 열람 라우터 다섯(`creport/latest` `market/series` `areport/domain` `areport/version` `areport/pdf`)이 `require_viewer`만 써서 게이트웨이가 붙인 관리 세션을 보지 않았기 때문이다. `require_viewer_or_admin`으로 바꿨다. 세션이 없으면 전과 같이 서명 주소 token만 본다. 실측(세션 쿠키 없이): token 200 · token 없음 401 · 다른 화면 token 403 · 허용 목록 밖 404. Nabi Agent 회귀 2253 통과·9 skip, 이 시스템 회귀 144 통과·1 skip(PDF 렌더는 이미지 안) |
 
 #### F2 Nabi Agent 화면 이식
 
@@ -233,7 +233,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 화면 | [[TBL-UI-002#UI-1]]~[[TBL-UI-002#UI-8]] 전부, Nabi Agent 셸 안 |
 | 테스트 | 옮긴 Node 시험 28건 · 보기 논리 파일이 이 저장소와 같은지 · 메뉴·탭이 권한대로 보이는지 · 서버 요청이 `/api/intel-gw/`만 거치는지 · 이모지·직접 색값 없음 |
 | 선행 | F1 · E3 |
-| 완료 | 아직 없음 |
+| 완료 | 커밋 378e188 · PR 없음 · 2026-10-01. `frontend/src/pages/Intel/`(페이지 6 · api 7 · 보기 논리 4 사본 · `intelRoutes.ts` · `IntelHub`(종합·생산·재고·판매 탭) · `intel.css`(`.intel` 아래 307규칙)), `Settings/sections/Intel`(적재·배치 이력·마스터·열람 주소, 관리자만), 메뉴 시드 `intel`(sort 45), 레일 FALLBACK·AdminNavPanel 아이콘. api는 `services/api/intel.ts` 하나가 아니라 `pages/Intel/api/` 일곱으로 두었다(이 저장소 구조 그대로라 동일성 시험이 비교하기 쉽다). 정본 보기 논리 둘을 낮은 컴파일 대상에 맞춰 고쳤다(`areportView.ts` matchAll → exec 반복, `batchView.ts` s 플래그 → `[\s\S]`). 시험: Node 29건(옮긴 28 + intelRoutes 1), 사본 동일성·게이트웨이 경로 5건. Playwright: 로그인 → 레일 "완성차 인텔리전스" → 종합(변동 24건·근거 44)과 판매(533,440 → 530,826 → 492,228)가 셸 안에서 그려지고, 설정 탭에 관리 넷(적재 이력 표, 열람 주소 표)이 열리며, 완성차 쪽 요청은 전부 `/api/intel-gw/`다. **설정 화면은 Nabi Agent 세션에 Tableau 인증이 있어야 열린다(기존 설정 화면 규칙이지 이 슬라이스가 만든 것이 아니다). 점검 계정의 Tableau 사용자 이름을 실제 사이트 사용자로 맞춘 뒤 확인했다.** |
 
 #### F3 단독 주소와 배포
 
@@ -245,7 +245,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 화면 | 단독 주소 넷(셸 없음) |
 | 테스트 | 단독 주소가 셸 없이 열리고 토큰 없으면 403 안내 · 다른 화면 토큰 403 · 열람 주소 화면(UI-8)이 내는 완성본이 `/standalone` 주소인지 · nginx SPA fallback이 `/standalone/*`를 index.html로 보내는지 |
 | 선행 | F2 |
-| 완료 | 아직 없음 |
+| 완료 | 커밋 ce2241c · PR 없음 · 2026-10-01. `ops/docker-compose.prod.yml`에 intel-db·intel-web·intel-worker(호스트 포트 없음, 비밀 `../intelligence/secrets/db_password.txt`, env `../intelligence/.env`, backend에 `INTEL_BASE_URL=http://intel-web:8000`). `compose config` 통과(서비스 7, 호스트 포트는 frontend 80뿐). `/standalone/intel/creport` `/standalone/intel/areport/{domain}`은 App.tsx가 셸·온보딩 가드·세션 동기화 없이 그린다(F2 커밋에 선반영). `PUBLIC_BASE_URL`은 Nabi Agent 공개 주소 + `/standalone`(이 저장소 `.env.example`·README). Playwright: UI-8 완성본이 `http://localhost:5000/standalone/intel/areport/sales?token=…`이고, 그 주소가 셸 없이 열리며 PDF 링크에 token이 붙는다. 다른 화면 token은 "열람 주소가 맞지 않다", token 없음은 "열람 주소에 토큰이 없다" 안내. **단독 주소도 `/api/auth/me`·`/api/tableau/setup-status`를 한 번씩 부른다(App 상단 제공자. 세션이 없으면 401로 끝나고 화면에는 영향이 없다). nginx SPA fallback은 prod compose를 띄우지 않아 확인하지 못했다. 포트 없는 intel 컨테이너는 로컬에서 띄우지 않았고 compose config만 봤다.** |
 
 ### 1.1 순서
 
