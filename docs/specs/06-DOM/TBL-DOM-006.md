@@ -840,7 +840,7 @@ erDiagram
 
 클래스: [[TBL-DOM-005#DomainJudgment]]
 
-스키마 `mart`. 브리핑 갈래 저장소에서 읽어 복사한 A 판정이다. 값을 다시 계산하지 않고 그대로 받는다([[TBL-DOM-005#AJudgmentReader]]). 판정 사본이고 문장 컬럼을 두지 않는다. A가 쓴 요약·해설·고정 문구는 이 테이블에 들어오지 않는다. C 생성이 읽는 것은 이 테이블과 [[#a_contribution]]뿐이다.
+스키마 `mart`. 브리핑 갈래 저장소의 뷰 `tbl_a_judgment`에서 읽어 복사한 A 판정이다. 브리핑 갈래가 국가·공장 축 판정을 만들 때만 행이 생기고, 그 전에는 비어 있어 보완 집계가 대신한다(유저 결정 2026-10-01). 값을 다시 계산하지 않고 그대로 받는다([[TBL-DOM-005#AJudgmentReader]]). 판정 사본이고 문장 컬럼을 두지 않는다. A가 쓴 요약·해설·고정 문구는 이 테이블에 들어오지 않는다. C 생성이 읽는 것은 이 테이블과 [[#a_contribution]]뿐이다.
 
 | 컬럼 | 타입 | 널 | 설명 |
 |:--|:--|:--|:--|
@@ -861,7 +861,7 @@ erDiagram
 | `is_anomaly` | boolean | N | 변동으로 판정됐는가 |
 | `change_rate` | numeric(10,6) | Y | |
 | `data_form` | text | Y | 그 리포트가 읽은 데이터 형태 |
-| `a_snapshot_id` | text | N | 재현의 열쇠. 브리핑 갈래 스냅샷 식별자 |
+| `a_snapshot_id` | text | N | 재현의 열쇠. 브리핑 갈래 뷰의 `snapshot_id`(`{view_luid}:{generation}`) |
 | `a_report_snapshot_id` | text | Y | 같은 도메인·기준일의 열람 사본 [[#a_report_snapshot]]. 되짚기용이며 조인하지 않는다 |
 | `base_date` | date | N | |
 | `batch_run_id` | text | N | |
@@ -1347,7 +1347,7 @@ erDiagram
 
 클래스: [[TBL-DOM-005#DomainReport]]
 
-스키마 `pub`. 브리핑 갈래가 게시한 A 리포트를 문장과 근거와 버전까지 통째로 받아 둔 사본이다. [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] 세 지면이 읽는 유일한 자리다. [[TBL-DOM-005#ReportPublisher]]의 `publish_a_report`가 쓰고 [[TBL-DOM-005#DomainReportService]]가 읽는다.
+스키마 `pub`. 브리핑 갈래가 게시한 A 리포트(뷰 `tbl_a_report`의 요약·해설·트래킹 지표·판정·근거·버전)를 받아 둔 사본에, 이 시스템이 만든 분해 블록·고정 문구·못 만드는 지표·제약 경고를 더한 한 본이다(유저 결정 2026-10-01). [[TBL-UI-002#UI-2]] [[TBL-UI-002#UI-3]] [[TBL-UI-002#UI-4]] 세 지면이 읽는 유일한 자리다. [[TBL-DOM-005#ReportPublisher]]의 `publish_a_report`가 쓰고 [[TBL-DOM-005#DomainReportService]]가 읽는다.
 
 | 컬럼 | 타입 | 널 | 설명 |
 |:--|:--|:--|:--|
@@ -1355,8 +1355,8 @@ erDiagram
 | `domain` | text | N | `production` `inventory` `sales` |
 | `dashboard_id` | text | Y | 출처 대시보드 식별자 |
 | `base_date` | date | N | A 리포트가 서 있는 날 |
-| `snapshot_id` | text | Y | 그 리포트가 읽은 대시보드 스냅샷 식별자 |
-| `data_form` | text | N | 그 리포트가 읽은 데이터 형태. `A` `B` |
+| `snapshot_id` | text | Y | 브리핑 갈래 뷰의 `snapshot_id`(`{view_luid}:{generation}`). [[#a_judgment]]의 `a_snapshot_id`와 같은 값이다 |
+| `data_form` | text | N | 이 시스템이 그 도메인에 마지막으로 적재한 완성차 파일의 형태. `A` `B`. 브리핑 갈래는 형태를 모른다 |
 | `published_version` | integer | N | 브리핑 갈래가 매긴 버전. 사이드의 버전 목록이 이 값이다 |
 | `published_at` | timestamptz | N | 브리핑 갈래가 게시한 시각 |
 | `title` | text | N | 지면 제목 |
@@ -1364,11 +1364,11 @@ erDiagram
 | `source_label` | text | N | 출처 대시보드 이름 |
 | `summary` | text | Y | 요약 문단 |
 | `commentary` | text | Y | 해설 문단 |
-| `fixed_text` | text | Y | 고정 문구 |
+| `fixed_text` | text | Y | 고정 문구. 이 시스템의 도메인별 고정표를 설정 값으로 채운 글(LLM 없음) |
 | `tracking_metrics` | jsonb | Y | 트래킹 지표 셋. 이름·현재값·판정 |
-| `breakdown` | jsonb | Y | 분해 블록 사본. 표와 막대의 값. 칸이 없는 항목을 함께 묶는다: `blocks`(도메인 덩어리. API 4장 ProductionExtra·InventoryExtra·SalesExtra 이름), `judgments`(트래킹 지표별 판정과 기여), `dimensions`(분해 차원과 값 개수), `measureComposition`(측정값 구성), `snapshotAt`(스냅샷 일시). 브리핑 갈래 규격이 오면 키 이름을 맞춘다 |
-| `missing_metrics` | jsonb | Y | 못 만드는 지표 목록. 이름과 사유 |
-| `constraint_warnings` | jsonb | Y | 제약 경고 목록. 코드와 문구 |
+| `breakdown` | jsonb | Y | 분해 블록. 표와 막대의 값. 칸이 없는 항목을 함께 묶는다: `blocks`(도메인 덩어리. API 4장 ProductionExtra·InventoryExtra·SalesExtra 이름. [[TBL-DOM-005#ReportPublisher]]의 `build_domain_blocks`가 이 시스템 데이터로 계산한다), `judgments`(트래킹 지표별 판정. 뷰에서 온다), `dimensions`(분해 차원과 값 개수. 이 시스템이 센다), `measureComposition`(측정값 구성. 적재 이력에서), `snapshotAt`(브리핑 게시 시각) |
+| `missing_metrics` | jsonb | Y | 못 만드는 지표 목록. 이름과 사유. 이 시스템 고정표([[TBL-API-002]] 4.13절 배정) |
+| `constraint_warnings` | jsonb | Y | 제약 경고 목록. 코드와 문구. 못 만드는 지표 목록을 문구로 옮긴 것 |
 | `is_degraded` | boolean | N | 브리핑 갈래가 강등 상태로 게시했는가 |
 | `c_base_date` | date | N | 복사한 배치의 기준일 |
 | `batch_run_id` | text | N | 복사한 실행 |
@@ -1378,7 +1378,7 @@ erDiagram
 
 문장까지 복사하는 것이 [[#a_judgment]]와 갈리는 지점이다. 경로가 둘이기 때문이다. C 생성 경로는 A의 판정만 읽고 A가 쓴 문장을 C의 서술에 쓰지 않는다. A 리포트 열람 경로는 화면이 A 리포트를 그대로 보여 주는 것이므로 문장이 있어야 한다. 열람 계정은 `pub` 밖을 보지 못하니([[TBL-INFRA-002#C10]] [[TBL-PRD-002#R2]]) 문장이 이 스키마에 사본으로 있어야 한다. 클래스 속성 `evidence_list`는 [[#a_report_evidence]]로 펼쳤다.
 
-못 만드는 지표를 칸으로 들고 있는 이유. A2 재고 지면은 없는 것 넷을, A3 판매 지면은 하나를 목록으로 보여 준다([[TBL-API-002]] 4.13절). 화면이 그 목록을 코드에 박으면 원천이 들어온 날 화면을 고쳐야 한다. 사본에 두면 브리핑 갈래가 목록을 줄이는 것으로 끝난다.
+못 만드는 지표를 칸으로 들고 있는 이유. A2 재고 지면은 없는 것 넷을, A3 판매 지면은 하나를 목록으로 보여 준다([[TBL-API-002]] 4.13절). 화면이 그 목록을 코드에 박으면 원천이 들어온 날 화면을 고쳐야 한다. 사본에 두면 원천이 들어온 날 고정표를 줄여 다음 게시부터 반영되고 과거 사본은 그대로 남는다.
 
 #### a_report_evidence A 리포트 각주 근거
 
@@ -1391,7 +1391,7 @@ erDiagram
 | `a_report_snapshot_id` | text | N | [[#a_report_snapshot]] |
 | `number` | integer | N | 그 리포트 안에서 1부터 |
 | `kind` | text | N | `aJudgment` `contribution` `metric` |
-| `source_id` | text | N | 브리핑 갈래가 준 원본 식별자 |
+| `source_id` | text | N | 브리핑 갈래 근거 식별자. 뷰의 `sourceId`(`{evidence_type}:{evidence_id}`) |
 | `display_value` | text | N | 표시용 값 사본. 열람할 때 조인이 없다 |
 
 기본키 `(a_report_snapshot_id, number)`.
@@ -1732,7 +1732,7 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 
 이 문서가 만들지 않는 것. 파티션, 뷰, 트리거, 저장 프로시저다. 파티션은 실데이터 행수를 모르는 상태에서 나누면 기준을 다시 잡아야 한다. 뷰와 트리거를 두지 않는 이유는 계층 때문이다. 조회 조립은 서비스 클래스가 하고 쓰기 순서는 파이프라인이 정한다([[TBL-DOM-005]] 3장). DB 안에 로직이 생기면 "서술이 죽어도 판정은 산다"를 import 목록으로 확인할 수 없게 된다.
 
-밖에 있는 것. 브리핑 갈래 저장소의 테이블 구조다. A 판정은 이 DB에 없고 배치가 읽어 [[#a_judgment]]에 복사한다([[TBL-INFRA-002]] 6.2절).
+밖에 있는 것. 브리핑 갈래 저장소의 테이블 구조다. 이 시스템은 그쪽이 둔 뷰 둘(`tbl_a_judgment` `tbl_a_report`)만 읽고 배치가 [[#a_judgment]]와 [[#a_report_snapshot]]에 복사한다([[TBL-INFRA-002]] 6.2절, design/briefing_interface.md).
 
 ## 4. 미결사항
 
@@ -1742,8 +1742,8 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 - [ ] 식별자를 ULID로 할지 UUIDv7로 할지. 둘 다 시간순이며 정한 쪽을 `text` 길이 제약에 반영한다
 - [ ] 국가 코드 자리수. 실측 샘플은 세 자리(`B07` `B28`)인데 ISO 코드와 섞이는 파일이 있는지 확인이 필요하다([[#country]])
 - [ ] [[#report_anomaly]]의 `jsonb` 범위. 후보·기여·단계 흐름을 전부 `jsonb`로 둔 것이 카드 한 행을 너무 크게 만드는지 실측으로 본다. 한 행이 TOAST 임계를 넘으면 열람 2초가 흔들린다
-- [ ] A 판정 스냅샷의 실제 구조. 브리핑 갈래가 무엇을 어떤 키로 내주는지 확인해야 [[#a_judgment]]와 [[#a_contribution]]의 컬럼이 확정된다
-- [ ] A 리포트 게시 사본의 실제 구조. 브리핑 갈래가 문장과 각주와 버전을 어떤 키로 내주는지 확인해야 [[#a_report_snapshot]]과 [[#a_report_evidence]]의 컬럼이 확정된다
+- [x] A 판정 스냅샷의 실제 구조. 뷰 `tbl_a_judgment`의 칸으로 정했다(유저 결정 2026-10-01, design/briefing_interface.md). [[#a_judgment]]와 [[#a_contribution]]의 컬럼은 그대로다. 브리핑 갈래가 축 판정을 만들기 전에는 뷰가 0행이다
+- [x] A 리포트 게시 사본의 실제 구조. 뷰 `tbl_a_report`의 칸으로 정했다(유저 결정 2026-10-01). 글·트래킹 지표·판정·근거·버전은 뷰에서, 분해 블록·고정 문구·못 만드는 지표·제약 경고·데이터 형태는 이 시스템이 채운다
 - [ ] `raw` 보관 2년, 나머지 무기한이라는 방침의 실제 용량. 폐쇄망 디스크가 확정되면 [[#raw_pivot_cell]]부터 다시 본다
 - [ ] [[#ingest_file]]의 `ingest_seq`를 몇 회차까지 남길지. 원본 파일 보존과 별개로 파생 행의 회차 보관 범위다
 - [ ] [[#category_route]]의 배정 확인. 자사 08 시트 배정과 FVL 임시 배정(판매·재고)을 발주처에 확인한다. 회신이 오면 크로스워크 시트로 바꾼다
@@ -1752,4 +1752,4 @@ C 리포트 화면 한 장이 아래 앞 여덟 조회로 끝나고, A 리포트
 - [ ] [[#country_period_fact]]를 매핑된 국가 전부에 만들지, 데이터 있는 국가만 만들지. 지금은 데이터 있는 국가만으로 둔다
 - [ ] [[#event]]의 `status` 전환 기준. 시간창을 넘긴 사건을 `closed`로 바꾸는 것까지만 정해졌고 다시 여는 규칙은 없다
 - [ ] [[#market_series]]의 보관 구간. 스파크라인이 30일이면 그 밖 구간을 언제까지 게시본에 남길지 실측으로 본다
-- [ ] [[#a_judgment]]와 [[#a_report_snapshot]]을 잇는 열쇠. 지금은 `a_report_snapshot_id`를 되짚기용으로만 두었고, 브리핑 갈래가 판정과 문서에 같은 스냅샷 ID를 주는지에 따라 외래키로 올릴지 정한다
+- [x] [[#a_judgment]]와 [[#a_report_snapshot]]을 잇는 열쇠. 뷰 둘이 같은 `snapshot_id`(`{view_luid}:{generation}`)를 주므로 두 사본의 스냅샷 칸이 같은 값이다. 외래키로 올리지 않는다. 판정 행은 선택 항목이라 비어 있을 수 있다
