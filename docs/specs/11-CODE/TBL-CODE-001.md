@@ -209,7 +209,7 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 화면 | 없음(UI-2~4 그대로) |
 | 테스트 | 구현 함수의 테스트 관점 전부. 브리핑 갈래 뷰 모양의 고정 표본(세 도메인 a 변형 한 세대)으로 사본 셋이 게시되고 미수신이 0/3인지. 블록 값이 같은 기준일 C 리포트의 단계 흐름·법인별 달성률과 소수점까지 같은지. 뷰 `tbl_a_judgment`가 0행일 때 도메인 셋이 보완 집계로 가고 배치가 끝까지 가는지. 읽기 계정이 뷰 밖을 못 보는지. 사본이 없으면 블록도 내리지 않는지 |
 | 선행 | D3 · E2 · C3 |
-| 완료 | 아직 없음 |
+| 완료 | 커밋 96f269d · PR 없음 · 2026-10-01. 함수 6(build_domain_blocks 신설, publish_a_report, BriefingStoreReader 넷). validate_shape는 대조 목록이 뷰 칸과 이미 같아 바꾸지 않았다. 새 모듈 `analysis/report_blocks.py`(블록 계산)와 `intel/fixed_texts.py`(제목·범위·고정 문구). QUERIES가 뷰 둘만 읽고 기여는 판정 행의 `contributions` jsonb에서 떼어 둔다. `snapshot_id`는 도메인 셋을 `|`로 잇는다. 사본 breakdown = {blocks, judgments(뷰), dimensions, measureComposition, snapshotAt}. 못 만드는 지표·제약 경고는 사본에 두지 않고 열람의 고정표가 채운다. 시험: 뷰 모양 표 둘로 C1 다섯 건, 뷰 문서 셋 → 사본 3/3(배치 1단계부터. 판정 0행이라 세 도메인이 보완 집계로 끝까지 간다), 판매 블록이 그 실행 `mart.sales_stage_flow` 합과 같음(76,418 · 72,060 · 66,074 · 4,358 · 5,986), 열람 E2 시험은 뷰 행 봉투로. 호스트 144건 통과(PDF 렌더 1건은 이미지 안). 금지 이름·경계 검사 0. **읽기 계정이 뷰 밖을 못 보는지는 브리핑 갈래 DB가 아직 없어 시험하지 못했다(계정 권한은 브리핑 갈래 쪽 작업). 생산 블록과 C 리포트 공장 축 집계는 같은 함수(FactJoiner.join_plants)를 쓰지만 값 대조 시험은 두지 않았다. 운영 사본은 뷰가 생기기 전까지 0/3이다.** |
 
 ### 1.1 순서
 
