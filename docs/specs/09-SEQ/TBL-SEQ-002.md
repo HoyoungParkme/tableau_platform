@@ -385,8 +385,8 @@ sequenceDiagram
     BSR-->>AJR: true
     loop domain in production, inventory, sales
       AJR->>BSR: read_judgments(baseDate, domain)
-      BSR->>BRIEF: 읽기 전용 조회
-      BRIEF-->>BSR: 스냅샷 판정 payload
+      BSR->>BRIEF: 뷰 tbl_a_judgment 읽기 전용 조회
+      BRIEF-->>BSR: 축 판정 행. 기여는 contributions jsonb. 축 판정을 만들기 전에는 0행
       BSR-->>AJR: 지표, 값, 비교값, 기준 방식, 변동 여부
       AJR->>AJR: validate_shape(payload)
       alt 기대한 키와 필드가 있다
@@ -410,9 +410,10 @@ sequenceDiagram
   Note over AJR,DB_MART: 이 단계는 판정만 복사한다. A 리포트 문장 사본은 8단계 게시가 만든다
   Note over AJR,DB_MART: 기간 키는 데이터 형태를 따른다. 형태 A면 periodType=day, 형태 B면 헤더 기간 구분과 파일 기준일
   Note over AJR,DB_MART: A1은 목적지 국가가 없어 axis_type이 plant로 남는다. 국가 보완이 되지 않는다
+  Note over BSR,BRIEF: 읽는 것은 뷰 둘(tbl_a_judgment, tbl_a_report)뿐이다. 축 판정은 브리핑 갈래가 줄 때만 쓰는 선택 항목이다
 ```
 
-**읽을 때 볼 것.** [[TBL-DOM-005#BriefingStoreReader]] 쪽으로 가는 화살표에 쓰기가 하나도 없다. 클래스에 쓰기 메서드를 두지 않았고 계정도 읽기 전용이다. 이 단계가 가져오는 것은 판정뿐이라는 것이 이 그림의 핵심이다. `read_judgments`와 `read_contributions`가 가져온 판정은 `copy_snapshot`으로 [[TBL-DOM-006#a_judgment]]와 [[TBL-DOM-006#a_contribution]]에 앉고 C 리포트가 그것을 쓴다. A 리포트의 문장·각주 근거·버전을 `pub` 사본으로 앉히는 `read_report_document`와 `publish_a_report`는 게시 담당이 8단계에서 맡는다([[#SEQ-11]]). 판정 계층이 게시 계층을 부르지 않게 둘을 갈랐다. 원본이 나중에 바뀌어도 그날 리포트는 `aSnapshotId`로 같은 입력을 다시 쓴다([[TBL-INFRA-002#C11]] [[TBL-PRD-002#N3]]). 실패 갈래가 둘 다 `fallback_to_supplementary`로 내려가고 배치는 계속된다. 마지막 Note가 [[TBL-INFRA-002#C16]]이 여기서 처음 나타나는 자리이며, A1의 판정이 `plant` 축으로 남는 순간 이후 [[#SEQ-8]]에서 신호등 대상에서 빠진다.
+**읽을 때 볼 것.** [[TBL-DOM-005#BriefingStoreReader]] 쪽으로 가는 화살표에 쓰기가 하나도 없다. 클래스에 쓰기 메서드를 두지 않았고 계정도 읽기 전용이다. 이 단계가 가져오는 것은 판정뿐이라는 것이 이 그림의 핵심이다. `read_judgments`와 `read_contributions`가 가져온 판정은 `copy_snapshot`으로 [[TBL-DOM-006#a_judgment]]와 [[TBL-DOM-006#a_contribution]]에 앉고 C 리포트가 그것을 쓴다. A 리포트의 문장·각주 근거·버전을 `pub` 사본으로 앉히는 `read_report_document`와 `publish_a_report`는 게시 담당이 8단계에서 맡는다([[#SEQ-11]]). 판정 계층이 게시 계층을 부르지 않게 둘을 갈랐다. 원본이 나중에 바뀌어도 그날 리포트는 `aSnapshotId`로 같은 입력을 다시 쓴다([[TBL-INFRA-002#C11]] [[TBL-PRD-002#N3]]). 실패 갈래가 둘 다 `fallback_to_supplementary`로 내려가고 배치는 계속된다. 뷰 `tbl_a_judgment`가 0행인 동안(브리핑 갈래가 축 판정을 만들기 전)도 같은 갈래이고 도메인 셋이 보완 집계다(유저 결정 2026-10-01). 마지막 Note가 [[TBL-INFRA-002#C16]]이 여기서 처음 나타나는 자리이며, A1의 판정이 `plant` 축으로 남는 순간 이후 [[#SEQ-8]]에서 신호등 대상에서 빠진다.
 
 #### SEQ-6 사건 묶음
 
@@ -671,15 +672,18 @@ sequenceDiagram
   participant CV as CitationVerifier
   participant DH as DegradeHandler
   participant DB_MART as mart 스키마
+  participant DB_STD as std 스키마
   participant DB_PUB as pub 스키마
   RUN->>RP: 8단계 시작
   loop domain in production, inventory, sales
     RP->>BSR: read_report_document(baseDate, domain)
-    BSR->>BRIEF: 읽기 전용 조회
+    BSR->>BRIEF: 뷰 tbl_a_report 읽기 전용 조회
     alt 문서가 있다
       BRIEF-->>BSR: A 리포트 문서
-      BSR-->>RP: 요약, 해설, 고정 문구, 트래킹 지표, 분해, 못 만드는 지표, 각주 근거, published_version, published_at
-      RP->>RP: publish_a_report(domain, document)
+      BSR-->>RP: 요약, 해설, 트래킹 지표, 판정, 각주 근거, published_version, published_at
+      RP->>DB_MART: build_domain_blocks(domain). 단계 흐름·결합 행으로 분해 블록
+      RP->>DB_STD: 차종 분해와 구성 비율은 표준 행 집계
+      RP->>RP: publish_a_report(domain, document). 블록과 고정 문구·못 만드는 지표·제약 경고를 더한다
       RP->>DB_PUB: a_report_snapshot, a_report_evidence 사본
     else 읽지 못했다
       RP->>RP: 사본만 미수신으로 남긴다. C 리포트는 게시한다
@@ -730,7 +734,7 @@ sequenceDiagram
   Note over RP,DB_PUB: 서술이 비어 있어도 게시한다. 변동, 후보, 근접도, 신호등, 도메인 상태는 5단계 산출물 그대로다
 ```
 
-**읽을 때 볼 것.** 첫 loop가 A 리포트 열람 경로의 입구다. 브리핑 저장소를 부르는 것도 게시 사본을 쓰는 것도 [[TBL-DOM-005#ReportPublisher]] 하나가 맡아, 판정 계층이 게시 계층을 부르는 자리가 없다. 2단계는 판정만 복사하고([[#SEQ-5]]) 문장 사본은 여기서 만들어지며, 이 사본은 C 생성에 쓰이지 않고 [[#SEQ-2]]만 읽는다. 문서를 읽지 못해도 C 리포트는 게시하고 사본만 미수신으로 남긴다([[TBL-UC-002#UC-S1]] 8b).
+**읽을 때 볼 것.** 첫 loop가 A 리포트 열람 경로의 입구다. 브리핑 저장소를 부르는 것도 게시 사본을 쓰는 것도 [[TBL-DOM-005#ReportPublisher]] 하나가 맡아, 판정 계층이 게시 계층을 부르는 자리가 없다. 2단계는 판정만 복사하고([[#SEQ-5]]) 문장 사본은 여기서 만들어지며, 이 사본은 C 생성에 쓰이지 않고 [[#SEQ-2]]만 읽는다. 문서를 읽지 못해도 C 리포트는 게시하고 사본만 미수신으로 남긴다([[TBL-UC-002#UC-S1]] 8b). 분해 블록은 브리핑 갈래가 주지 않고 `build_domain_blocks`가 `mart`·`std`에서 만들어 사본에 넣는다. 그래서 사본이 있으면 블록도 있고, 없으면 둘 다 없다(유저 결정 2026-10-01).
 
 `number_evidence`가 `complete`보다 앞에 온다. 순서가 뒤집히면 모델이 번호를 만들게 되고 없는 각주가 생긴다([[TBL-PRD-002#N4]] [[TBL-PRD-002#R23]]). 생산 구역의 Note가 [[TBL-INFRA-002#C16]]과 [[TBL-PRD-002#R21]]을 코드로 지키는 방법이다. 프롬프트에 외부 후보를 넣지 않는 것으로 지키지 검증기로 뒤에서 거르지 않는다.
 
@@ -957,11 +961,11 @@ F3은 닫혔다. [[TBL-API-002#GET/api/admin/batch/status]] 응답에 `briefingS
 
 ## 8. 미결사항
 
-- [ ] [[#SEQ-5]]의 `read_judgments`와 [[#SEQ-11]]의 `read_report_document` 반환 모양. 브리핑 갈래가 무엇을 어떤 키로 내주는지 정해져야 `validate_shape`의 대조 목록과 loop 안 화살표, 그리고 사본 컬럼과의 1대1 대응이 확정된다
+- [x] [[#SEQ-5]]의 `read_judgments`와 [[#SEQ-11]]의 `read_report_document` 반환 모양. 뷰 `tbl_a_judgment`·`tbl_a_report`의 칸으로 정했다(유저 결정 2026-10-01, design/briefing_interface.md)
 - [x] [[#SEQ-4]]의 형태 A 실물. 실물 원장과 IF 레이아웃 정의가 같다(생산 16열, 판매·재고 22열, 2026-09-30). `check_columns` 화살표는 그대로다
 - [x] [[#SEQ-8]]의 임계값. 현업 검토 전 기본값을 설정 초기 행 v1로 넣었다(유저 결정 2026-09-30). 현업 검토는 발주처 확인 요청에 싣는다
 - [ ] [[#SEQ-9]]부터 [[#SEQ-11]]까지의 H-chat JSON 모드. 게이트웨이가 응답 스키마 지정을 지원한다는 회신은 받았으나 실호출 확인 범위가 좁다. 지원되지 않으면 세 시퀀스의 검증 화살표가 전부 늘어난다
 - [ ] [[#SEQ-12]]의 설정 변경 경로. 화면과 API가 없어 [[TBL-DOM-006#threshold_setting]] 새 버전 행을 SQL로 넣을지 CLI를 만들지가 정해지지 않았다. 정해지면 시퀀스가 하나 는다
 - [ ] [[#SEQ-13]] 확정 후 재계산 범위. 과거 기준일을 어디까지 다시 돌릴지가 정해지면 [[#SEQ-12]]와 잇는 화살표가 생긴다
 - [ ] [[#SEQ-14]]의 채널 발송. 1차에 어댑터가 없고 무엇을 붙일지도 미결이다
-- [ ] [[#SEQ-2]]에서 사본이 없을 때 판정값과 차트를 어디서 읽는가. 열람 경로는 `pub`만 보므로 판정값 사본이 `pub`에 있어야 하는데, 지금 [[TBL-DOM-006#a_report_snapshot]]은 문서 사본이고 판정 사본은 `mart`다. 브리핑 갈래가 문서 없이 판정만 주는 경우가 실제로 있는지 확인 뒤 정한다
+- [x] [[#SEQ-2]]에서 사본이 없을 때 판정값과 차트를 어디서 읽는가. 읽지 않는다. 사본이 없으면 문장 미수신만 보인다. 블록은 게시 때 사본에 함께 넣는다(유저 결정 2026-10-01)
