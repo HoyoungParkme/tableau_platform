@@ -211,6 +211,42 @@ upstream: [TBL-MS-002, TBL-SEQ-002, TBL-API-002, TBL-UI-002, TBL-DOM-005, TBL-DO
 | 선행 | D3 · E2 · C3 |
 | 완료 | 커밋 96f269d · PR 없음 · 2026-10-01. 함수 6(build_domain_blocks 신설, publish_a_report, BriefingStoreReader 넷). validate_shape는 대조 목록이 뷰 칸과 이미 같아 바꾸지 않았다. 새 모듈 `analysis/report_blocks.py`(블록 계산)와 `intel/fixed_texts.py`(제목·범위·고정 문구). QUERIES가 뷰 둘만 읽고 기여는 판정 행의 `contributions` jsonb에서 떼어 둔다. `snapshot_id`는 도메인 셋을 `|`로 잇는다. 사본 breakdown = {blocks, judgments(뷰), dimensions, measureComposition, snapshotAt}. 못 만드는 지표·제약 경고는 사본에 두지 않고 열람의 고정표가 채운다. 시험: 뷰 모양 표 둘로 C1 다섯 건, 뷰 문서 셋 → 사본 3/3(배치 1단계부터. 판정 0행이라 세 도메인이 보완 집계로 끝까지 간다), 판매 블록이 그 실행 `mart.sales_stage_flow` 합과 같음(76,418 · 72,060 · 66,074 · 4,358 · 5,986), 열람 E2 시험은 뷰 행 봉투로. 호스트 144건 통과(PDF 렌더 1건은 이미지 안). 금지 이름·경계 검사 0. **읽기 계정이 뷰 밖을 못 보는지는 브리핑 갈래 DB가 아직 없어 시험하지 못했다(계정 권한은 브리핑 갈래 쪽 작업). 생산 블록과 C 리포트 공장 축 집계는 같은 함수(FactJoiner.join_plants)를 쓰지만 값 대조 시험은 두지 않았다. 운영 사본은 뷰가 생기기 전까지 0/3이다.** |
 
+#### F1 Nabi Agent 게이트웨이
+
+| 항목 | 내용 |
+|---|---|
+| 근거 | 유저 결정 2026-10-01(화면은 Nabi Agent 안, VODA는 프론트만 분리) · [[TBL-PRD-002#R29]] · [[TBL-INFRA-002#C12]] · [[TBL-API-002]] 1.1절 · 브리핑 갈래 F-037 |
+| 구현 함수 | Nabi Agent backend `domains/intel_gateway/`: `forward(path, request)`(허용 목록 → 인증 분기 → httpx 대리 호출 → 응답 그대로), `issue_intel_admin_session(user)`(공유 비밀, `[[TBL-MS-002#ExposureService.verify]]`가 아니라 이 시스템 `core/auth.require_admin`과 같은 규격). 설정 `INTEL_BASE_URL` `INTEL_ADMIN_SESSION_SECRET`. 이 시스템 코드 변경 없음 |
+| API | Nabi Agent `/api/intel-gw/{path}` GET·POST·PUT·DELETE. 허용: `intel/**`(로그인 사용자), `admin/**`(플랫폼 관리자). 밖은 404. 접속점 비면 503 |
+| 화면 | 없음 |
+| 테스트 | 허용 목록 밖 404 · 세션 없음 401 · 관리 경로 일반 사용자 403 · 쿼리 `token`은 세션 없이 통과 · 발급한 `X-Admin-Session`을 이 시스템 `require_admin`이 받는지(같은 비밀로 복호화) · PDF 응답 머리글(content-disposition·cache-control) 보존 · 접속점 비면 503 |
+| 선행 | E4 · E5 |
+| 완료 | 아직 없음 |
+
+#### F2 Nabi Agent 화면 이식
+
+| 항목 | 내용 |
+|---|---|
+| 근거 | 유저 결정 2026-10-01 · [[TBL-UI-002]] 2장 · [[TBL-PRD-002#R29]] · 브리핑 갈래 F-037 |
+| 구현 함수 | Nabi Agent frontend `pages/Intel/`(C·A·관리 넷을 wouter·Tailwind 페이지로), `services/api/intel.ts`(zod 계약, 경로는 `/api/intel-gw/` 뒤에 이 시스템 경로), 보기 논리 `creportView.ts` `areportView.ts` `batchView.ts` `exposureView.ts`는 이 저장소 사본 그대로(동일성 시험). 메뉴 시드 `portal_menu`에 `intel` 한 줄, 설정 탭 '완성차 인텔리전스'(내부 탭 넷, 관리자만). 스타일은 `styles.css` 토큰을 `.intel` 래퍼 아래로 |
+| API | 없음(F1 경유) |
+| 화면 | [[TBL-UI-002#UI-1]]~[[TBL-UI-002#UI-8]] 전부, Nabi Agent 셸 안 |
+| 테스트 | 옮긴 Node 시험 28건 · 보기 논리 파일이 이 저장소와 같은지 · 메뉴·탭이 권한대로 보이는지 · 서버 요청이 `/api/intel-gw/`만 거치는지 · 이모지·직접 색값 없음 |
+| 선행 | F1 · E3 |
+| 완료 | 아직 없음 |
+
+#### F3 단독 주소와 배포
+
+| 항목 | 내용 |
+|---|---|
+| 근거 | 유저 결정 2026-10-01 · 브리핑 갈래 F-032·F-037 · [[TBL-INFRA-002#C12]] 5장 · [[TBL-UC-002#UC-A4]] |
+| 구현 함수 | Nabi Agent frontend 라우터에 `/standalone/*` 분기(셸·온보딩 가드·세션 동기화 없이 같은 페이지), `/standalone/intel/creport` `/standalone/intel/areport/{domain}`. 이 시스템 `PUBLIC_BASE_URL`을 Nabi Agent 공개 주소 + `/standalone`으로(환경변수만). compose에 이 시스템 서비스 넷을 더하고 포트는 열지 않음(기본안. 별도 compose는 유저 확인) |
+| API | 없음 |
+| 화면 | 단독 주소 넷(셸 없음) |
+| 테스트 | 단독 주소가 셸 없이 열리고 토큰 없으면 403 안내 · 다른 화면 토큰 403 · 열람 주소 화면(UI-8)이 내는 완성본이 `/standalone` 주소인지 · nginx SPA fallback이 `/standalone/*`를 index.html로 보내는지 |
+| 선행 | F2 |
+| 완료 | 아직 없음 |
+
 ### 1.1 순서
 
 ```mermaid
@@ -229,6 +265,11 @@ flowchart LR
   D3 --> E5
   E2 --> E5
   C3 --> E5
+  E4 --> F1
+  E5 --> F1
+  F1 --> F2
+  E3 --> F2
+  F2 --> F3
 ```
 
 C5가 끝난 시점이 첫 번째 확인 지점이다. LLM 없이 새벽 배치가 1~5단계를 돌고 `mart`에 변동·후보·근접도·신호등·도메인 상태가 생긴다. 발주자에게 판정 결과를 먼저 보여 줄 수 있는 것이 이 시점이고, 임계값 실제 수치를 현업과 맞추는 것도 이 시점에 한다. D3가 끝난 시점이 두 번째 확인 지점이다. 게시본이 생기고 E1이 그것을 읽는다.
